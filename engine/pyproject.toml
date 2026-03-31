@@ -14,3 +14,93 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.2",
 ]
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+# ── Black ──────────────────────────────────────────────────────────────────
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+include = 'engine/.*\.pyi?$'
+extend-exclude = '''
+/(
+  \.git
+  | \.venv
+  | venv
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+# ── isort ──────────────────────────────────────────────────────────────────
+[tool.isort]
+profile = "black"
+line_length = 88
+known_third_party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]
+known_first_party = []        # add your package names here
+skip_glob = [".venv/*", "venv/*", "build/*", "dist/*"]
+src_paths = ["engine"]
+
+# ── mypy ───────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+strict = false                 # flip to true for strict mode
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = false
+files = ["engine"]
+# PyTorch stubs are incomplete – suppress those errors
+[[tool.mypy.overrides]]
+module = ["torch.*", "torchvision.*", "torchaudio.*"]
+ignore_missing_imports = true
+
+# ── flake8 (via .flake8 / setup.cfg – flake8 does not read pyproject yet) ─
+# Keep this section as reference; effective config lives in .flake8
+[tool.flake8-placeholder]
+# See .flake8 file
+
+# ── pytest ─────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["engine/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m not slow')",
+    "gpu:  marks tests that require a CUDA-capable GPU",
+]
+
+# ── coverage ───────────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["engine"]
+omit = ["engine/tests/*", ".venv/*", "venv/*", "setup.py"]
+
+[tool.coverage.report]
+fail_under = 70               # raise this as the codebase matures
+show_missing = true
+
+# ── bandit ─────────────────────────────────────────────────────────────────
+[tool.bandit]
+skips = ["B101"]              # skip assert_used – fine in tests
+exclude_dirs = [".venv", "venv", "engine/tests"]
+
+# ── ruff (optional fast linter / formatter) ────────────────────────────────
+[tool.ruff]
+line-length = 88
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "PT",       # flake8-pytest-style
+]
+ignore = ["E501"]             # line-too-long handled by black
+
+[tool.ruff.isort]
+known-third-party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]

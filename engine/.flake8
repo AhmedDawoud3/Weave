@@ -1,0 +1,26 @@
+[flake8]
+max-line-length = 88          # match black
+extend-ignore =
+    # E501 – line too long (black handles this)
+    E501,
+    # W503 – line break before binary operator (conflicts with black)
+    W503,
+    # E203 – whitespace before ':' (conflicts with black slices)
+    E203
+
+per-file-ignores =
+    # Allow unused imports in __init__.py (re-export pattern)
+    engine/**/__init__.py: F401
+    # Allow assert in tests (bandit B101 skipped separately)
+    engine/tests/*.py: S101
+
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    build,
+    dist
+
+# Only lint files inside engine/
+filename = engine/**/*.py

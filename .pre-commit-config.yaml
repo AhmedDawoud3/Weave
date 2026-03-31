@@ -1,0 +1,92 @@
+repos:
+  # ── Code formatting ────────────────────────────────────────────────────
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^engine/
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+        files: ^engine/
+
+  # ── Fast linting (replaces flake8 + pyupgrade in one pass) ───────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^engine/
+
+  # ── Static type checking ───────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: ["--ignore-missing-imports"]
+        additional_dependencies: ["types-requests", "types-PyYAML"]
+        files: ^engine/
+
+  # ── Security scanning ──────────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ["-ll", "--skip", "B101"]   # -ll = medium+ severity
+        files: ^engine/
+        exclude: ^engine/tests/
+
+  # ── PyTorch-specific: deprecated API detection ────────────────────────
+  - repo: https://github.com/pytorch-labs/torchfix
+    rev: v0.6.0
+    hooks:
+      - id: torchfix
+        files: ^engine/
+
+  # ── Upgrade Python syntax automatically ───────────────────────────────
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.2
+    hooks:
+      - id: pyupgrade
+        args: ["--py310-plus"]
+        files: ^engine/
+
+  # ── General housekeeping ───────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=10240"]           # warn on files > 10 MB (model weights)
+      - id: debug-statements             # catch leftover breakpoint() / pdb
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # ── Notebook cleanliness (strip outputs before commit) ────────────────
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+
+  # ── Detect secrets accidentally committed ─────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+
+# ── Global settings ────────────────────────────────────────────────────────
+default_language_version:
+  python: python3.11
+ci:
+  autoupdate_schedule: monthly
+  autoupdate_commit_msg: "chore: bump pre-commit hooks"
