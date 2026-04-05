@@ -238,25 +238,25 @@ class GroupNormNode(BaseModel):
 class ReLUNode(BaseModel):
     id: str
     type: Literal["ReLU"]
-    params: ReLUParams = ReLUParams()
+    params: ReLUParams = Field(default_factory=ReLUParams)
 
 
 class GELUNode(BaseModel):
     id: str
     type: Literal["GELU"]
-    params: GELUParams = GELUParams()
+    params: GELUParams = Field(default_factory=GELUParams)
 
 
 class SigmoidNode(BaseModel):
     id: str
     type: Literal["Sigmoid"]
-    params: SigmoidParams = SigmoidParams()
+    params: SigmoidParams = Field(default_factory=SigmoidParams)
 
 
 class TanhNode(BaseModel):
     id: str
     type: Literal["Tanh"]
-    params: TanhParams = TanhParams()
+    params: TanhParams = Field(default_factory=TanhParams)
 
 
 class SoftmaxNode(BaseModel):
