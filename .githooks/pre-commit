@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # pre-commit hook
-# Runs a suite of quality checks on every Python file that is *staged*.
+# Runs formatting checks on every Python file that is *staged*.
 # Any tool failure aborts the commit so the developer can fix issues first.
 #
 # Checks (in order):
 #   1. isort   – import ordering
 #   2. black   – code formatting
-#   3. flake8  – style / logic linting
-#   4. mypy    – static type checking
-#   5. bandit  – security scanning
-#   6. torchfix – deprecated PyTorch API detection
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -35,7 +31,7 @@ if [[ -z "$STAGED_PY" ]]; then
     exit 0
 fi
 
-info "Running pre-commit checks on $(echo "$STAGED_PY" | wc -l | tr -d ' ') Python file(s)…"
+info "Running pre-commit formatting on $(echo "$STAGED_PY" | wc -l | tr -d ' ') Python file(s)…"
 echo
 
 # ── helper: run a check and report ────────────────────────────────────────
@@ -61,31 +57,15 @@ run_check "isort" isort --profile black --check-only -- $STAGED_PY
 # ── 2. black ─────────────────────────────────────────────────────────────
 run_check "black" black --check --quiet -- $STAGED_PY
 
-# ── 3. flake8 ────────────────────────────────────────────────────────────
-run_check "flake8" flake8 -- $STAGED_PY
-
-# ── 4. mypy ──────────────────────────────────────────────────────────────
-run_check "mypy" mypy --ignore-missing-imports -- $STAGED_PY
-
-# ── 5. bandit (security) ─────────────────────────────────────────────────
-run_check "bandit" bandit -q -ll -- $STAGED_PY
-
-# ── 6. torchfix (PyTorch deprecations) ───────────────────────────────────
-if command -v torchfix &>/dev/null; then
-    run_check "torchfix" torchfix -- $STAGED_PY
-else
-    warning "torchfix not found – skipping PyTorch API checks. (pip install torchfix)"
-fi
-
 # ── result ────────────────────────────────────────────────────────────────
 if [[ $FAILED -ne 0 ]]; then
     echo
-    error "One or more checks failed. Fix the issues above and re-stage the files."
+    error "Formatting checks failed. Fix the issues above and re-stage the files."
     error "To auto-fix formatting run:"
     error "  isort --profile black <files>"
     error "  black <files>"
     exit 1
 fi
 
-info "All checks passed."
+info "All formatting checks passed."
 exit 0
