@@ -62,7 +62,7 @@ run_check "isort" isort --profile black --check-only -- $STAGED_PY
 run_check "black" black --check --quiet -- $STAGED_PY
 
 # ── 3. flake8 ────────────────────────────────────────────────────────────
-run_check "flake8" flake8 -- $STAGED_PY
+run_check "flake8" flake8 --max-line-length=120 -- $STAGED_PY
 
 # ── 4. mypy ──────────────────────────────────────────────────────────────
 run_check "mypy" mypy --ignore-missing-imports -- $STAGED_PY
