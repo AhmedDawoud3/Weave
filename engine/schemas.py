@@ -781,9 +781,9 @@ class LRSchedulePreviewRequest(BaseModel):
     """
 
     optimizer: str
-    optimizer_params: dict = {}
+    optimizer_params: dict = Field(default_factory=dict)
     scheduler: str
-    scheduler_params: dict = {}
+    scheduler_params: dict = Field(default_factory=dict)
     total_steps: int
 
 
