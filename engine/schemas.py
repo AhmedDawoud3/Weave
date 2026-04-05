@@ -11,10 +11,11 @@ Author: Omar Elzarka
 """
 
 from __future__ import annotations
-from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Literal, Union, Annotated, Optional
 
+from datetime import datetime
+from typing import Annotated, Literal, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
 
 # =============================================================================
 # SECTION 1 — LAYER PARAMS
@@ -25,6 +26,7 @@ from typing import Literal, Union, Annotated, Optional
 
 
 # --- Convolution & Pooling ---------------------------------------------------
+
 
 class Conv2dParams(BaseModel):
     in_channels: int
@@ -65,6 +67,7 @@ class AdaptiveAvgPool2dParams(BaseModel):
 
 # --- Linear & Embedding ------------------------------------------------------
 
+
 class LinearParams(BaseModel):
     in_features: int
     out_features: int
@@ -78,6 +81,7 @@ class EmbeddingParams(BaseModel):
 
 
 # --- Normalization ------------------------------------------------------------
+
 
 class BatchNorm2dParams(BaseModel):
     num_features: int
@@ -99,6 +103,7 @@ class GroupNormParams(BaseModel):
 
 # --- Activations -------------------------------------------------------------
 
+
 class ReLUParams(BaseModel):
     inplace: bool = False
 
@@ -116,10 +121,11 @@ class TanhParams(BaseModel):
 
 
 class SoftmaxParams(BaseModel):
-    dim: int   # required — which dimension to apply softmax over
+    dim: int  # required — which dimension to apply softmax over
 
 
 # --- Shape Manipulation ------------------------------------------------------
+
 
 class FlattenParams(BaseModel):
     start_dim: int = 1
@@ -136,6 +142,7 @@ class PermuteParams(BaseModel):
 
 # --- Regularization ----------------------------------------------------------
 
+
 class DropoutParams(BaseModel):
     p: float = 0.5
     inplace: bool = False
@@ -147,6 +154,7 @@ class Dropout2dParams(BaseModel):
 
 
 # --- Multi-Input Operations --------------------------------------------------
+
 
 class AddParams(BaseModel):
     pass
@@ -165,6 +173,7 @@ class MultiplyParams(BaseModel):
 # Each node type gets its own class with a Literal type field.
 # Literal["Conv2d"] means the "type" field MUST be exactly "Conv2d".
 # =============================================================================
+
 
 class Conv2dNode(BaseModel):
     id: str
@@ -320,8 +329,10 @@ class MultiplyNode(BaseModel):
 # Works because of "from __future__ import annotations" at top.
 # =============================================================================
 
+
 class ResidualBlockNode(BaseModel):
     """Conv -> BN -> ReLU -> Conv -> Add"""
+
     id: str
     type: Literal["ResidualBlock"]
     graph: "GraphConfig"
@@ -330,6 +341,7 @@ class ResidualBlockNode(BaseModel):
 
 class TransformerEncoderNode(BaseModel):
     """MultiHeadAttn -> Add -> LN -> FFN -> Add -> LN"""
+
     id: str
     type: Literal["TransformerEncoder"]
     graph: "GraphConfig"
@@ -338,6 +350,7 @@ class TransformerEncoderNode(BaseModel):
 
 class MultiHeadAttentionNode(BaseModel):
     """Linear(Q,K,V) -> ScaledDotProduct -> Linear"""
+
     id: str
     type: Literal["MultiHeadAttention"]
     graph: "GraphConfig"
@@ -346,6 +359,7 @@ class MultiHeadAttentionNode(BaseModel):
 
 class ConvBNReLUNode(BaseModel):
     """Conv2d -> BatchNorm2d -> ReLU"""
+
     id: str
     type: Literal["ConvBNReLU"]
     graph: "GraphConfig"
@@ -354,6 +368,7 @@ class ConvBNReLUNode(BaseModel):
 
 class BottleneckBlockNode(BaseModel):
     """1x1 Conv -> 3x3 Conv -> 1x1 Conv -> Add"""
+
     id: str
     type: Literal["BottleneckBlock"]
     graph: "GraphConfig"
@@ -365,6 +380,7 @@ class CustomBlockNode(BaseModel):
     User-created block. User selects nodes, clicks 'Create Block'.
     Uses type 'Block' to distinguish from named built-in templates.
     """
+
     id: str
     type: Literal["Block"]
     graph: "GraphConfig"
@@ -418,7 +434,7 @@ NodeConfig = Annotated[
         # User-created blocks
         CustomBlockNode,
     ],
-    Field(discriminator="type")
+    Field(discriminator="type"),
 ]
 
 
@@ -436,6 +452,7 @@ NodeConfig = Annotated[
 # "input" and "output" are virtual pseudo-nodes — just reserved strings.
 # =============================================================================
 
+
 class EdgeConfig(BaseModel):
     source: str
     target: str
@@ -446,6 +463,7 @@ class EdgeConfig(BaseModel):
 # The complete model: all nodes + all edges.
 # Used by Ahmed's compiler and inside block nodes as nested subgraphs.
 # =============================================================================
+
 
 class GraphConfig(BaseModel):
     nodes: list[NodeConfig]
@@ -468,15 +486,17 @@ class GraphConfig(BaseModel):
 # This handles every transform type having its own unique field names.
 # =============================================================================
 
+
 class TransformConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
-    type: str   # "Resize", "Normalize", "ToTensor", "RandomHorizontalFlip", etc.
+    type: str  # "Resize", "Normalize", "ToTensor", "RandomHorizontalFlip", etc.
 
 
 # =============================================================================
 # SECTION 7 — DATALOADER CONFIG
 # From architecture doc section 2.3
 # =============================================================================
+
 
 class DataLoaderConfig(BaseModel):
     batch_size: int = 32
@@ -499,6 +519,7 @@ class DataLoaderConfig(BaseModel):
 # From architecture doc section 2.1
 # =============================================================================
 
+
 class PredefinedDatasetConfig(BaseModel):
     """
     Built-in datasets: MNIST, FashionMNIST, CIFAR10, CIFAR100,
@@ -507,9 +528,10 @@ class PredefinedDatasetConfig(BaseModel):
     From architecture doc:
     {"source": "predefined", "name": "CIFAR10", "split": "train"}
     """
+
     source: Literal["predefined"]
-    name: str           # "MNIST", "CIFAR10", "ImageNet", etc.
-    split: str          # "train" or "test"
+    name: str  # "MNIST", "CIFAR10", "ImageNet", etc.
+    split: str  # "train" or "test"
     transforms: list[TransformConfig] = []
     dataloader: DataLoaderConfig = DataLoaderConfig()
 
@@ -521,6 +543,7 @@ class ImageFolderDatasetConfig(BaseModel):
     From architecture doc:
     {"source": "image_folder", "root": "/data/my_dataset", "split_ratio": 0.8}
     """
+
     source: Literal["image_folder"]
     root: str
     split_ratio: float = 0.8
@@ -535,12 +558,13 @@ class CustomDatasetConfig(BaseModel):
 
     From architecture doc section 2.1.3
     """
+
     source: Literal["custom"]
     modality: Literal["image", "text", "tabular", "audio"]
 
     # image + audio: data lives in a folder
     root: Optional[str] = None
-    label_source: Optional[str] = None       # "csv" or "folder"
+    label_source: Optional[str] = None  # "csv" or "folder"
 
     # image specific
     label_file: Optional[str] = None
@@ -577,11 +601,11 @@ class CustomDatasetConfig(BaseModel):
 # Clean discriminated union — source is now unique for all three
 DatasetConfig = Annotated[
     Union[
-        PredefinedDatasetConfig,     # source = "predefined"
-        ImageFolderDatasetConfig,    # source = "image_folder"
-        CustomDatasetConfig,         # source = "custom"
+        PredefinedDatasetConfig,  # source = "predefined"
+        ImageFolderDatasetConfig,  # source = "image_folder"
+        CustomDatasetConfig,  # source = "custom"
     ],
-    Field(discriminator="source")
+    Field(discriminator="source"),
 ]
 
 
@@ -590,8 +614,9 @@ DatasetConfig = Annotated[
 # From architecture doc section 4
 # =============================================================================
 
+
 class LossConfig(BaseModel):
-    type: str           # "CrossEntropyLoss", "MSELoss", "BCEWithLogitsLoss", etc.
+    type: str  # "CrossEntropyLoss", "MSELoss", "BCEWithLogitsLoss", etc.
     params: dict = {}
 
 
@@ -600,9 +625,10 @@ class LossConfig(BaseModel):
 # From architecture doc section 5.1
 # =============================================================================
 
+
 class OptimizerConfig(BaseModel):
-    type: str           # "AdamW", "SGD", "Adam", "RMSprop", "Adagrad"
-    params: dict = {}   # {"lr": 0.001, "weight_decay": 0.01, ...}
+    type: str  # "AdamW", "SGD", "Adam", "RMSprop", "Adagrad"
+    params: dict = {}  # {"lr": 0.001, "weight_decay": 0.01, ...}
 
 
 # =============================================================================
@@ -610,9 +636,10 @@ class OptimizerConfig(BaseModel):
 # From architecture doc section 5.2
 # =============================================================================
 
+
 class SchedulerConfig(BaseModel):
-    type: str           # "CosineAnnealingLR", "StepLR", "OneCycleLR", etc.
-    params: dict = {}   # {"T_max": 100, "eta_min": 1e-6, ...}
+    type: str  # "CosineAnnealingLR", "StepLR", "OneCycleLR", etc.
+    params: dict = {}  # {"T_max": 100, "eta_min": 1e-6, ...}
 
 
 # =============================================================================
@@ -620,17 +647,19 @@ class SchedulerConfig(BaseModel):
 # From architecture doc section 6.1
 # =============================================================================
 
+
 class EarlyStoppingConfig(BaseModel):
     enabled: bool = False
     patience: int = 10
     monitor: str = "val_loss"
-    mode: str = "min"           # "min" for loss, "max" for accuracy
+    mode: str = "min"  # "min" for loss, "max" for accuracy
 
 
 # =============================================================================
 # SECTION 13 — CHECKPOINTING CONFIG
 # From architecture doc section 6.1
 # =============================================================================
+
 
 class CheckpointingConfig(BaseModel):
     save_best: bool = True
@@ -644,9 +673,10 @@ class CheckpointingConfig(BaseModel):
 # From architecture doc section 6.1
 # =============================================================================
 
+
 class TrainingSettings(BaseModel):
     epochs: int
-    device: str = "cuda"                    # "cuda", "cuda:0", "cuda:1", "cpu"
+    device: str = "cuda"  # "cuda", "cuda:0", "cuda:1", "cpu"
     mixed_precision: bool = False
     gradient_clip_norm: float = 1.0
     gradient_accumulation_steps: int = 1
@@ -661,13 +691,14 @@ class TrainingSettings(BaseModel):
 # From architecture doc section 6.1
 # =============================================================================
 
+
 class TrainingConfig(BaseModel):
-    dataset_config: DatasetConfig       # Sara uses this
-    model_graph: GraphConfig            # Ahmed uses this
-    loss: LossConfig                    # Mahmoud uses this
-    optimizer: OptimizerConfig          # Mahmoud uses this
+    dataset_config: DatasetConfig  # Sara uses this
+    model_graph: GraphConfig  # Ahmed uses this
+    loss: LossConfig  # Mahmoud uses this
+    optimizer: OptimizerConfig  # Mahmoud uses this
     scheduler: Optional[SchedulerConfig] = None
-    training: TrainingSettings          # Mahmoud uses this
+    training: TrainingSettings  # Mahmoud uses this
 
 
 # =============================================================================
@@ -678,14 +709,16 @@ class TrainingConfig(BaseModel):
 
 # --- Model Builder -----------------------------------------------------------
 
+
 class ShapeInferenceRequest(BaseModel):
     """POST /infer_layer_shape — single layer shape check"""
+
     node: NodeConfig
-    input_shape: list[int]          # e.g. [32, 3, 224, 224]
+    input_shape: list[int]  # e.g. [32, 3, 224, 224]
 
 
 class ShapeInferenceResponse(BaseModel):
-    status: str                     # "success" or "error"
+    status: str  # "success" or "error"
     output_shape: Optional[list[int]] = None
     message: Optional[str] = None
 
@@ -695,17 +728,19 @@ class PipelineValidationRequest(BaseModel):
     POST /validate_pipeline
     Called every time the user connects an edge. Returns all shapes or error.
     """
+
     graph: GraphConfig
     input_shape: list[int]
 
 
 class PipelineValidationResponse(BaseModel):
-    status: str                             # "success" or "error"
-    node_shapes: Optional[dict] = None      # {"conv1": [32, 64, 112, 112], ...}
+    status: str  # "success" or "error"
+    node_shapes: Optional[dict] = None  # {"conv1": [32, 64, 112, 112], ...}
     message: Optional[str] = None
 
 
 # --- Loss --------------------------------------------------------------------
+
 
 class LossSuggestionRequest(BaseModel):
     """
@@ -713,9 +748,10 @@ class LossSuggestionRequest(BaseModel):
     From architecture doc section 4.2:
     {"output_shape": [32, 10], "final_activation": "none", "task_type": "classification"}
     """
+
     output_shape: list[int]
-    final_activation: str           # "none", "softmax", "sigmoid", "log_softmax"
-    task_type: str                  # "classification", "regression", "multi_label"
+    final_activation: str  # "none", "softmax", "sigmoid", "log_softmax"
+    task_type: str  # "classification", "regression", "multi_label"
 
 
 class LossSuggestionResponse(BaseModel):
@@ -723,11 +759,13 @@ class LossSuggestionResponse(BaseModel):
     From architecture doc section 4.2:
     {"suggested": "CrossEntropyLoss", "alternatives": ["NLLLoss", ...]}
     """
+
     suggested: str
     alternatives: list[str]
 
 
 # --- LR Schedule Preview -----------------------------------------------------
+
 
 class LRSchedulePreviewRequest(BaseModel):
     """
@@ -741,6 +779,7 @@ class LRSchedulePreviewRequest(BaseModel):
       "total_steps": 1000
     }
     """
+
     optimizer: str
     optimizer_params: dict = {}
     scheduler: str
@@ -754,10 +793,12 @@ class LRSchedulePreviewResponse(BaseModel):
     {"schedule": [[0, 0.001], [1, 0.000999], ...]}
     Each item is [step_number, learning_rate].
     """
+
     schedule: list[list[float]]
 
 
 # --- Training WebSocket Messages ---------------------------------------------
+
 
 class StepMetricsMessage(BaseModel):
     """
@@ -766,6 +807,7 @@ class StepMetricsMessage(BaseModel):
     {"type": "step_metrics", "run_id": "abc123", "epoch": 5, "step": 1250,
      "metrics": {"train_loss": 0.342, "learning_rate": 0.00087}}
     """
+
     type: Literal["step_metrics"]
     run_id: str
     epoch: int
@@ -780,6 +822,7 @@ class EpochMetricsMessage(BaseModel):
     {"type": "epoch_metrics", "run_id": "abc123", "epoch": 5,
      "metrics": {"train_loss": 0.342, "val_loss": 0.401, ...}}
     """
+
     type: Literal["epoch_metrics"]
     run_id: str
     epoch: int
@@ -792,6 +835,7 @@ class TrainingCompleteMessage(BaseModel):
     From architecture doc section 6.3:
     {"type": "training_complete", "run_id": "abc123", "best_epoch": 42, "best_val_loss": 0.312}
     """
+
     type: Literal["training_complete"]
     run_id: str
     best_epoch: int
@@ -804,13 +848,16 @@ class TrainingControlMessage(BaseModel):
     From architecture doc section 6.3:
     {"action": "pause"} or {"action": "resume"} or {"action": "stop"}
     """
+
     action: Literal["pause", "resume", "stop"]
 
 
 # --- Training Status ---------------------------------------------------------
 
+
 class TrainingStatusResponse(BaseModel):
     """GET /training/status/{run_id}"""
+
     run_id: str
     status: Literal["running", "paused", "completed", "failed", "stopped"]
     current_epoch: Optional[int] = None
@@ -820,28 +867,32 @@ class TrainingStatusResponse(BaseModel):
 
 # --- Metrics -----------------------------------------------------------------
 
+
 class MetricsSuggestionRequest(BaseModel):
     """POST /metrics/suggest — from architecture doc section 7.1"""
-    task_type: str                      # "classification", "regression", "multi_label"
+
+    task_type: str  # "classification", "regression", "multi_label"
     num_classes: Optional[int] = None
 
 
 class MetricsSuggestionResponse(BaseModel):
-    suggested: list[str]                # ["Accuracy", "F1Score", "ConfusionMatrix"]
+    suggested: list[str]  # ["Accuracy", "F1Score", "ConfusionMatrix"]
 
 
 # --- Export ------------------------------------------------------------------
+
 
 class ExportRequest(BaseModel):
     """
     POST /export/onnx or /export/pytorch or /export/torchscript
     From architecture doc section 8.2
     """
+
     graph: GraphConfig
     input_shape: list[int]
     checkpoint_path: str
     output_path: str
-    opset_version: Optional[int] = 17   # only relevant for ONNX
+    opset_version: Optional[int] = 17  # only relevant for ONNX
 
 
 class ExportResponse(BaseModel):
@@ -852,15 +903,17 @@ class ExportResponse(BaseModel):
 
 # --- Inference ---------------------------------------------------------------
 
+
 class InferenceRequest(BaseModel):
     """
     POST /inference/predict
     From architecture doc section 8.3:
     {"graph": {...}, "checkpoint_path": "/checkpoints/best.pt", "input": [...]}
     """
+
     graph: GraphConfig
     checkpoint_path: str
-    input: list                         # tensor as flat or nested list
+    input: list  # tensor as flat or nested list
 
 
 class InferenceResponse(BaseModel):
@@ -868,23 +921,26 @@ class InferenceResponse(BaseModel):
     From architecture doc section 8.3:
     {"prediction": [0.1, 0.02, 0.85, ...], "predicted_class": 2}
     """
+
     prediction: list[float]
-    predicted_class: Optional[int] = None   # None for regression tasks
+    predicted_class: Optional[int] = None  # None for regression tasks
 
 
 # --- Experiment Tracking -----------------------------------------------------
+
 
 class RunRecord(BaseModel):
     """
     Stored for every training run.
     From architecture doc section 9.1
     """
+
     run_id: str
     created_at: datetime
     status: Literal["running", "completed", "failed", "stopped"]
-    config: dict                        # full TrainingConfig snapshot
-    graph_snapshot: dict                # model graph at time of training
-    metrics_history: list[dict] = []    # all epoch metrics
+    config: dict  # full TrainingConfig snapshot
+    graph_snapshot: dict  # model graph at time of training
+    metrics_history: list[dict] = []  # all epoch metrics
     best_metrics: Optional[dict] = None
     checkpoint_path: Optional[str] = None
     duration_seconds: Optional[float] = None
@@ -896,6 +952,7 @@ class ExperimentCompareRequest(BaseModel):
     From architecture doc section 9.2:
     {"run_ids": ["abc123", "def456"], "metrics": ["val_loss", "val_accuracy"]}
     """
+
     run_ids: list[str]
     metrics: list[str]
 
@@ -905,4 +962,5 @@ class ExperimentCompareResponse(BaseModel):
     From architecture doc section 9.2:
     {"runs": [{"run_id": "abc123", "val_loss": [...], "val_accuracy": [...]}, ...]}
     """
+
     runs: list[dict]
