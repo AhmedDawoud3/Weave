@@ -4,12 +4,17 @@
 # Runs black + isort on every Python file touched by the most recent commit,
 # then amends the commit if any formatting changed.
 #
-# NOTE: post-commit runs AFTER the commit is recorded.  If formatting changes
+# NOTE: post-commit runs AFTER the commit is recorded. If formatting changes
 # are detected the commit is automatically amended (--no-verify so this hook
 # does not trigger itself recursively).
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
+
+# ── 🚨 Prevent infinite loops during amend ─────────────────────────────────
+if [[ -n "${IS_AMENDING:-}" ]]; then
+    exit 0
+fi
 
 # ── helpers ────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -42,20 +47,21 @@ for tool in isort black; do
 done
 
 # ── run isort then black ─────────────────────────────────────────────────
-# shellcheck disable=SC2086
-echo "$PYTHON_FILES" | xargs isort --profile black --
-# shellcheck disable=SC2086
-echo "$PYTHON_FILES" | xargs black --quiet --
+isort --profile black -- $PYTHON_FILES
+black --quiet -- $PYTHON_FILES
 
 # ── amend if any file changed ────────────────────────────────────────────
-CHANGED=$(git diff --name-only -- $(echo "$PYTHON_FILES") || true)
+CHANGED=$(git diff --name-only -- $PYTHON_FILES || true)
 
 if [[ -n "$CHANGED" ]]; then
     info "Formatting changes detected – amending commit…"
+    
     # Stage only the formatted Python files
-    # shellcheck disable=SC2086
     git add -- $CHANGED
-    git commit --amend --no-edit --no-verify
+    
+    # Pass the IS_AMENDING flag to block the hook from running again
+    IS_AMENDING=1 git commit --amend --no-edit --no-verify
+    
     info "Commit amended with formatted code."
 else
     info "All Python files were already formatted."
