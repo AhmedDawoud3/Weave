@@ -13,7 +13,7 @@ Author: Omar Elzarka
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal, Optional, Union
+from typing import Any, Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -532,8 +532,8 @@ class PredefinedDatasetConfig(BaseModel):
     source: Literal["predefined"]
     name: str  # "MNIST", "CIFAR10", "ImageNet", etc.
     split: str  # "train" or "test"
-    transforms: list[TransformConfig] = []
-    dataloader: DataLoaderConfig = DataLoaderConfig()
+    transforms: list[TransformConfig] = Field(default_factory=list)
+    dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
 
 
 class ImageFolderDatasetConfig(BaseModel):
@@ -547,8 +547,8 @@ class ImageFolderDatasetConfig(BaseModel):
     source: Literal["image_folder"]
     root: str
     split_ratio: float = 0.8
-    transforms: list[TransformConfig] = []
-    dataloader: DataLoaderConfig = DataLoaderConfig()
+    transforms: list[TransformConfig] = Field(default_factory=list)
+    dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
 
 
 class CustomDatasetConfig(BaseModel):
@@ -582,9 +582,9 @@ class CustomDatasetConfig(BaseModel):
     max_length: int = 512
 
     # tabular specific
-    feature_columns: list[str] = []
+    feature_columns: list[str] = Field(default_factory=list)
     target_column: Optional[str] = None
-    categorical_columns: list[str] = []
+    categorical_columns: list[str] = Field(default_factory=list)
     normalize: bool = True
 
     # audio specific
@@ -594,8 +594,8 @@ class CustomDatasetConfig(BaseModel):
     n_mels: int = 64
 
     # common
-    transforms: list[TransformConfig] = []
-    dataloader: DataLoaderConfig = DataLoaderConfig()
+    transforms: list[TransformConfig] = Field(default_factory=list)
+    dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
 
 
 # Clean discriminated union — source is now unique for all three
@@ -617,7 +617,7 @@ DatasetConfig = Annotated[
 
 class LossConfig(BaseModel):
     type: str  # "CrossEntropyLoss", "MSELoss", "BCEWithLogitsLoss", etc.
-    params: dict = {}
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 # =============================================================================
@@ -628,7 +628,7 @@ class LossConfig(BaseModel):
 
 class OptimizerConfig(BaseModel):
     type: str  # "AdamW", "SGD", "Adam", "RMSprop", "Adagrad"
-    params: dict = {}  # {"lr": 0.001, "weight_decay": 0.01, ...}
+    params: dict[str, Any] = Field(default_factory=dict)  # {"lr": 0.001, "weight_decay": 0.01, ...}
 
 
 # =============================================================================
@@ -639,7 +639,7 @@ class OptimizerConfig(BaseModel):
 
 class SchedulerConfig(BaseModel):
     type: str  # "CosineAnnealingLR", "StepLR", "OneCycleLR", etc.
-    params: dict = {}  # {"T_max": 100, "eta_min": 1e-6, ...}
+    params: dict[str, Any] = Field(default_factory=dict)  # {"T_max": 100, "eta_min": 1e-6, ...}
 
 
 # =============================================================================
@@ -940,7 +940,7 @@ class RunRecord(BaseModel):
     status: Literal["running", "completed", "failed", "stopped"]
     config: dict  # full TrainingConfig snapshot
     graph_snapshot: dict  # model graph at time of training
-    metrics_history: list[dict] = []  # all epoch metrics
+    metrics_history: list[dict[str, Any]] = Field(default_factory=list)  # all epoch metrics
     best_metrics: Optional[dict] = None
     checkpoint_path: Optional[str] = None
     duration_seconds: Optional[float] = None
