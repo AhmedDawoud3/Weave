@@ -22,7 +22,11 @@ class GraphCompiler:
         incoming_edges = defaultdict(list)
 
         # Fast lookup mapping
-        node_map = {n.id: n for n in graph.nodes}
+        node_map = {}
+        for node in graph.nodes:
+            if node.id in node_map:
+                raise ValueError(f"Duplicate node id detected: '{node.id}'.")
+            node_map[node.id] = node
 
         # Topological Sort Configuration & Bounds Checking
         MAX_NODES = 500  # Governance limit to prevent DoS attacks via unbounded node compilation
