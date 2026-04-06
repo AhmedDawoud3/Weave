@@ -13,7 +13,7 @@ Author: Omar Elzarka
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Annotated, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -628,7 +628,9 @@ class LossConfig(BaseModel):
 
 class OptimizerConfig(BaseModel):
     type: str  # "AdamW", "SGD", "Adam", "RMSprop", "Adagrad"
-    params: dict[str, Any] = Field(default_factory=dict)  # {"lr": 0.001, "weight_decay": 0.01, ...}
+    params: dict[str, Any] = Field(
+        default_factory=dict
+    )  # {"lr": 0.001, "weight_decay": 0.01, ...}
 
 
 # =============================================================================
@@ -639,7 +641,9 @@ class OptimizerConfig(BaseModel):
 
 class SchedulerConfig(BaseModel):
     type: str  # "CosineAnnealingLR", "StepLR", "OneCycleLR", etc.
-    params: dict[str, Any] = Field(default_factory=dict)  # {"T_max": 100, "eta_min": 1e-6, ...}
+    params: dict[str, Any] = Field(
+        default_factory=dict
+    )  # {"T_max": 100, "eta_min": 1e-6, ...}
 
 
 # =============================================================================
@@ -940,7 +944,9 @@ class RunRecord(BaseModel):
     status: Literal["running", "completed", "failed", "stopped"]
     config: dict  # full TrainingConfig snapshot
     graph_snapshot: dict  # model graph at time of training
-    metrics_history: list[dict[str, Any]] = Field(default_factory=list)  # all epoch metrics
+    metrics_history: list[dict[str, Any]] = Field(
+        default_factory=list
+    )  # all epoch metrics
     best_metrics: Optional[dict] = None
     checkpoint_path: Optional[str] = None
     duration_seconds: Optional[float] = None

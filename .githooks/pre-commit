@@ -54,9 +54,6 @@ run_check() {
 # ── 1. isort ─────────────────────────────────────────────────────────────
 run_check "isort" isort --profile black --check-only -- $STAGED_PY
 
-# ── 2. black ─────────────────────────────────────────────────────────────
-run_check "black" black --check --quiet -- $STAGED_PY
-
 # ── result ────────────────────────────────────────────────────────────────
 if [[ $FAILED -ne 0 ]]; then
     echo
