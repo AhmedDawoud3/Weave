@@ -138,61 +138,62 @@ class GraphCompiler:
             if node_id == "output":
                 sources = block.incoming_edges.get("output", [])
                 if len(sources) != 1:
-                    return {
-                        "status": "error",
-                        "message": f"Uh oh! The 'output' node must have exactly 1 incoming arrow, but it received {len(sources)}.",
-                    }
+        block.eval()
+        tensors = {"input": x}
+        node_shapes = {"input": list(x.shape)}
 
-                output_source = sources[0]
-                if output_source not in tensors:
-                    return {
-                        "status": "error",
-                        "message": f"Couldn't track the values coming into '{output_source}'. Is it disconnected?",
-                    }
+        with torch.inference_mode():
+            for node_id in block.exec_order:
+                if node_id == "input":
+                    continue
 
-                node_shapes["output"] = list(tensors[output_source].shape)
-                break
-
-            # Gather inputs
-            sources = block.incoming_edges.get(node_id, [])
-            missing_sources = [src for src in sources if src not in tensors]
-            if missing_sources:
-                return {
-                    "status": "error",
-                    "message": (
-                        f"Couldn't evaluate '{node_id}' because input(s) "
-                        f"{missing_sources} have not been computed. "
-                        "Please check for disconnected or invalid edges."
-                    ),
-                }
-            input_tensors = [tensors[src] for src in sources]
-
-            # Execute layer safely
-            layer = block.operations[node_id]
-            try:
-                if isinstance(layer, (AddModule, ConcatModule)):
-                    out = layer(input_tensors)
-                else:
-                    if len(input_tensors) != 1:
+                if node_id == "output":
+                    sources = block.incoming_edges.get("output", [])
+                    if len(sources) != 1:
                         return {
                             "status": "error",
-                            "message": f"Node '{node_id}' expected 1 arrow pointing towards it, but received {len(input_tensors)}.",
+                            "message": f"Uh oh! The 'output' node must have exactly 1 incoming arrow, but it received {len(sources)}.",
                         }
-                    out = layer(input_tensors[0])
-            except RuntimeError as e:
-                # RAI: Translate PyTorch's cryptic error messages into accessible language
-                return {
-                    "status": "error",
-                    "message": f"Shape mismatch at '{node_id}'. The shapes of the matrices don't match for this operation. Technical detail: {str(e)}",
-                }
-            except Exception as e:
-                # RAI: Ensure error is readable
-                return {
-                    "status": "error",
-                    "message": f"Error evaluating '{node_id}'. Please check if your connections are correct. Technical detail: {str(e)}",
-                }
 
-            tensors[node_id] = out
-            node_shapes[node_id] = list(out.shape)
+                    output_source = sources[0]
+                    if output_source not in tensors:
+                        return {
+                            "status": "error",
+                            "message": f"Couldn't track the values coming into '{output_source}'. Is it disconnected?",
+                        }
 
+                    node_shapes["output"] = list(tensors[output_source].shape)
+                    break
+
+                # Gather inputs
+                sources = block.incoming_edges.get(node_id, [])
+                input_tensors = [tensors[src] for src in sources]
+
+                # Execute layer safely
+                layer = block.operations[node_id]
+                try:
+                    if isinstance(layer, (AddModule, ConcatModule)):
+                        out = layer(input_tensors)
+                    else:
+                        if len(input_tensors) != 1:
+                            return {
+                                "status": "error",
+                                "message": f"Node '{node_id}' expected 1 arrow pointing towards it, but received {len(input_tensors)}.",
+                            }
+                        out = layer(input_tensors[0])
+                except RuntimeError as e:
+                    # RAI: Translate PyTorch's cryptic error messages into accessible language
+                    return {
+                        "status": "error",
+                        "message": f"Shape mismatch at '{node_id}'. The shapes of the matrices don't match for this operation. Technical detail: {str(e)}",
+                    }
+                except Exception as e:
+                    # RAI: Ensure error is readable
+                    return {
+                        "status": "error",
+                        "message": f"Error evaluating '{node_id}'. Please check if your connections are correct. Technical detail: {str(e)}",
+                    }
+
+                tensors[node_id] = out
+                node_shapes[node_id] = list(out.shape)
         return {"status": "success", "node_shapes": node_shapes}
