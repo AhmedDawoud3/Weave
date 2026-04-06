@@ -155,6 +155,16 @@ class GraphCompiler:
 
             # Gather inputs
             sources = block.incoming_edges.get(node_id, [])
+            missing_sources = [src for src in sources if src not in tensors]
+            if missing_sources:
+                return {
+                    "status": "error",
+                    "message": (
+                        f"Couldn't evaluate '{node_id}' because input(s) "
+                        f"{missing_sources} have not been computed. "
+                        "Please check for disconnected or invalid edges."
+                    ),
+                }
             input_tensors = [tensors[src] for src in sources]
 
             # Execute layer safely
