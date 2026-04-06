@@ -19,4 +19,8 @@ class ConcatModule(nn.Module):
         self.dim = dim
 
     def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        if not inputs:
+            raise ValueError(
+                "ConcatModule requires at least one input tensor."
+            )
         return torch.cat(inputs, dim=self.dim)
