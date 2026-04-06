@@ -68,8 +68,22 @@ class GraphCompiler:
                 f"Cycle detected! Completed mapping {len(exec_order)} of {len(nodes_in_graph)} nodes. Non-DAG loops are not permitted."
             )
 
-        # Enforce that output is in executable graph
-        if "output" not in exec_order:
+        # Enforce that output is reachable from input
+        if not incoming_edges["output"]:
             raise ValueError("No path leads to 'output' node.")
 
+        reachable_from_input = set()
+        reachability_queue = deque(["input"])
+
+        while reachability_queue:
+            current = reachability_queue.popleft()
+            if current in reachable_from_input:
+                continue
+            reachable_from_input.add(current)
+            for neighbor in adj_list[current]:
+                if neighbor not in reachable_from_input:
+                    reachability_queue.append(neighbor)
+
+        if "output" not in reachable_from_input:
+            raise ValueError("No path leads to 'output' node.")
         return WeaveBlock(exec_order, node_map, incoming_edges)
