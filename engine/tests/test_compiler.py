@@ -1,6 +1,5 @@
 import pytest
 from compiler.compiler import GraphCompiler
-from pydantic import ValidationError
 from schemas import GraphConfig
 
 
