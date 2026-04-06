@@ -43,10 +43,21 @@ class WeaveBlock(nn.Module):
         for node_id in self.exec_order:
             # Reached output, compile its incoming sources and exit
             if node_id == "output":
-                sources = self.incoming_edges["output"]
-                # Assuming single output model for now.
-                return tensors[sources[0]]
+                sources = self.incoming_edges.get("output", [])
+                if len(sources) != 1:
+                    raise RuntimeError(
+                        "Output node must have exactly 1 incoming edge, "
+                        f"but received {len(sources)}. Invalid DAG state."
+                    )
 
+                output_source = sources[0]
+                if output_source not in tensors:
+                    raise RuntimeError(
+                        f"Output source '{output_source}' was not computed "
+                        "before reaching the output node. Invalid DAG state."
+                    )
+
+                return tensors[output_source]
             if node_id == "input":
                 continue
 
