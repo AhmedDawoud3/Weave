@@ -1,0 +1,18 @@
+{
+    "MNIST": {
+        "module": "torchvision.datasets",
+        "class": "MNIST",
+        "default_params": {
+            "train": true,
+            "download": true
+        }
+    },
+    "CIFAR10": {
+        "module": "torchvision.datasets",
+        "class": "CIFAR10",
+        "default_params": {
+            "train": true,
+            "download": true
+        }
+    }
+}
