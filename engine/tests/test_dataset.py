@@ -125,8 +125,8 @@ def test_scan_folder_normalises_path(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_get_dataset_unsupported_name():
+def test_get_dataset_unsupported_name(tmp_path):
     from dataset.dataset_factory import get_dataset
 
     with pytest.raises(ValueError, match="not supported"):
-        get_dataset("NonExistentDataset", "/tmp")
+        get_dataset("NonExistentDataset", str(tmp_path))
