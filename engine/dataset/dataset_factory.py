@@ -1,7 +1,8 @@
 import importlib
 from .registry import load_registry
 
-def get_dataset(name: str, root_dir: str, transform=None):
+
+def get_dataset(name: str, root_dir: str, transform=None, split: str = "train"):
     registry = load_registry()
 
     if name not in registry:
@@ -14,10 +15,15 @@ def get_dataset(name: str, root_dir: str, transform=None):
     module = importlib.import_module(config["module"])
     dataset_class = getattr(module, config["class"])
 
+    default_params = dict(config.get("default_params", {}))
+    # Override train/test split if the underlying dataset accepts a `train` bool
+    if "train" in default_params:
+        default_params["train"] = split == "train"
+
     dataset = dataset_class(
         root=root_dir,
         transform=transform,
-        **config.get("default_params", {})
+        **default_params,
     )
 
     return dataset

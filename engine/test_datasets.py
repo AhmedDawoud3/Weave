@@ -4,28 +4,34 @@ from dataset.registry import list_predefined_datasets
 from dataset.scanner import scan_folder
 from dataset.dataloader import create_dataloader
 
-print("Available datasets:")
-print(list_predefined_datasets())
 
-transform_json = [
-    {"type": "Resize", "params": {"size": 128}},
-    {"type": "ToTensor", "params": {}}
-]
+def main() -> None:
+    print("Available datasets:")
+    print(list_predefined_datasets())
 
-print("\nBuilding transforms...")
-transform = build_transforms(transform_json)
+    transform_json = [
+        {"type": "Resize", "params": {"size": 128}},
+        {"type": "ToTensor", "params": {}},
+    ]
 
-print("\nLoading dataset...")
-dataset = get_dataset("MNIST", "./data", transform=transform)
+    print("\nBuilding transforms...")
+    transform = build_transforms(transform_json)
 
-print("\nCreating DataLoader...")
-loader = create_dataloader(dataset)
+    print("\nLoading dataset...")
+    dataset = get_dataset("MNIST", "./data", transform=transform)
 
-print("\nTesting one batch...")
-for x, y in loader:
-    print("Input shape:", x.shape)
-    print("Labels shape:", y.shape)
-    break
+    print("\nCreating DataLoader...")
+    loader = create_dataloader(dataset)
 
-print("\nScanning folder...")
-print(scan_folder("./data"))
+    print("\nTesting one batch...")
+    for x, y in loader:
+        print("Input shape:", x.shape)
+        print("Labels shape:", y.shape)
+        break
+
+    print("\nScanning folder...")
+    print(scan_folder("./data"))
+
+
+if __name__ == "__main__":
+    main()

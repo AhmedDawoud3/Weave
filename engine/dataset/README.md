@@ -17,8 +17,6 @@ dataset/
 ├── dataloader.py
 ├── datasets_registry.json
 ├── __init__.py
-
-main.py
 ```
 
 ---
@@ -51,12 +49,12 @@ Key functionality:
 
 * Validates dataset name
 * Dynamically imports dataset class using `importlib`
-* Merges default and user-provided parameters
+* Accepts a `split` parameter (`"train"` or `"test"`) to control which subset to load
 
 Example:
 
 ```python
-dataset = get_dataset("MNIST", "./data")
+dataset = get_dataset("MNIST", "./data", split="train")
 ```
 
 ---
@@ -70,12 +68,13 @@ Key functionality:
 * Maps transform names to `torchvision.transforms`
 * Dynamically constructs transformation pipelines
 * Returns a composed transform object
+* Supports both flat schema (`{"type": "Resize", "size": 128}`) and nested params (`{"type": "Resize", "params": {"size": 128}}`)
 
 Example:
 
 ```python
 transform = build_transforms([
-    {"type": "Resize", "params": {"size": 128}},
+    {"type": "Resize", "size": 128},
     {"type": "ToTensor"}
 ])
 ```
@@ -90,7 +89,7 @@ Key features:
 
 * Traverses directories using `os.walk`
 * Detects class folders
-* Counts total number of images
+* Counts total number of images (by file extension)
 
 Example output:
 
@@ -115,20 +114,8 @@ Responsibilities:
 Example:
 
 ```python
-loader = get_dataloader(dataset, batch_size=32)
+loader = create_dataloader(dataset, batch_size=32, num_workers=4, pin_memory=True)
 ```
-
----
-
-### 7. main.py
-
-Entry point for testing or integration with FastAPI.
-
-Can be used to:
-
-* Test dataset loading
-* Validate transform pipelines
-* Run scanner utilities
 
 ---
 
@@ -155,14 +142,18 @@ Can be used to:
 ## Example End-to-End Usage
 
 ```python
-dataset = get_dataset("CIFAR10", "./data")
+from dataset.dataset_factory import get_dataset
+from dataset.transform_factory import build_transforms
+from dataset.dataloader import create_dataloader
 
 transform = build_transforms([
-    {"type": "Resize", "params": {"size": 128}},
+    {"type": "Resize", "size": 128},
     {"type": "ToTensor"}
 ])
 
-loader = get_dataloader(dataset, batch_size=32)
+dataset = get_dataset("CIFAR10", "./data", transform=transform, split="train")
+
+loader = create_dataloader(dataset, batch_size=32)
 ```
 
 ---
@@ -193,3 +184,4 @@ loader = get_dataloader(dataset, batch_size=32)
 * Improve validation and error reporting
 
 ---
+
