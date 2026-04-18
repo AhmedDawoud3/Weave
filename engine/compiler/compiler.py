@@ -128,16 +128,6 @@ class GraphCompiler:
             }
 
         # 3. Simulate the forward pass, recording shapes
-        tensors = {"input": x}
-        node_shapes = {"input": list(x.shape)}
-
-        for node_id in block.exec_order:
-            if node_id == "input":
-                continue
-
-            if node_id == "output":
-                sources = block.incoming_edges.get("output", [])
-                if len(sources) != 1:
         block.eval()
         tensors = {"input": x}
         node_shapes = {"input": list(x.shape)}
