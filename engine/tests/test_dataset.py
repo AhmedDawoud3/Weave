@@ -11,11 +11,9 @@ import os
 import tempfile
 
 import pytest
-
 from dataset.registry import list_predefined_datasets, load_registry
-from dataset.transform_factory import build_transforms
 from dataset.scanner import scan_folder
-
+from dataset.transform_factory import build_transforms
 
 # ---------------------------------------------------------------------------
 # registry.py
