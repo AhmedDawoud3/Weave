@@ -9,40 +9,77 @@ on:
       - main
 
 jobs:
-  test-and-lint:
-    name: Run Linting and Tests
+  isort:
+    name: Formatting (isort)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: engine
-
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run isort --check-only .
 
-      - name: Set up Python
-        run: uv python install
+  black:
+    name: Formatting (black)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run black --check .
 
-      - name: Install dependencies
-        run: uv sync
+  ruff:
+    name: Linting (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run ruff check .
 
-      - name: Formatting with isort
-        run: uv run isort --check-only .
+  mypy:
+    name: Type Checking (mypy)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run mypy .
 
-      - name: Formatting with black
-        run: uv run black --check .
-
-      - name: Linting with ruff
-        run: uv run ruff check .
-
-      - name: Type checking with mypy
-        run: uv run mypy .
-
-      - name: Unit tests with pytest
-        run: uv run pytest
+  pytest:
+    name: Unit Tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run pytest

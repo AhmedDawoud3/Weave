@@ -8,7 +8,7 @@ class AddModule(nn.Module):
     def forward(self, inputs: list[torch.Tensor]) -> torch.Tensor:
         if not inputs:
             raise ValueError("AddModule requires at least one input tensor.")
-        
+
         result = inputs[0]
         for t in inputs[1:]:
             result = result + t
