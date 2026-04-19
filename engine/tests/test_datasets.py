@@ -1,14 +1,13 @@
 import types
 
-import torch
-from torch.utils.data import TensorDataset
-from torchvision import transforms as T
-
 import dataset.dataset_factory as dataset_factory
+import torch
 from dataset.dataloader import create_dataloader
 from dataset.registry import list_predefined_datasets
 from dataset.scanner import scan_folder
 from dataset.transform_factory import build_transforms
+from torch.utils.data import TensorDataset
+from torchvision import transforms as T
 
 
 def test_list_predefined_datasets_includes_defaults():

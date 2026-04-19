@@ -1,6 +1,5 @@
 import pytest
 import torch
-
 from compiler.block import WeaveBlock
 from schemas import LinearNode, LinearParams, ReLUNode, ReLUParams
 

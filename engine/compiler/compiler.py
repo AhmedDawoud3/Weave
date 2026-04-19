@@ -3,7 +3,6 @@ import math
 from collections import defaultdict, deque
 
 import torch
-
 from schemas import GraphConfig
 
 from .block import WeaveBlock
