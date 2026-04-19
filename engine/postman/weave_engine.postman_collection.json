@@ -1,0 +1,162 @@
+{
+  "info": {
+    "_postman_id": "9d640f39-c4db-4d89-988f-4ba6bfc27f6f",
+    "name": "Weave Engine API",
+    "description": "Postman collection for testing the current Weave Engine FastAPI endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "github-copilot"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "OpenAPI - Service Up",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('OpenAPI has paths', function () {",
+              "  pm.expect(body).to.have.property('paths');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/openapi.json"
+      }
+    },
+    {
+      "name": "Validate Pipeline - Success (Conv2d -> ReLU)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Validation status is success', function () {",
+              "  pm.expect(body.status).to.eql('success');",
+              "});",
+              "",
+              "pm.test('Output shape matches expected', function () {",
+              "  pm.expect(body.node_shapes.output).to.eql([1, 16, 32, 32]);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"relu1\",\n        \"type\": \"ReLU\",\n        \"params\": {}\n      }\n    ],\n    \"edges\": [\n      {\n        \"source\": \"input\",\n        \"target\": \"conv1\"\n      },\n      {\n        \"source\": \"conv1\",\n        \"target\": \"relu1\"\n      },\n      {\n        \"source\": \"relu1\",\n        \"target\": \"output\"\n      }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+        },
+        "url": "{{baseUrl}}/validate_pipeline"
+      }
+    },
+    {
+      "name": "Validate Pipeline - Error (Shape Mismatch)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Validation status is error', function () {",
+              "  pm.expect(body.status).to.eql('error');",
+              "});",
+              "",
+              "pm.test('Error mentions shape mismatch', function () {",
+              "  pm.expect(body.message).to.include('Shape mismatch');",
+              "  pm.expect(body.message).to.include('fc1');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"fc1\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 128,\n          \"out_features\": 64\n        }\n      }\n    ],\n    \"edges\": [\n      {\n        \"source\": \"input\",\n        \"target\": \"fc1\"\n      },\n      {\n        \"source\": \"fc1\",\n        \"target\": \"output\"\n      }\n    ]\n  },\n  \"input_shape\": [32, 64]\n}"
+        },
+        "url": "{{baseUrl}}/validate_pipeline"
+      }
+    },
+    {
+      "name": "Validate Pipeline - Error (Disconnected Output)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Validation status is error', function () {",
+              "  pm.expect(body.status).to.eql('error');",
+              "});",
+              "",
+              "pm.test('Error mentions graph connection issue', function () {",
+              "  pm.expect(body.message).to.include('Graph connection issue');",
+              "  pm.expect(body.message).to.include('No path leads to');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"relu1\",\n        \"type\": \"ReLU\",\n        \"params\": {}\n      }\n    ],\n    \"edges\": [\n      {\n        \"source\": \"input\",\n        \"target\": \"conv1\"\n      },\n      {\n        \"source\": \"conv1\",\n        \"target\": \"relu1\"\n      }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+        },
+        "url": "{{baseUrl}}/validate_pipeline"
+      }
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import pytest
 import torch.nn as nn
-from compiler.factory import ComponentFactory
+import torch.optim as optim
+from compiler.factory import ComponentFactory, get_loss_function, get_optimizer
 from schemas import (
     Conv2dNode,
     Conv2dParams,
@@ -63,3 +64,81 @@ def test_factory_unimplemented_type():
     assert "Compilation for layer type NonExistent is not yet implemented." in str(
         exc_info.value
     )
+
+
+def test_get_loss_function_cross_entropy_flat_config():
+    """Test loss mapper supports flat config shape."""
+    loss = get_loss_function({"type": "CrossEntropyLoss"})
+
+    assert isinstance(loss, nn.CrossEntropyLoss)
+
+
+def test_get_loss_function_mse_nested_params():
+    """Test loss mapper supports nested params config shape."""
+    loss = get_loss_function({"type": "MSELoss", "params": {"reduction": "sum"}})
+
+    assert isinstance(loss, nn.MSELoss)
+    assert loss.reduction == "sum"
+
+
+def test_get_optimizer_adam_default_lr():
+    """Test optimizer mapper uses default Adam learning rate when omitted."""
+    model = nn.Linear(4, 2)
+
+    optimizer = get_optimizer(model.parameters(), {"type": "Adam"})
+
+    assert isinstance(optimizer, optim.Adam)
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(0.001)
+
+
+def test_get_optimizer_sgd_custom_lr_flat_config():
+    """Test optimizer mapper passes through flat optimizer parameters."""
+    model = nn.Linear(4, 2)
+
+    optimizer = get_optimizer(
+        model.parameters(), {"type": "SGD", "lr": 0.1, "momentum": 0.9}
+    )
+
+    assert isinstance(optimizer, optim.SGD)
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(0.1)
+    assert optimizer.param_groups[0]["momentum"] == pytest.approx(0.9)
+
+
+def test_get_optimizer_adam_nested_params():
+    """Test optimizer mapper supports nested params config shape."""
+    model = nn.Linear(4, 2)
+
+    optimizer = get_optimizer(
+        model.parameters(), {"type": "Adam", "params": {"lr": 0.01}}
+    )
+
+    assert isinstance(optimizer, optim.Adam)
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(0.01)
+
+
+def test_get_loss_function_missing_type_raises():
+    """Test loss mapper raises for missing type."""
+    with pytest.raises(ValueError, match="type"):
+        get_loss_function({})
+
+
+def test_get_optimizer_missing_type_raises():
+    """Test optimizer mapper raises for missing type."""
+    model = nn.Linear(4, 2)
+
+    with pytest.raises(ValueError, match="type"):
+        get_optimizer(model.parameters(), {})
+
+
+def test_get_loss_function_unsupported_type_raises():
+    """Test loss mapper raises for unsupported type."""
+    with pytest.raises(ValueError, match="Unsupported loss type"):
+        get_loss_function({"type": "BCEWithLogitsLoss"})
+
+
+def test_get_optimizer_unsupported_type_raises():
+    """Test optimizer mapper raises for unsupported type."""
+    model = nn.Linear(4, 2)
+
+    with pytest.raises(ValueError, match="Unsupported optimizer type"):
+        get_optimizer(model.parameters(), {"type": "RMSprop"})
