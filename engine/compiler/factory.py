@@ -1,12 +1,63 @@
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, Iterable
 
 import torch.nn as nn
+import torch.optim as optim
 from schemas import NodeConfig
+from torch.nn.parameter import Parameter
 
 from .modules import AddModule, ConcatModule
 
 # Type alias for a function that takes a NodeConfig and returns an nn.Module
 LayerBuilder = Callable[[NodeConfig], nn.Module]
+
+
+def _normalize_config(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    if "type" not in config or not config["type"]:
+        raise ValueError("Config must include a non-empty 'type' field.")
+
+    config_type = config["type"]
+    nested_params = config.get("params", {})
+    if nested_params is None:
+        nested_params = {}
+    if not isinstance(nested_params, dict):
+        raise ValueError("Config 'params' must be a dictionary.")
+
+    flat_params = {k: v for k, v in config.items() if k not in {"type", "params"}}
+    normalized_params = {**flat_params, **nested_params}
+    return config_type, normalized_params
+
+
+def get_loss_function(config: dict[str, Any]) -> nn.Module:
+    loss_type, loss_params = _normalize_config(config)
+
+    loss_registry: dict[str, type[nn.Module]] = {
+        "CrossEntropyLoss": nn.CrossEntropyLoss,
+        "MSELoss": nn.MSELoss,
+    }
+
+    if loss_type not in loss_registry:
+        raise ValueError(f"Unsupported loss type: {loss_type}")
+
+    return loss_registry[loss_type](**loss_params)
+
+
+def get_optimizer(
+    model_params: Iterable[Parameter], config: dict[str, Any]
+) -> optim.Optimizer:
+    optimizer_type, optimizer_params = _normalize_config(config)
+
+    optimizer_registry = {
+        "Adam": optim.Adam,
+        "SGD": optim.SGD,
+    }
+
+    if optimizer_type not in optimizer_registry:
+        raise ValueError(f"Unsupported optimizer type: {optimizer_type}")
+
+    if optimizer_type == "Adam":
+        optimizer_params.setdefault("lr", 0.001)
+
+    return optimizer_registry[optimizer_type](model_params, **optimizer_params)
 
 
 class ComponentFactory:
