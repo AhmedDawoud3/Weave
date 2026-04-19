@@ -1,7 +1,7 @@
 import pytest
 import torch
+
 from compiler.block import WeaveBlock
-from compiler.modules import AddModule, ConcatModule
 from schemas import LinearNode, LinearParams, ReLUNode, ReLUParams
 
 

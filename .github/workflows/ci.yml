@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-and-lint:
+    name: Run Linting and Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Formatting with isort
+        run: uv run isort --check-only .
+
+      - name: Formatting with black
+        run: uv run black --check .
+
+      - name: Linting with ruff
+        run: uv run ruff check .
+
+      - name: Type checking with mypy
+        run: uv run mypy .
+
+      - name: Unit tests with pytest
+        run: uv run pytest

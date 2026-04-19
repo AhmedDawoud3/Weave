@@ -5,8 +5,9 @@ TRANSFORM_MAP = {
     "ToTensor": transforms.ToTensor,
     "Normalize": transforms.Normalize,
     "RandomHorizontalFlip": transforms.RandomHorizontalFlip,
-    "RandomRotation": transforms.RandomRotation
+    "RandomRotation": transforms.RandomRotation,
 }
+
 
 def build_transforms(transform_list):
     ops = []

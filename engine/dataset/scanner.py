@@ -18,9 +18,7 @@ def scan_folder(path: str):
             classes = dirs
         else:
             total_images += sum(
-                1
-                for f in files
-                if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
+                1 for f in files if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
             )
 
     return {

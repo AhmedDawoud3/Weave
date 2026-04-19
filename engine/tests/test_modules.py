@@ -1,4 +1,5 @@
 import torch
+
 from compiler.modules import AddModule, ConcatModule
 
 

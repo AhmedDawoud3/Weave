@@ -21,11 +21,14 @@ dev = [
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["compiler", "dataset", "schemas.py", "main.py"]
+
 # ── Black ──────────────────────────────────────────────────────────────────
 [tool.black]
 line-length = 88
 target-version = ["py310", "py311", "py312"]
-include = 'engine/.*\.pyi?$'
 extend-exclude = '''
 /(
   \.git
@@ -44,7 +47,6 @@ line_length = 88
 known_third_party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]
 known_first_party = []        # add your package names here
 skip_glob = [".venv/*", "venv/*", "build/*", "dist/*"]
-src_paths = ["engine"]
 
 # ── mypy ───────────────────────────────────────────────────────────────────
 [tool.mypy]
@@ -54,7 +56,7 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = false
-files = ["engine"]
+files = ["."]
 # PyTorch stubs are incomplete – suppress those errors
 [[tool.mypy.overrides]]
 module = ["torch.*", "torchvision.*", "torchaudio.*"]
@@ -67,7 +69,7 @@ ignore_missing_imports = true
 
 # ── pytest ─────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
-testpaths = ["engine/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
@@ -78,8 +80,8 @@ markers = [
 
 # ── coverage ───────────────────────────────────────────────────────────────
 [tool.coverage.run]
-source = ["engine"]
-omit = ["engine/tests/*", ".venv/*", "venv/*", "setup.py"]
+source = ["."]
+omit = ["tests/*", ".venv/*", "venv/*", "setup.py"]
 
 [tool.coverage.report]
 fail_under = 70               # raise this as the codebase matures
@@ -93,6 +95,7 @@ exclude_dirs = [".venv", "venv", "engine/tests"]
 # ── ruff (optional fast linter / formatter) ────────────────────────────────
 [tool.ruff]
 line-length = 88
+[tool.ruff.lint]
 select = [
     "E", "W",   # pycodestyle
     "F",        # pyflakes
@@ -103,7 +106,7 @@ select = [
     "C4",       # flake8-comprehensions
     "PT",       # flake8-pytest-style
 ]
-ignore = ["E501"]             # line-too-long handled by black
+ignore = ["E501", "UP007", "N812", "PT011", "C405", "N806"]             # line-too-long handled by black
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-third-party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]

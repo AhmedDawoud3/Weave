@@ -13,7 +13,7 @@ Author: Omar Elzarka
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,18 +51,18 @@ class ConvTranspose2dParams(BaseModel):
 
 class MaxPool2dParams(BaseModel):
     kernel_size: int
-    stride: Optional[int] = None
+    stride: int | None = None
     padding: int = 0
 
 
 class AvgPool2dParams(BaseModel):
     kernel_size: int
-    stride: Optional[int] = None
+    stride: int | None = None
     padding: int = 0
 
 
 class AdaptiveAvgPool2dParams(BaseModel):
-    output_size: Union[int, list[int]]
+    output_size: int | list[int]
 
 
 # --- Linear & Embedding ------------------------------------------------------
@@ -77,7 +77,7 @@ class LinearParams(BaseModel):
 class EmbeddingParams(BaseModel):
     num_embeddings: int
     embedding_dim: int
-    padding_idx: Optional[int] = None
+    padding_idx: int | None = None
 
 
 # --- Normalization ------------------------------------------------------------
@@ -91,7 +91,7 @@ class BatchNorm2dParams(BaseModel):
 
 
 class LayerNormParams(BaseModel):
-    normalized_shape: Union[int, list[int]]
+    normalized_shape: int | list[int]
     eps: float = 1e-5
 
 
@@ -335,7 +335,7 @@ class ResidualBlockNode(BaseModel):
 
     id: str
     type: Literal["ResidualBlock"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -344,7 +344,7 @@ class TransformerEncoderNode(BaseModel):
 
     id: str
     type: Literal["TransformerEncoder"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -353,7 +353,7 @@ class MultiHeadAttentionNode(BaseModel):
 
     id: str
     type: Literal["MultiHeadAttention"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -362,7 +362,7 @@ class ConvBNReLUNode(BaseModel):
 
     id: str
     type: Literal["ConvBNReLU"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -371,7 +371,7 @@ class BottleneckBlockNode(BaseModel):
 
     id: str
     type: Literal["BottleneckBlock"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -383,7 +383,7 @@ class CustomBlockNode(BaseModel):
 
     id: str
     type: Literal["Block"]
-    graph: "GraphConfig"
+    graph: GraphConfig
     repeat: int = 1
 
 
@@ -563,27 +563,27 @@ class CustomDatasetConfig(BaseModel):
     modality: Literal["image", "text", "tabular", "audio"]
 
     # image + audio: data lives in a folder
-    root: Optional[str] = None
-    label_source: Optional[str] = None  # "csv" or "folder"
+    root: str | None = None
+    label_source: str | None = None  # "csv" or "folder"
 
     # image specific
-    label_file: Optional[str] = None
-    image_column: Optional[str] = None
-    label_column: Optional[str] = None
+    label_file: str | None = None
+    image_column: str | None = None
+    label_column: str | None = None
     file_pattern: str = "*.jpg"
 
     # text + tabular: data lives in a file
-    file_path: Optional[str] = None
+    file_path: str | None = None
 
     # text specific
-    text_column: Optional[str] = None
+    text_column: str | None = None
     tokenizer: str = "bpe"
     vocab_size: int = 30000
     max_length: int = 512
 
     # tabular specific
     feature_columns: list[str] = Field(default_factory=list)
-    target_column: Optional[str] = None
+    target_column: str | None = None
     categorical_columns: list[str] = Field(default_factory=list)
     normalize: bool = True
 
@@ -701,7 +701,7 @@ class TrainingConfig(BaseModel):
     model_graph: GraphConfig  # Ahmed uses this
     loss: LossConfig  # Mahmoud uses this
     optimizer: OptimizerConfig  # Mahmoud uses this
-    scheduler: Optional[SchedulerConfig] = None
+    scheduler: SchedulerConfig | None = None
     training: TrainingSettings  # Mahmoud uses this
 
 
@@ -723,8 +723,8 @@ class ShapeInferenceRequest(BaseModel):
 
 class ShapeInferenceResponse(BaseModel):
     status: str  # "success" or "error"
-    output_shape: Optional[list[int]] = None
-    message: Optional[str] = None
+    output_shape: list[int] | None = None
+    message: str | None = None
 
 
 class PipelineValidationRequest(BaseModel):
@@ -739,8 +739,8 @@ class PipelineValidationRequest(BaseModel):
 
 class PipelineValidationResponse(BaseModel):
     status: str  # "success" or "error"
-    node_shapes: Optional[dict] = None  # {"conv1": [32, 64, 112, 112], ...}
-    message: Optional[str] = None
+    node_shapes: dict | None = None  # {"conv1": [32, 64, 112, 112], ...}
+    message: str | None = None
 
 
 # --- Loss --------------------------------------------------------------------
@@ -864,9 +864,9 @@ class TrainingStatusResponse(BaseModel):
 
     run_id: str
     status: Literal["running", "paused", "completed", "failed", "stopped"]
-    current_epoch: Optional[int] = None
-    total_epochs: Optional[int] = None
-    latest_metrics: Optional[dict] = None
+    current_epoch: int | None = None
+    total_epochs: int | None = None
+    latest_metrics: dict | None = None
 
 
 # --- Metrics -----------------------------------------------------------------
@@ -876,7 +876,7 @@ class MetricsSuggestionRequest(BaseModel):
     """POST /metrics/suggest — from architecture doc section 7.1"""
 
     task_type: str  # "classification", "regression", "multi_label"
-    num_classes: Optional[int] = None
+    num_classes: int | None = None
 
 
 class MetricsSuggestionResponse(BaseModel):
@@ -896,13 +896,13 @@ class ExportRequest(BaseModel):
     input_shape: list[int]
     checkpoint_path: str
     output_path: str
-    opset_version: Optional[int] = 17  # only relevant for ONNX
+    opset_version: int | None = 17  # only relevant for ONNX
 
 
 class ExportResponse(BaseModel):
     status: str
     output_path: str
-    message: Optional[str] = None
+    message: str | None = None
 
 
 # --- Inference ---------------------------------------------------------------
@@ -927,7 +927,7 @@ class InferenceResponse(BaseModel):
     """
 
     prediction: list[float]
-    predicted_class: Optional[int] = None  # None for regression tasks
+    predicted_class: int | None = None  # None for regression tasks
 
 
 # --- Experiment Tracking -----------------------------------------------------
@@ -947,9 +947,9 @@ class RunRecord(BaseModel):
     metrics_history: list[dict[str, Any]] = Field(
         default_factory=list
     )  # all epoch metrics
-    best_metrics: Optional[dict] = None
-    checkpoint_path: Optional[str] = None
-    duration_seconds: Optional[float] = None
+    best_metrics: dict | None = None
+    checkpoint_path: str | None = None
+    duration_seconds: float | None = None
 
 
 class ExperimentCompareRequest(BaseModel):

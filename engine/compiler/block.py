@@ -1,7 +1,6 @@
-from typing import Dict, List
-
 import torch
 import torch.nn as nn
+
 from schemas import NodeConfig
 
 from .factory import ComponentFactory
@@ -16,9 +15,9 @@ class WeaveBlock(nn.Module):
 
     def __init__(
         self,
-        exec_order: List[str],
-        node_map: Dict[str, NodeConfig],
-        incoming_edges: Dict[str, List[str]],
+        exec_order: list[str],
+        node_map: dict[str, NodeConfig],
+        incoming_edges: dict[str, list[str]],
     ):
         super().__init__()
         self.exec_order = exec_order
@@ -38,7 +37,7 @@ class WeaveBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # State dictionary holds tensor values emitted by each node
-        tensors: Dict[str, torch.Tensor] = {"input": x}
+        tensors: dict[str, torch.Tensor] = {"input": x}
 
         for node_id in self.exec_order:
             # Reached output, compile its incoming sources and exit

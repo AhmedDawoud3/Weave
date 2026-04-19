@@ -1,9 +1,11 @@
-from typing import Any, Callable, Dict, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 import torch.nn as nn
 import torch.optim as optim
-from schemas import NodeConfig
 from torch.nn.parameter import Parameter
+
+from schemas import NodeConfig
 
 from .modules import AddModule, ConcatModule
 
@@ -67,7 +69,7 @@ class ComponentFactory:
     easy addition of new types without modifying the core factory logic.
     """
 
-    _registry: Dict[str, LayerBuilder] = {}
+    _registry: dict[str, LayerBuilder] = {}
 
     @classmethod
     def register(cls, node_type: str) -> Callable[[LayerBuilder], LayerBuilder]:

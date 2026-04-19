@@ -1,9 +1,9 @@
 import logging
 import math
 from collections import defaultdict, deque
-from typing import Union
 
 import torch
+
 from schemas import GraphConfig
 
 from .block import WeaveBlock
@@ -13,7 +13,7 @@ from .modules import AddModule, ConcatModule
 class GraphCompiler:
     """Takes validated GraphConfig and compiles into a runnable PyTorch Module."""
 
-    def compile(self, graph_json: Union[dict, GraphConfig]) -> WeaveBlock:
+    def compile(self, graph_json: dict | GraphConfig) -> WeaveBlock:
         # Validate Pydantic schema if bare dictionary is provided
         if isinstance(graph_json, dict):
             graph = GraphConfig(**graph_json)

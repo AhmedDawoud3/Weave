@@ -1,13 +1,14 @@
 import types
 
-import dataset.dataset_factory as dataset_factory
 import torch
+from torch.utils.data import TensorDataset
+from torchvision import transforms as T
+
+import dataset.dataset_factory as dataset_factory
 from dataset.dataloader import create_dataloader
 from dataset.registry import list_predefined_datasets
 from dataset.scanner import scan_folder
 from dataset.transform_factory import build_transforms
-from torch.utils.data import TensorDataset
-from torchvision import transforms as T
 
 
 def test_list_predefined_datasets_includes_defaults():
@@ -47,7 +48,9 @@ def test_get_dataset_uses_registry_and_split(monkeypatch, tmp_path):
     fake_module = types.SimpleNamespace(DummyDataset=DummyDataset)
 
     monkeypatch.setattr(dataset_factory, "load_registry", lambda: fake_registry)
-    monkeypatch.setattr(dataset_factory.importlib, "import_module", lambda _: fake_module)
+    monkeypatch.setattr(
+        dataset_factory.importlib, "import_module", lambda _: fake_module
+    )
 
     transform = object()
     dataset = dataset_factory.get_dataset(
