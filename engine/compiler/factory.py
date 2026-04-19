@@ -3,8 +3,9 @@ from typing import Any
 
 import torch.nn as nn
 import torch.optim as optim
-from schemas import NodeConfig
 from torch.nn.parameter import Parameter
+
+from schemas import NodeConfig
 
 from .modules import AddModule, ConcatModule
 

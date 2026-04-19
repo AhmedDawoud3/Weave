@@ -1,9 +1,16 @@
 import pytest
 import torch.nn as nn
 import torch.optim as optim
+
 from compiler.factory import ComponentFactory, get_loss_function, get_optimizer
-from schemas import (Conv2dNode, Conv2dParams, LinearNode, LinearParams,
-                     ReLUNode, ReLUParams)
+from schemas import (
+    Conv2dNode,
+    Conv2dParams,
+    LinearNode,
+    LinearParams,
+    ReLUNode,
+    ReLUParams,
+)
 
 
 def test_factory_creates_conv2d():

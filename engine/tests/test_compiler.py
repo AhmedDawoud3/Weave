@@ -1,4 +1,5 @@
 import pytest
+
 from compiler.compiler import GraphCompiler
 from schemas import GraphConfig
 

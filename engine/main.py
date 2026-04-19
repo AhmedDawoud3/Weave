@@ -1,6 +1,7 @@
 import uvicorn
-from compiler.compiler import GraphCompiler
 from fastapi import FastAPI
+
+from compiler.compiler import GraphCompiler
 from schemas import PipelineValidationRequest, PipelineValidationResponse
 
 app = FastAPI(title="Weave Engine API", version="1.0.0")

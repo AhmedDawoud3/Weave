@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 from schemas import NodeConfig
 
 from .factory import ComponentFactory
