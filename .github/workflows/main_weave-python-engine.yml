@@ -19,18 +19,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       # 🛠️ Local Build Section (Optional)
-      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies
+      # We use `uv` to instantly generate a standard requirements.txt from pyproject.toml. 
+      # This allows Azure's build engine (Oryx) to install dependencies natively on the server.
+      - name: Generate requirements.txt using uv
+        working-directory: ./engine
         run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt
+          uv export --no-hashes --format requirements.txt > requirements.txt
                 
       # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
       - name: Upload artifact for deployment jobs
@@ -38,8 +43,9 @@ jobs:
         with:
           name: python-app
           path: |
-            .
-            !antenv/
+            ./engine
+            !./engine/antenv/
+            !./engine/.venv/
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:
