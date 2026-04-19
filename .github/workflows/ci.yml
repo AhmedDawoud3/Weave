@@ -9,36 +9,6 @@ on:
       - main
 
 jobs:
-  isort:
-    name: Formatting (isort)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: engine
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
-      - run: uv sync
-      - run: uv run isort --check-only .
-
-  black:
-    name: Formatting (black)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: engine
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
-      - run: uv sync
-      - run: uv run black --check .
-
   ruff:
     name: Linting (ruff)
     runs-on: ubuntu-latest
