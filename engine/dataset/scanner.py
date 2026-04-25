@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import os
+from typing import Any
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
 
 
-def scan_folder(path: str):
+def scan_folder(path: str) -> dict[str, Any]:
     """Analyze a folder to detect class subfolders and count images.
 
     Walks the directory tree to find subfolders (treated as class labels)

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from torchvision import transforms
 
 TRANSFORM_MAP = {
@@ -9,7 +13,7 @@ TRANSFORM_MAP = {
 }
 
 
-def build_transforms(transform_list):
+def build_transforms(transform_list: list[dict[str, Any]]) -> transforms.Compose:
     """Build a composed transform pipeline from a list of transform configurations.
 
     Supports both flat schema (e.g. {"type": "Resize", "size": 128}) and

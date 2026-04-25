@@ -1,9 +1,20 @@
+from __future__ import annotations
+
 import importlib
+from typing import Any
+
+from torch.utils.data import Dataset
+from torchvision.transforms import Compose
 
 from .registry import load_registry
 
 
-def get_dataset(name: str, root_dir: str, transform=None, split: str = "train"):
+def get_dataset(
+    name: str,
+    root_dir: str,
+    transform: Compose | None = None,
+    split: str = "train",
+) -> Dataset:
     """Dynamically instantiate a dataset from the registry.
 
     Looks up the dataset name in the registry, imports the corresponding

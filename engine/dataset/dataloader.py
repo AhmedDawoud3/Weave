@@ -1,14 +1,16 @@
-from torch.utils.data import DataLoader
+from __future__ import annotations
+
+from torch.utils.data import DataLoader, Dataset
 
 
 def create_dataloader(
-    dataset,
-    batch_size=32,
-    shuffle=True,
-    num_workers=0,
-    pin_memory=False,
-    drop_last=False,
-):
+    dataset: Dataset,
+    batch_size: int = 32,
+    shuffle: bool = True,
+    num_workers: int = 0,
+    pin_memory: bool = False,
+    drop_last: bool = False,
+) -> DataLoader:
     """Create a PyTorch DataLoader for a dataset.
 
     Thin wrapper around torch.utils.data.DataLoader with sensible defaults.

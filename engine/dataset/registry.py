@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import Any
 
 REGISTRY_PATH = Path(__file__).resolve().parent / "datasets_registry.json"
 
 
-def load_registry():
+def load_registry() -> dict[str, Any]:
     """Load the dataset registry from the JSON file on disk.
 
     Returns:
@@ -22,7 +25,7 @@ def load_registry():
         ) from exc
 
 
-def list_predefined_datasets():
+def list_predefined_datasets() -> list[str]:
     """Get a list of all available predefined dataset names.
 
     Returns:
