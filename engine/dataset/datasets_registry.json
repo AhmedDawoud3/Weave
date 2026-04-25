@@ -5,7 +5,9 @@
         "default_params": {
             "train": true,
             "download": true
-        }
+        },
+        "shape": [1, 28, 28],
+        "num_classes": 10
     },
     "CIFAR10": {
         "module": "torchvision.datasets",
@@ -13,6 +15,8 @@
         "default_params": {
             "train": true,
             "download": true
-        }
+        },
+        "shape": [3, 32, 32],
+        "num_classes": 10
     }
 }

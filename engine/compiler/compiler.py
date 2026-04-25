@@ -4,10 +4,11 @@ from collections import defaultdict, deque
 
 import torch
 
-from schemas import GraphConfig
+from schemas import GraphConfig, NodeConfig
 
 from .block import WeaveBlock
-from .modules import AddModule, ConcatModule
+from .factory import ComponentFactory
+from .modules import AddModule, ConcatModule, MultiplyModule
 
 
 class GraphCompiler:
@@ -187,3 +188,166 @@ class GraphCompiler:
                 tensors[node_id] = out
                 node_shapes[node_id] = list(out.shape)
         return {"status": "success", "node_shapes": node_shapes}
+
+    # Layer types that accept multiple inputs
+    MULTI_INPUT_TYPES = {"Add", "Concat", "Multiply"}
+
+    # Layer types that contain a nested subgraph
+    BLOCK_TYPES = {
+        "ResidualBlock",
+        "TransformerEncoder",
+        "MultiHeadAttention",
+        "ConvBNReLU",
+        "BottleneckBlock",
+        "Block",
+    }
+
+    def infer_layer_shape(
+        self,
+        node: NodeConfig,
+        input_shape: list[int] | None = None,
+        input_shapes: list[list[int]] | None = None,
+    ) -> dict:
+        """
+        Compute the output shape of a single layer or block without
+        requiring a fully connected graph.
+
+        Returns {"status": "success", "output_shape": [...]}
+        or     {"status": "error",   "message": "..."}
+        """
+        node_type: str = node.type
+
+        # --- Block nodes: delegate to validate_pipeline on the subgraph ---
+        if node_type in self.BLOCK_TYPES:
+            node_graph = getattr(node, "graph", None)
+            if node_graph is None:
+                return {
+                    "status": "error",
+                    "message": f"Block node '{node_type}' is missing its nested graph definition.",
+                }
+            if input_shape is None:
+                return {
+                    "status": "error",
+                    "message": f"Block node '{node_type}' requires input_shape to infer output.",
+                }
+            sub_result = self.validate_pipeline(node_graph, input_shape)
+            if sub_result["status"] == "error":
+                return sub_result
+            # Extract the output node shape from the full pipeline result
+            output_shape = sub_result["node_shapes"].get("output")
+            if output_shape is None:
+                return {
+                    "status": "error",
+                    "message": f"Subgraph for '{node_type}' did not produce an output shape.",
+                }
+            return {"status": "success", "output_shape": output_shape}
+
+        # --- Multi-input layers (Add, Concat, Multiply) ---
+        if node_type in self.MULTI_INPUT_TYPES:
+            if not input_shapes:
+                return {
+                    "status": "error",
+                    "message": f"Layer type '{node_type}' requires input_shapes (list of shapes), not a single input_shape.",
+                }
+            return self._infer_multi_input_layer(node, input_shapes)
+
+        # --- Single-input layers ---
+        if input_shape is None:
+            return {
+                "status": "error",
+                "message": f"Layer type '{node_type}' requires input_shape.",
+            }
+        return self._infer_single_input_layer(node, input_shape)
+
+    def _infer_single_input_layer(
+        self, node: NodeConfig, input_shape: list[int]
+    ) -> dict:
+        """Run a dummy tensor through a single-input layer."""
+        # Governance: same OOM guard as validate_pipeline
+        total_elements = math.prod(input_shape) if input_shape else 0
+        MAX_TENSOR_ELEMENTS = 100_000_000
+        if total_elements > MAX_TENSOR_ELEMENTS:
+            return {
+                "status": "error",
+                "message": f"Input shape {input_shape} is too large ({total_elements} elements). Try smaller dimensions.",
+            }
+
+        try:
+            x = torch.zeros(input_shape)
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to create tensor of shape {input_shape}: {str(e)}",
+            }
+
+        try:
+            layer = ComponentFactory.create_layer(node)
+        except NotImplementedError as e:
+            return {"status": "error", "message": str(e)}
+
+        layer.eval()
+        with torch.inference_mode():
+            try:
+                out = layer(x)
+            except RuntimeError as e:
+                return {
+                    "status": "error",
+                    "message": f"Shape mismatch at '{node.type}'. The input shape {input_shape} doesn't work for this operation. Technical detail: {str(e)}",
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Error evaluating '{node.type}': {str(e)}",
+                }
+
+        return {"status": "success", "output_shape": list(out.shape)}
+
+    def _infer_multi_input_layer(
+        self, node: NodeConfig, input_shapes: list[list[int]]
+    ) -> dict:
+        """Run dummy tensors through a multi-input layer (Add, Concat, Multiply)."""
+        # Governance: check each input
+        MAX_TENSOR_ELEMENTS = 100_000_000
+        for i, shape in enumerate(input_shapes):
+            total_elements = math.prod(shape) if shape else 0
+            if total_elements > MAX_TENSOR_ELEMENTS:
+                return {
+                    "status": "error",
+                    "message": f"Input shape {shape} at index {i} is too large ({total_elements} elements). Try smaller dimensions.",
+                }
+
+        try:
+            tensors = [torch.zeros(s) for s in input_shapes]
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to create input tensors: {str(e)}",
+            }
+
+        try:
+            layer = ComponentFactory.create_layer(node)
+        except NotImplementedError as e:
+            return {"status": "error", "message": str(e)}
+
+        layer.eval()
+        with torch.inference_mode():
+            try:
+                if isinstance(layer, (AddModule, ConcatModule, MultiplyModule)):
+                    out = layer(tensors)
+                else:
+                    return {
+                        "status": "error",
+                        "message": f"Layer type '{node.type}' was expected to be multi-input but isn't.",
+                    }
+            except RuntimeError as e:
+                return {
+                    "status": "error",
+                    "message": f"Shape mismatch at '{node.type}'. The input shapes {input_shapes} don't work for this operation. Technical detail: {str(e)}",
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Error evaluating '{node.type}': {str(e)}",
+                }
+
+        return {"status": "success", "output_shape": list(out.shape)}
