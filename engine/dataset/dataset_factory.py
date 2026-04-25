@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose
