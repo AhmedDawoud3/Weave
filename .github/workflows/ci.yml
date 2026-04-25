@@ -20,8 +20,8 @@ jobs:
       - run: uv sync
       - run: uv run ruff check .
 
-  mypy:
-    name: Type Checking (mypy)
+  ty:
+    name: Type Checking (ty)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,7 +33,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
-      - run: uv run mypy .
+      - run: uv run ty .
 
   pytest:
     name: Unit Tests (pytest)
