@@ -5,7 +5,19 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parameter import Parameter
 
-from schemas import NodeConfig
+from schemas import (
+    AdaptiveAvgPool2dNode,
+    BatchNorm2dNode,
+    ConcatNode,
+    Conv2dNode,
+    FlattenNode,
+    GELUNode,
+    LinearNode,
+    MaxPool2dNode,
+    NodeConfig,
+    ReLUNode,
+    SoftmaxNode,
+)
 
 from .modules import AddModule, ConcatModule, MultiplyModule
 
@@ -94,8 +106,7 @@ class ComponentFactory:
 
 @ComponentFactory.register("Conv2d")
 def _build_conv2d(node: NodeConfig) -> nn.Module:
-    # Explicit type narrowing to prevent Pylance type-checking errors
-    if node.type != "Conv2d":
+    if not isinstance(node, Conv2dNode):
         raise ValueError("Expected Conv2d")
     p = node.params
     return nn.Conv2d(
@@ -112,7 +123,7 @@ def _build_conv2d(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("MaxPool2d")
 def _build_maxpool2d(node: NodeConfig) -> nn.Module:
-    if node.type != "MaxPool2d":
+    if not isinstance(node, MaxPool2dNode):
         raise ValueError("Expected MaxPool2d")
     p = node.params
     return nn.MaxPool2d(p.kernel_size, p.stride, p.padding)
@@ -120,7 +131,7 @@ def _build_maxpool2d(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("AdaptiveAvgPool2d")
 def _build_adaptiveavgpool2d(node: NodeConfig) -> nn.Module:
-    if node.type != "AdaptiveAvgPool2d":
+    if not isinstance(node, AdaptiveAvgPool2dNode):
         raise ValueError("Expected AdaptiveAvgPool2d")
     p = node.params
     out_size = (
@@ -134,7 +145,7 @@ def _build_adaptiveavgpool2d(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("Linear")
 def _build_linear(node: NodeConfig) -> nn.Module:
-    if node.type != "Linear":
+    if not isinstance(node, LinearNode):
         raise ValueError("Expected Linear")
     p = node.params
     return nn.Linear(p.in_features, p.out_features, p.bias)
@@ -145,7 +156,7 @@ def _build_linear(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("BatchNorm2d")
 def _build_batchnorm2d(node: NodeConfig) -> nn.Module:
-    if node.type != "BatchNorm2d":
+    if not isinstance(node, BatchNorm2dNode):
         raise ValueError("Expected BatchNorm2d")
     p = node.params
     return nn.BatchNorm2d(p.num_features, p.eps, p.momentum, p.affine)
@@ -156,7 +167,7 @@ def _build_batchnorm2d(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("ReLU")
 def _build_relu(node: NodeConfig) -> nn.Module:
-    if node.type != "ReLU":
+    if not isinstance(node, ReLUNode):
         raise ValueError("Expected ReLU")
     p = node.params
     return nn.ReLU(p.inplace)
@@ -164,7 +175,7 @@ def _build_relu(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("GELU")
 def _build_gelu(node: NodeConfig) -> nn.Module:
-    if node.type != "GELU":
+    if not isinstance(node, GELUNode):
         raise ValueError("Expected GELU")
     p = node.params
     return nn.GELU(approximate=p.approximate)
@@ -172,7 +183,7 @@ def _build_gelu(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("Softmax")
 def _build_softmax(node: NodeConfig) -> nn.Module:
-    if node.type != "Softmax":
+    if not isinstance(node, SoftmaxNode):
         raise ValueError("Expected Softmax")
     p = node.params
     return nn.Softmax(dim=p.dim)
@@ -183,7 +194,7 @@ def _build_softmax(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("Flatten")
 def _build_flatten(node: NodeConfig) -> nn.Module:
-    if node.type != "Flatten":
+    if not isinstance(node, FlattenNode):
         raise ValueError("Expected Flatten")
     p = node.params
     return nn.Flatten(p.start_dim, p.end_dim)
@@ -200,7 +211,7 @@ def _build_add(node: NodeConfig) -> nn.Module:
 
 @ComponentFactory.register("Concat")
 def _build_concat(node: NodeConfig) -> nn.Module:
-    if node.type != "Concat":
+    if not isinstance(node, ConcatNode):
         raise ValueError("Expected Concat")
     p = node.params
     return ConcatModule(dim=p.dim)

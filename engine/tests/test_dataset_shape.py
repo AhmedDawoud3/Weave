@@ -2,7 +2,6 @@
 Tests for dataset.shape_inference — dataset output shape inference.
 """
 
-import pytest
 
 from dataset.shape_inference import infer_dataset_shape
 from schemas import (
@@ -12,7 +11,6 @@ from schemas import (
     PredefinedDatasetConfig,
     TransformConfig,
 )
-
 
 # ---------------------------------------------------------------------------
 # Predefined datasets
@@ -51,7 +49,7 @@ def test_predefined_with_resize_transform():
         source="predefined",
         name="MNIST",
         split="train",
-        transforms=[TransformConfig(type="Resize", size=224)],
+        transforms=[TransformConfig.model_validate({"type": "Resize", "size": 224})],
     )
     result = infer_dataset_shape(config)
 
@@ -107,7 +105,7 @@ def test_image_folder_with_resize(tmp_path):
     config = ImageFolderDatasetConfig(
         source="image_folder",
         root=str(tmp_path),
-        transforms=[TransformConfig(type="Resize", size=128)],
+        transforms=[TransformConfig.model_validate({"type": "Resize", "size": 128})],
     )
     result = infer_dataset_shape(config)
 
@@ -181,7 +179,7 @@ def test_custom_image_with_transforms():
     config = CustomDatasetConfig(
         source="custom",
         modality="image",
-        transforms=[TransformConfig(type="Resize", size=224)],
+        transforms=[TransformConfig.model_validate({"type": "Resize", "size": 224})],
     )
     result = infer_dataset_shape(config)
 
