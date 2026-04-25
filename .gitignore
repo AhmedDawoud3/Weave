@@ -1,3 +1,6 @@
+# MkDocs build output
+engine/site/
+
 # Created by https://www.toptal.com/developers/gitignore/api/python,node,csharp,react
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,node,csharp,react
 
@@ -721,3 +724,6 @@ sketch
 # End of https://www.toptal.com/developers/gitignore/api/python,node,csharp,react
 
 .vscode/*
+
+site*/
+plans/

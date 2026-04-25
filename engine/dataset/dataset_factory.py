@@ -1,9 +1,36 @@
+from __future__ import annotations
+
 import importlib
+
+from torch.utils.data import Dataset
+from torchvision.transforms import Compose
 
 from .registry import load_registry
 
 
-def get_dataset(name: str, root_dir: str, transform=None, split: str = "train"):
+def get_dataset(
+    name: str,
+    root_dir: str,
+    transform: Compose | None = None,
+    split: str = "train",
+) -> Dataset:
+    """Dynamically instantiate a dataset from the registry.
+
+    Looks up the dataset name in the registry, imports the corresponding
+    torchvision class, and creates an instance with the given parameters.
+
+    Args:
+        name: Dataset name (must exist in the registry, e.g. "MNIST", "CIFAR10").
+        root_dir: Directory path to download/load the dataset.
+        transform: Optional transform pipeline to apply to samples.
+        split: Dataset split, either "train" or "test".
+
+    Returns:
+        A torchvision Dataset instance.
+
+    Raises:
+        ValueError: If the dataset name is not found in the registry.
+    """
     registry = load_registry()
 
     if name not in registry:
