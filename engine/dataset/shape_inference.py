@@ -31,16 +31,14 @@ def infer_dataset_shape(config: DatasetConfig) -> dict:
         "message": str|None,
     }
     """
-    source = config.source
-
-    if source == "predefined":
+    if isinstance(config, PredefinedDatasetConfig):
         return _infer_predefined(config)
-    elif source == "image_folder":
+    elif isinstance(config, ImageFolderDatasetConfig):
         return _infer_image_folder(config)
-    elif source == "custom":
+    elif isinstance(config, CustomDatasetConfig):
         return _infer_custom(config)
     else:
-        return {"status": "error", "message": f"Unknown dataset source: '{source}'."}
+        return {"status": "error", "message": "Unknown dataset source."}
 
 
 def _infer_predefined(config: PredefinedDatasetConfig) -> dict:
@@ -140,7 +138,9 @@ def _infer_custom(config: CustomDatasetConfig) -> dict:
 
     # Apply transforms only for image modality
     if modality == "image" and config.transforms:
-        per_sample_shape = _apply_transforms_to_shape(per_sample_shape, config.transforms)
+        per_sample_shape = _apply_transforms_to_shape(
+            per_sample_shape, config.transforms
+        )
 
     batch_size = config.dataloader.batch_size
     batch_shape = [batch_size] + per_sample_shape

@@ -211,11 +211,9 @@ def test_infer_block_node_shape(compiler):
 
 
 def test_infer_block_node_missing_graph(compiler):
-    from schemas import CustomBlockNode
-
     # Manually construct without graph — but Pydantic requires it.
     # Instead test with a node type in BLOCK_TYPES but missing input_shape
-    from schemas import EdgeConfig, GraphConfig
+    from schemas import CustomBlockNode, EdgeConfig, GraphConfig
 
     subgraph = GraphConfig(
         nodes=[

@@ -31,7 +31,7 @@ def test_validate_pipeline_success(compiler):
             {"source": "relu1", "target": "output"},
         ],
     }
-    graph = GraphConfig(**graph_data)
+    graph = GraphConfig.model_validate(graph_data)
     input_shape = [1, 3, 32, 32]
 
     result = compiler.validate_pipeline(graph, input_shape)
@@ -60,7 +60,7 @@ def test_validate_pipeline_shape_mismatch(compiler):
             {"source": "fc1", "target": "output"},
         ],
     }
-    graph = GraphConfig(**graph_data)
+    graph = GraphConfig.model_validate(graph_data)
     # Give it an input tensor that doesn't match the in_features (64 vs 128)
     input_shape = [32, 64]
 

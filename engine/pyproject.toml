@@ -44,32 +44,8 @@ extend-exclude = '''
 )/
 '''
 
-# ── isort ──────────────────────────────────────────────────────────────────
-[tool.isort]
-profile = "black"
-line_length = 88
-known_third_party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]
-known_first_party = []        # add your package names here
-skip_glob = [".venv/*", "venv/*", "build/*", "dist/*"]
-
-# ── mypy ───────────────────────────────────────────────────────────────────
-[tool.mypy]
-python_version = "3.11"
-strict = false                 # flip to true for strict mode
-ignore_missing_imports = true
-warn_unused_ignores = true
-warn_redundant_casts = true
-warn_return_any = false
-files = ["."]
-# PyTorch stubs are incomplete – suppress those errors
-[[tool.mypy.overrides]]
-module = ["torch.*", "torchvision.*", "torchaudio.*"]
-ignore_missing_imports = true
-
-# ── flake8 (via .flake8 / setup.cfg – flake8 does not read pyproject yet) ─
-# Keep this section as reference; effective config lives in .flake8
-[tool.flake8-placeholder]
-# See .flake8 file
+[tool.ty.src]
+exclude = ["tests/**"]
 
 # ── pytest ─────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

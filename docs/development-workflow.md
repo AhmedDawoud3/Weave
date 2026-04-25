@@ -11,7 +11,7 @@ Before committing your changes, verify that your code passes the linters, type c
 ```bash
 cd engine
 uv run ruff check --fix .
-uv run mypy .
+uv run ty check .
 uv run pytest
 ```
 
