@@ -4,25 +4,44 @@ Welcome to the **Weave Engine** — a Python backend that compiles visual neural
 
 ## Architecture Overview
 
-The engine is built on three layers:
+```mermaid
+graph TB
+    subgraph API["⚡ FastAPI Server"]
+        direction LR
+        EP1["/validate_pipeline"]
+        EP2["/infer/layer"]
+        EP3["/infer/dataset"]
+    end
 
-```
-┌─────────────────────────────────────────────┐
-│              FastAPI Server                  │
-│         (main.py — 3 endpoints)             │
-├──────────────────┬──────────────────────────┤
-│  Compiler Module │    Dataset Module        │
-│  ┌────────────┐  │  ┌──────────────────┐   │
-│  │ GraphComp. │  │  │ Shape Inference  │   │
-│  │ WeaveBlock │  │  │ Dataset Factory  │   │
-│  │ Factory    │  │  │ Registry         │   │
-│  │ Modules    │  │  │ Scanner          │   │
-│  └────────────┘  │  │ Transform Factory│   │
-│                  │  │ DataLoader       │   │
-│                  │  └──────────────────┘   │
-├──────────────────┴──────────────────────────┤
-│              PyTorch / TorchVision           │
-└─────────────────────────────────────────────┘
+    subgraph Compiler["🔧 Compiler Module"]
+        GC["Graph Compiler"]
+        WB["Weave Block"]
+        CF["Component Factory"]
+        CM["Custom Modules"]
+    end
+
+    subgraph Dataset["📦 Dataset Module"]
+        SI["Shape Inference"]
+        DF["Dataset Factory"]
+        REG["Registry"]
+        SC["Scanner"]
+        TF["Transform Factory"]
+        DL["DataLoader"]
+    end
+
+    subgraph Runtime["🧠 PyTorch / TorchVision"]
+        PT["Tensor Operations & Model Execution"]
+    end
+
+    API --> Compiler
+    API --> Dataset
+    Compiler --> Runtime
+    Dataset --> Runtime
+
+    style API fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#1a237e
+    style Compiler fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#0d47a1
+    style Dataset fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20
+    style Runtime fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#b71c1c
 ```
 
 ## Getting Started
@@ -50,16 +69,18 @@ The server starts at `http://127.0.0.1:8000`. Visit `http://127.0.0.1:8000/api/d
 ### API Endpoints
 
 | Method | Path | Description |
-|--------|------|-------------|
-| POST | `/validate_pipeline` | Simulate tensor flow through a full graph, return shapes per node |
-| POST | `/infer/layer` | Compute output shape of a single layer or block |
-| POST | `/infer/dataset` | Compute per-sample and batch tensor shapes for a dataset config |
+|:------:|------|-------------|
+| `POST` | `/validate_pipeline` | Simulate tensor flow through a full graph, return shapes per node |
+| `POST` | `/infer/layer` | Compute output shape of a single layer or block |
+| `POST` | `/infer/dataset` | Compute per-sample and batch tensor shapes for a dataset config |
 
 ### Modules
 
-- **Compiler** — Compiles graph configurations into executable PyTorch modules using topological sort and a factory pattern
-- **Dataset** — Loads datasets from predefined registries, local folders, or custom configurations with transform pipelines
-- **Schemas** — Pydantic data contracts that validate every request before processing
+| Module | Description |
+|--------|-------------|
+| **Compiler** | Compiles graph configurations into executable PyTorch modules using topological sort and a factory pattern |
+| **Dataset** | Loads datasets from predefined registries, local folders, or custom configurations with transform pipelines |
+| **Schemas** | Pydantic data contracts that validate every request before processing |
 
 ## Postman Collection
 
