@@ -10,6 +10,21 @@ TRANSFORM_MAP = {
 
 
 def build_transforms(transform_list):
+    """Build a composed transform pipeline from a list of transform configurations.
+
+    Supports both flat schema (e.g. {"type": "Resize", "size": 128}) and
+    nested params schema (e.g. {"type": "Resize", "params": {"size": 128}}).
+
+    Args:
+        transform_list: List of transform config dictionaries, each with a "type"
+            key and optional parameter keys or a "params" nested dict.
+
+    Returns:
+        transforms.Compose: A composed transform pipeline.
+
+    Raises:
+        ValueError: If a transform type is not in TRANSFORM_MAP.
+    """
     ops = []
 
     for t in transform_list:

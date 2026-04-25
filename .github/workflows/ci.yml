@@ -49,3 +49,19 @@ jobs:
           cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
       - run: uv run pytest
+
+  docs-build:
+    name: Docs Build Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv pip install -r docs-requirements.txt
+      - run: uv run mkdocs build --strict

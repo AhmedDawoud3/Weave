@@ -26,6 +26,20 @@ LayerBuilder = Callable[[NodeConfig], nn.Module]
 
 
 def _normalize_config(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Extract and flatten parameters from a config dictionary.
+
+    Handles both flat schema (e.g. {"type": "Resize", "size": 128}) and
+    nested params schema (e.g. {"type": "Resize", "params": {"size": 128}}).
+
+    Args:
+        config: Configuration dictionary with a "type" key and optional "params" key.
+
+    Returns:
+        A tuple of (type_string, flattened_params_dict).
+
+    Raises:
+        ValueError: If "type" is missing or empty, or if "params" is not a dict.
+    """
     if "type" not in config or not config["type"]:
         raise ValueError("Config must include a non-empty 'type' field.")
 
@@ -42,6 +56,18 @@ def _normalize_config(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
 
 
 def get_loss_function(config: dict[str, Any]) -> nn.Module:
+    """Create a PyTorch loss function from a configuration dictionary.
+
+    Args:
+        config: Configuration with "type" (e.g. "CrossEntropyLoss", "MSELoss")
+            and optional "params" for loss function keyword arguments.
+
+    Returns:
+        An instantiated PyTorch loss function (nn.Module).
+
+    Raises:
+        ValueError: If the loss type is not supported.
+    """
     loss_type, loss_params = _normalize_config(config)
 
     loss_registry: dict[str, type[nn.Module]] = {
@@ -58,6 +84,19 @@ def get_loss_function(config: dict[str, Any]) -> nn.Module:
 def get_optimizer(
     model_params: Iterable[Parameter], config: dict[str, Any]
 ) -> optim.Optimizer:
+    """Create a PyTorch optimizer from a configuration dictionary.
+
+    Args:
+        model_params: Iterable of model parameters to optimize.
+        config: Configuration with "type" (e.g. "Adam", "SGD") and optional
+            "params" for optimizer keyword arguments.
+
+    Returns:
+        An instantiated PyTorch optimizer.
+
+    Raises:
+        ValueError: If the optimizer type is not supported.
+    """
     optimizer_type, optimizer_params = _normalize_config(config)
 
     optimizer_registry = {
