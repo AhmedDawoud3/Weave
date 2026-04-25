@@ -33,7 +33,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
-      - run: uv run ty .
+      - run: uv run ty check . 
 
   pytest:
     name: Unit Tests (pytest)
