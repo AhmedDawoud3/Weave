@@ -7,7 +7,7 @@ from torch.nn.parameter import Parameter
 
 from schemas import NodeConfig
 
-from .modules import AddModule, ConcatModule
+from .modules import AddModule, ConcatModule, MultiplyModule
 
 # Type alias for a function that takes a NodeConfig and returns an nn.Module
 LayerBuilder = Callable[[NodeConfig], nn.Module]
@@ -204,3 +204,9 @@ def _build_concat(node: NodeConfig) -> nn.Module:
         raise ValueError("Expected Concat")
     p = node.params
     return ConcatModule(dim=p.dim)
+
+
+@ComponentFactory.register("Multiply")
+def _build_multiply(node: NodeConfig) -> nn.Module:
+    _ = node  # Not needed for Multiply operation
+    return MultiplyModule()
