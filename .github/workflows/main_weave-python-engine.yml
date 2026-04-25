@@ -38,6 +38,10 @@ jobs:
           uv export --no-hashes --format requirements.txt > requirements.txt
 
       # 📖 Build MkDocs documentation so /docs endpoint works on the deployed app
+      - name: Sync project dependencies
+        working-directory: ./engine
+        run: uv sync
+
       - name: Install docs dependencies
         working-directory: ./engine
         run: uv pip install -r docs-requirements.txt
