@@ -4,45 +4,53 @@ Welcome to the **Weave Engine** — a Python backend that compiles visual neural
 
 ## Architecture Overview
 
-```mermaid
-graph TB
-    subgraph API["⚡ FastAPI Server"]
-        direction LR
-        EP1["/validate_pipeline"]
-        EP2["/infer/layer"]
-        EP3["/infer/dataset"]
-    end
+The engine is organized in three layers — from the HTTP API surface down to the PyTorch runtime:
 
-    subgraph Compiler["🔧 Compiler Module"]
-        GC["Graph Compiler"]
-        WB["Weave Block"]
-        CF["Component Factory"]
-        CM["Custom Modules"]
-    end
+<div class="grid cards" markdown>
 
-    subgraph Dataset["📦 Dataset Module"]
-        SI["Shape Inference"]
-        DF["Dataset Factory"]
-        REG["Registry"]
-        SC["Scanner"]
-        TF["Transform Factory"]
-        DL["DataLoader"]
-    end
+-   :material-api: __FastAPI Server__
 
-    subgraph Runtime["🧠 PyTorch / TorchVision"]
-        PT["Tensor Operations & Model Execution"]
-    end
+    ---
 
-    API --> Compiler
-    API --> Dataset
-    Compiler --> Runtime
-    Dataset --> Runtime
+    Three REST endpoints that serve as the entry point for all shape inference and pipeline validation requests:
 
-    style API fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#1a237e
-    style Compiler fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#0d47a1
-    style Dataset fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20
-    style Runtime fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#b71c1c
-```
+    | Method | Endpoint |
+    |:------:|----------|
+    | `POST` | `/validate_pipeline` |
+    | `POST` | `/infer/layer` |
+    | `POST` | `/infer/dataset` |
+
+-   :material-tools: __Compiler Module__
+
+    ---
+
+    Compiles graph configurations into executable PyTorch modules:
+
+    - **Graph Compiler** — topological sort & tensor flow simulation
+    - **Weave Block** — composite layer grouping
+    - **Component Factory** — layer instantiation from config
+    - **Custom Modules** — user-defined PyTorch extensions
+
+-   :material-database: __Dataset Module__
+
+    ---
+
+    Loads and transforms datasets with full shape inference:
+
+    - **Shape Inference** — static tensor shape computation
+    - **Dataset Factory** — config-driven dataset creation
+    - **Registry** — predefined dataset catalog
+    - **Scanner** — local folder auto-discovery
+    - **Transform Factory** — composable preprocessing pipelines
+    - **DataLoader** — batched PyTorch data loading
+
+-   :material-brain: __PyTorch / TorchVision__
+
+    ---
+
+    The runtime foundation that executes compiled models and handles all tensor operations, gradient computation, and hardware acceleration.
+
+</div>
 
 ## Getting Started
 
@@ -50,7 +58,7 @@ New to Weave Engine? Follow the **[Getting Started](getting-started.md)** guide 
 
 - Install prerequisites (Python 3.12+, uv)
 - Set up the project and install dependencies
-- Run the server and run your first shape inference request
+- Run the server and send your first shape inference request
 - Build the documentation locally
 - Import the Postman collection
 
@@ -64,9 +72,7 @@ uv run uvicorn main:app --reload
 
 The server starts at `http://127.0.0.1:8000`. Visit `http://127.0.0.1:8000/api/docs` for the interactive Swagger UI, or `http://127.0.0.1:8000/docs` for the full documentation site.
 
-## What's Inside
-
-### API Endpoints
+## API Endpoints
 
 | Method | Path | Description |
 |:------:|------|-------------|
@@ -74,7 +80,7 @@ The server starts at `http://127.0.0.1:8000`. Visit `http://127.0.0.1:8000/api/d
 | `POST` | `/infer/layer` | Compute output shape of a single layer or block |
 | `POST` | `/infer/dataset` | Compute per-sample and batch tensor shapes for a dataset config |
 
-### Modules
+## Modules
 
 | Module | Description |
 |--------|-------------|
