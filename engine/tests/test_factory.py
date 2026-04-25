@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 import torch.nn as nn
 import torch.optim as optim
@@ -8,6 +10,7 @@ from schemas import (
     Conv2dParams,
     LinearNode,
     LinearParams,
+    NodeConfig,
     ReLUNode,
     ReLUParams,
 )
@@ -60,7 +63,7 @@ def test_factory_unimplemented_type():
         type = "NonExistent"
 
     with pytest.raises(NotImplementedError) as exc_info:
-        ComponentFactory.create_layer(DummyNode())
+        ComponentFactory.create_layer(cast(NodeConfig, DummyNode()))
 
     assert "Compilation for layer type NonExistent is not yet implemented." in str(
         exc_info.value

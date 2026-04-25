@@ -20,8 +20,8 @@ jobs:
       - run: uv sync
       - run: uv run ruff check .
 
-  mypy:
-    name: Type Checking (mypy)
+  ty:
+    name: Type Checking (ty)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,7 +33,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
-      - run: uv run mypy .
+      - run: uv run ty check . 
 
   pytest:
     name: Unit Tests (pytest)
@@ -49,3 +49,19 @@ jobs:
           cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
       - run: uv run pytest
+
+  docs-build:
+    name: Docs Build Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv pip install -r docs-requirements.txt
+      - run: uv run mkdocs build --strict

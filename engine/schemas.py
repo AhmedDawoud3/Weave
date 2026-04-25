@@ -715,15 +715,30 @@ class TrainingConfig(BaseModel):
 
 
 class ShapeInferenceRequest(BaseModel):
-    """POST /infer_layer_shape — single layer shape check"""
+    """POST /infer/layer — single layer shape check"""
 
     node: NodeConfig
     input_shape: list[int]  # e.g. [32, 3, 224, 224]
+    input_shapes: list[list[int]] | None = None  # for multi-input layers (Add, Concat)
 
 
 class ShapeInferenceResponse(BaseModel):
     status: str  # "success" or "error"
     output_shape: list[int] | None = None
+    message: str | None = None
+
+
+class DatasetShapeInferenceRequest(BaseModel):
+    """POST /infer/dataset — dataset output shape check"""
+
+    dataset_config: DatasetConfig
+
+
+class DatasetShapeInferenceResponse(BaseModel):
+    status: str  # "success" or "error"
+    per_sample_shape: list[int] | None = None  # e.g. [3, 224, 224]
+    batch_shape: list[int] | None = None  # e.g. [32, 3, 224, 224]
+    num_classes: int | None = None
     message: str | None = None
 
 

@@ -26,3 +26,16 @@ class ConcatModule(nn.Module):
         if not inputs:
             raise ValueError("ConcatModule requires at least one input tensor.")
         return torch.cat(inputs, dim=self.dim)
+
+
+class MultiplyModule(nn.Module):
+    """Wrapper for node 'Multiply' that multiplies multiple inputs element-wise."""
+
+    def forward(self, inputs: list[torch.Tensor]) -> torch.Tensor:
+        if not inputs:
+            raise ValueError("MultiplyModule requires at least one input tensor.")
+
+        result = inputs[0]
+        for t in inputs[1:]:
+            result = result * t
+        return result
