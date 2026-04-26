@@ -12,7 +12,11 @@ on:
 
 jobs:
   build:
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://weave-python-engine-hegma8f3gvafg4c4.italynorth-01.azurewebsites.net/ # Link appears in GitHub UI
     permissions:
       contents: read #This is required for actions/checkout
 
