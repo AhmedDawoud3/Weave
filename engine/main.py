@@ -6,14 +6,29 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from compiler.compiler import GraphCompiler
+from dataset.preview import preview_dataset
+from dataset.registry import load_registry
+from dataset.scanner import smart_scan
 from dataset.shape_inference import infer_dataset_shape
+from dataset.transform_factory import get_transform_catalog
+from dataset.validator import validate_dataset_config
 from schemas import (
+    DatasetCatalogEntry,
+    DatasetCatalogResponse,
+    DatasetPreviewRequest,
+    DatasetPreviewResponse,
+    DatasetScanRequest,
+    DatasetScanResponse,
     DatasetShapeInferenceRequest,
     DatasetShapeInferenceResponse,
+    DatasetValidateRequest,
+    DatasetValidateResponse,
     PipelineValidationRequest,
     PipelineValidationResponse,
     ShapeInferenceRequest,
     ShapeInferenceResponse,
+    TransformCatalogEntry,
+    TransformCatalogResponse,
 )
 
 # Retrieve project metadata
@@ -36,6 +51,11 @@ compiler = GraphCompiler()
 _site_dir = os.path.join(os.path.dirname(__file__), "site")
 if os.path.isdir(_site_dir):
     app.mount("/docs", StaticFiles(directory=_site_dir, html=True), name="docs")
+
+
+# ---------------------------------------------------------------------------
+# Existing endpoints
+# ---------------------------------------------------------------------------
 
 
 @app.post("/validate_pipeline", response_model=PipelineValidationResponse)
@@ -105,6 +125,116 @@ def infer_dataset_shape_endpoint(request: DatasetShapeInferenceRequest):
             status="error",
             message=f"Dataset shape inference failed: {str(e)}",
         )
+
+
+# ---------------------------------------------------------------------------
+# Dataset catalog & scan endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.get("/datasets/catalog", response_model=DatasetCatalogResponse)
+def datasets_catalog():
+    """List all predefined datasets with metadata for the visual editor picker.
+
+    Returns:
+        DatasetCatalogResponse with a list of dataset entries including
+        name, description, tags, modality, shape, and num_classes.
+    """
+    registry = load_registry()
+    entries = []
+    for name, config in registry.items():
+        entries.append(
+            DatasetCatalogEntry(
+                name=name,
+                description=config.get("description", ""),
+                tags=config.get("tags", []),
+                modality=config.get("modality", "image"),
+                shape=config.get("shape"),
+                num_classes=config.get("num_classes"),
+            )
+        )
+    return DatasetCatalogResponse(datasets=entries)
+
+
+@app.get("/transforms/catalog", response_model=TransformCatalogResponse)
+def transforms_catalog():
+    """List all available transforms with parameter schemas for the visual editor.
+
+    Returns:
+        TransformCatalogResponse with a list of transform entries including
+        name, params, category, and description.
+    """
+    catalog = get_transform_catalog()
+    entries = [
+        TransformCatalogEntry(
+            name=item["name"],
+            params=item["params"],
+            category=item["category"],
+            description=item["description"],
+        )
+        for item in catalog
+    ]
+    return TransformCatalogResponse(transforms=entries)
+
+
+@app.post("/datasets/scan", response_model=DatasetScanResponse)
+def datasets_scan(request: DatasetScanRequest):
+    """Scan a local path for data and return structure info.
+
+    Supports image folders, CSV files, text files, and audio folders.
+    Auto-detects the data type if modality is not specified.
+
+    Args:
+        request: Scan request with path and optional modality hint.
+
+    Returns:
+        DatasetScanResponse with scan results or error message.
+    """
+    try:
+        result = smart_scan(request.path, request.modality)
+        return DatasetScanResponse(status="success", result=result)
+    except Exception as e:
+        return DatasetScanResponse(status="error", message=str(e))
+
+
+@app.post("/datasets/preview", response_model=DatasetPreviewResponse)
+def datasets_preview(request: DatasetPreviewRequest):
+    """Preview a few samples from a dataset configuration.
+
+    Returns sample data in a frontend-friendly format (base64 thumbnails
+    for images, token IDs for text, feature vectors for tabular, etc.).
+
+    Args:
+        request: Preview request with dataset config and sample count.
+
+    Returns:
+        DatasetPreviewResponse with samples and total dataset size.
+    """
+    try:
+        result = preview_dataset(request.dataset_config, request.num_samples)
+        return DatasetPreviewResponse(**result)
+    except Exception as e:
+        return DatasetPreviewResponse(
+            status="error",
+            message=str(e),
+        )
+
+
+@app.post("/datasets/validate", response_model=DatasetValidateResponse)
+def datasets_validate(request: DatasetValidateRequest):
+    """Validate a dataset configuration and return errors/warnings.
+
+    Checks required fields, path existence, column validity, and
+    transform compatibility.
+
+    Args:
+        request: Validate request with dataset config.
+
+    Returns:
+        DatasetValidateResponse with valid flag, errors, and warnings.
+    """
+    result = validate_dataset_config(request.dataset_config)
+    return DatasetValidateResponse(**result)
 
 
 def main():

@@ -11,13 +11,20 @@ Defines a single preprocessing transform. Uses `ConfigDict(extra="allow")` to ac
 
 ### Supported Transforms
 
-| Type | Extra Fields | PyTorch Transform |
-|------|-------------|-------------------|
-| `Resize` | `size: int \| list[int]` | `transforms.Resize` |
-| `ToTensor` | *(none)* | `transforms.ToTensor` |
-| `Normalize` | `mean: list[float]`, `std: list[float]` | `transforms.Normalize` |
-| `RandomHorizontalFlip` | `p: float = 0.5` | `transforms.RandomHorizontalFlip` |
-| `RandomRotation` | `degrees: float \| list[float]` | `transforms.RandomRotation` |
+| Type | Extra Fields | PyTorch Transform | Category |
+|------|-------------|-------------------|----------|
+| `Resize` | `size: int \| list[int]` | `transforms.Resize` | geometric |
+| `CenterCrop` | `size: int \| list[int]` | `transforms.CenterCrop` | geometric |
+| `RandomResizedCrop` | `size: int`, `scale: list[float]` | `transforms.RandomResizedCrop` | augmentation |
+| `RandomHorizontalFlip` | `p: float = 0.5` | `transforms.RandomHorizontalFlip` | augmentation |
+| `RandomVerticalFlip` | `p: float = 0.5` | `transforms.RandomVerticalFlip` | augmentation |
+| `RandomRotation` | `degrees: float \| list[float]` | `transforms.RandomRotation` | augmentation |
+| `ColorJitter` | `brightness`, `contrast`, `saturation`, `hue: float` | `transforms.ColorJitter` | color |
+| `GaussianBlur` | `kernel_size: int \| list[int]`, `sigma: list[float]` | `transforms.GaussianBlur` | color |
+| `RandomErasing` | `p: float = 0.5`, `scale: list[float]` | `transforms.RandomErasing` | augmentation |
+| `Grayscale` | `num_output_channels: int = 1` | `transforms.Grayscale` | color |
+| `Normalize` | `mean: list[float]`, `std: list[float]` | `transforms.Normalize` | normalization |
+| `ToTensor` | *(none)* | `transforms.ToTensor` | normalization |
 
 ### Example: Flat schema (preferred)
 

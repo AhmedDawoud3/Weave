@@ -7,7 +7,23 @@
             "download": true
         },
         "shape": [1, 28, 28],
-        "num_classes": 10
+        "num_classes": 10,
+        "description": "Handwritten digit recognition dataset (0-9)",
+        "tags": ["grayscale", "classification", "vision"],
+        "modality": "image"
+    },
+    "FashionMNIST": {
+        "module": "torchvision.datasets",
+        "class": "FashionMNIST",
+        "default_params": {
+            "train": true,
+            "download": true
+        },
+        "shape": [1, 28, 28],
+        "num_classes": 10,
+        "description": "Fashion article images (T-shirt, trouser, pullover, etc.)",
+        "tags": ["grayscale", "classification", "vision", "fashion"],
+        "modality": "image"
     },
     "CIFAR10": {
         "module": "torchvision.datasets",
@@ -17,6 +33,62 @@
             "download": true
         },
         "shape": [3, 32, 32],
-        "num_classes": 10
+        "num_classes": 10,
+        "description": "Small color images in 10 classes (airplane, car, bird, etc.)",
+        "tags": ["color", "classification", "vision"],
+        "modality": "image"
+    },
+    "CIFAR100": {
+        "module": "torchvision.datasets",
+        "class": "CIFAR100",
+        "default_params": {
+            "train": true,
+            "download": true
+        },
+        "shape": [3, 32, 32],
+        "num_classes": 100,
+        "description": "Small color images in 100 fine-grained classes",
+        "tags": ["color", "classification", "vision", "fine-grained"],
+        "modality": "image"
+    },
+    "EMNIST": {
+        "module": "torchvision.datasets",
+        "class": "EMNIST",
+        "default_params": {
+            "train": true,
+            "download": true,
+            "split": "byclass"
+        },
+        "shape": [1, 28, 28],
+        "num_classes": 62,
+        "description": "Extended MNIST with letters and digits (62 classes)",
+        "tags": ["grayscale", "classification", "vision", "letters"],
+        "modality": "image"
+    },
+    "QMNIST": {
+        "module": "torchvision.datasets",
+        "class": "QMNIST",
+        "default_params": {
+            "train": true,
+            "download": true
+        },
+        "shape": [1, 28, 28],
+        "num_classes": 10,
+        "description": "QMNIST — reconstructed MNIST with richer metadata",
+        "tags": ["grayscale", "classification", "vision"],
+        "modality": "image"
+    },
+    "SVHN": {
+        "module": "torchvision.datasets",
+        "class": "SVHN",
+        "default_params": {
+            "split": "train",
+            "download": true
+        },
+        "shape": [3, 32, 32],
+        "num_classes": 10,
+        "description": "Street View House Numbers dataset",
+        "tags": ["color", "classification", "vision", "digits"],
+        "modality": "image"
     }
 }

@@ -157,11 +157,11 @@ These also run in CI on every push and pull request.
 
 ## Build the Documentation
 
-Documentation dependencies are listed separately in `docs-requirements.txt` to keep runtime deps clean:
+Documentation dependencies are managed via the `docs` dependency group in `pyproject.toml`:
 
 ```bash
 # Install docs dependencies
-uv pip install -r docs-requirements.txt
+uv sync --group docs
 
 # Build static site (output to engine/site/)
 uv run mkdocs build
@@ -220,7 +220,7 @@ engine/
 ├── postman/                 # Postman collection
 ├── tests/                   # pytest test suite
 ├── mkdocs.yml               # MkDocs configuration
-└── docs-requirements.txt    # Documentation dependencies
+└── pyproject.toml           # Project config (deps, tools, docs group)
 ```
 
 ## Troubleshooting

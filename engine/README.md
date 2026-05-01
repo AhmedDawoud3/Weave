@@ -29,7 +29,7 @@ Full documentation is available as a MkDocs site with hand-written guides and au
 ### Install docs dependencies
 
 ```bash
-uv pip install -r docs-requirements.txt
+uv sync --group docs
 ```
 
 ### Build the docs
@@ -107,7 +107,7 @@ engine/
 ├── postman/                 # Postman collection
 ├── tests/                   # pytest test suite
 ├── mkdocs.yml               # MkDocs configuration
-└── docs-requirements.txt    # Documentation dependencies
+└── pyproject.toml           # Project config (deps, tools, docs group)
 ```
 
 ## Development
