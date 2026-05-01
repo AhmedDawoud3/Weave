@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-  pull_request:
 
 jobs:
   ruff:
@@ -62,6 +61,5 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "engine/uv.lock"
-      - run: uv sync
-      - run: uv pip install -r docs-requirements.txt
+      - run: uv sync --group docs
       - run: uv run mkdocs build --strict

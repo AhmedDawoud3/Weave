@@ -1,6 +1,6 @@
 # API Endpoints
 
-The Weave Engine exposes three REST endpoints via FastAPI. All endpoints accept JSON request bodies and return JSON responses.
+The Weave Engine exposes REST endpoints via FastAPI. All endpoints accept JSON request bodies and return JSON responses.
 
 ## Base URL
 
@@ -29,11 +29,23 @@ Error responses always include a `message` field with a human-readable explanati
 
 ## Endpoints
 
+### Model Builder
+
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | [`/validate_pipeline`](validate-pipeline.md) | Simulate tensor flow through a full graph |
 | POST | [`/infer/layer`](infer-layer.md) | Compute output shape of a single layer or block |
 | POST | [`/infer/dataset`](infer-dataset.md) | Compute tensor shapes for a dataset configuration |
+
+### Dataset Management
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/datasets/catalog` | List all predefined datasets with UI metadata |
+| GET | `/transforms/catalog` | List all transforms with parameter schemas |
+| POST | `/datasets/scan` | Scan a local path for data structure |
+| POST | `/datasets/preview` | Preview samples from a dataset configuration |
+| POST | `/datasets/validate` | Validate a dataset configuration |
 
 ## Interactive Docs
 

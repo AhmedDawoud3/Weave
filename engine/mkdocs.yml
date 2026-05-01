@@ -97,6 +97,9 @@ nav:
       - Scanner: dataset/scanner.md
       - Transform Factory: dataset/transform-factory.md
       - DataLoader: dataset/dataloader.md
+      - Preview: dataset/preview.md
+      - Validator: dataset/validator.md
+      - Custom Loaders: dataset/custom-loaders.md
   - API Reference:
       - reference/compiler.md
       - reference/dataset.md

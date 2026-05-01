@@ -1,0 +1,93 @@
+{
+    "Resize": {
+        "params": {
+            "size": {"type": "int_or_list_int", "required": true, "default": null, "description": "Desired output size"}
+        },
+        "category": "geometry",
+        "description": "Resize the input image to the given size"
+    },
+    "CenterCrop": {
+        "params": {
+            "size": {"type": "int_or_list_int", "required": true, "default": null, "description": "Desired output size of the crop"}
+        },
+        "category": "geometry",
+        "description": "Crops the given image at the center"
+    },
+    "RandomResizedCrop": {
+        "params": {
+            "size": {"type": "int_or_list_int", "required": true, "default": null, "description": "Expected output size"},
+            "scale": {"type": "tuple_float", "required": false, "default": [0.08, 1.0], "description": "Range of fraction of area to crop"},
+            "ratio": {"type": "tuple_float", "required": false, "default": [0.75, 1.3333], "description": "Range of aspect ratio of crop"}
+        },
+        "category": "geometry",
+        "description": "Crop the image to a random size and aspect ratio, then resize"
+    },
+    "RandomHorizontalFlip": {
+        "params": {
+            "p": {"type": "float", "required": false, "default": 0.5, "description": "Probability of flipping"}
+        },
+        "category": "augmentation",
+        "description": "Horizontally flip the image randomly with a given probability"
+    },
+    "RandomVerticalFlip": {
+        "params": {
+            "p": {"type": "float", "required": false, "default": 0.5, "description": "Probability of flipping"}
+        },
+        "category": "augmentation",
+        "description": "Vertically flip the image randomly with a given probability"
+    },
+    "RandomRotation": {
+        "params": {
+            "degrees": {"type": "float_or_list_float", "required": true, "default": null, "description": "Range of degrees to select from"}
+        },
+        "category": "augmentation",
+        "description": "Rotate the image by a random angle"
+    },
+    "ColorJitter": {
+        "params": {
+            "brightness": {"type": "float", "required": false, "default": 0.0, "description": "How much to jitter brightness"},
+            "contrast": {"type": "float", "required": false, "default": 0.0, "description": "How much to jitter contrast"},
+            "saturation": {"type": "float", "required": false, "default": 0.0, "description": "How much to jitter saturation"},
+            "hue": {"type": "float", "required": false, "default": 0.0, "description": "How much to jitter hue"}
+        },
+        "category": "augmentation",
+        "description": "Randomly change the brightness, contrast, saturation and hue of an image"
+    },
+    "GaussianBlur": {
+        "params": {
+            "kernel_size": {"type": "int_or_list_int", "required": true, "default": null, "description": "Gaussian kernel size"},
+            "sigma": {"type": "tuple_float", "required": false, "default": [0.1, 2.0], "description": "Standard deviation range for Gaussian kernel"}
+        },
+        "category": "augmentation",
+        "description": "Blur the image with a Gaussian blur kernel"
+    },
+    "RandomErasing": {
+        "params": {
+            "p": {"type": "float", "required": false, "default": 0.5, "description": "Probability of erasing"},
+            "scale": {"type": "tuple_float", "required": false, "default": [0.02, 0.33], "description": "Range of proportion of erased area"},
+            "ratio": {"type": "tuple_float", "required": false, "default": [0.3, 3.3], "description": "Range of aspect ratio of erased area"}
+        },
+        "category": "augmentation",
+        "description": "Randomly select a rectangle region in the image and erase its pixels"
+    },
+    "Grayscale": {
+        "params": {
+            "num_output_channels": {"type": "int", "required": false, "default": 1, "description": "Number of output channels (1 or 3)"}
+        },
+        "category": "conversion",
+        "description": "Convert image to grayscale"
+    },
+    "ToTensor": {
+        "params": {},
+        "category": "conversion",
+        "description": "Convert a PIL Image or numpy.ndarray to tensor and scale to [0, 1]"
+    },
+    "Normalize": {
+        "params": {
+            "mean": {"type": "list_float", "required": true, "default": null, "description": "Sequence of means for each channel"},
+            "std": {"type": "list_float", "required": true, "default": null, "description": "Sequence of standard deviations for each channel"}
+        },
+        "category": "normalization",
+        "description": "Normalize a tensor image with mean and standard deviation"
+    }
+}

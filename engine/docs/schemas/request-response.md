@@ -244,3 +244,93 @@ Stored for every training run.
 | Field | Type | Description |
 |-------|------|-------------|
 | `runs` | `list[dict]` | Per-run metric histories |
+
+## Dataset Catalog & Management
+
+### DatasetCatalogResponse
+
+`GET /datasets/catalog` — list all predefined datasets with UI metadata.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `datasets` | `list[DatasetCatalogEntry]` | Available datasets |
+
+#### DatasetCatalogEntry
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Dataset name |
+| `shape` | `list[int]` | Per-sample tensor shape |
+| `num_classes` | `int` | Number of output classes |
+| `description` | `str` | Human-readable description |
+| `tags` | `list[str]` | Search/filter tags |
+| `modality` | `str` | Data modality |
+
+### TransformCatalogResponse
+
+`GET /transforms/catalog` — list all transforms with parameter schemas.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transforms` | `list[TransformCatalogEntry]` | Available transforms |
+
+#### TransformCatalogEntry
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Transform name |
+| `description` | `str` | Human-readable description |
+| `category` | `str` | Category (`"geometric"`, `"color"`, `"normalization"`, `"augmentation"`) |
+| `params` | `dict` | Parameter name → parameter schema |
+
+### DatasetScanRequest
+
+`POST /datasets/scan` — scan a local path for data.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | `str` | ✅ | Path to scan |
+| `modality` | `str \| None` | ❌ | Hint: `"image"`, `"text"`, `"tabular"`, `"audio"` |
+
+### DatasetScanResponse
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `str` | `"success"` or `"error"` |
+| `result` | `dict \| None` | Scan results (format varies by modality) |
+| `message` | `str \| None` | Error message |
+
+### DatasetPreviewRequest
+
+`POST /datasets/preview` — preview samples from a dataset.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `dataset_config` | `DatasetConfig` | ✅ | Dataset configuration |
+| `num_samples` | `int` | ❌ | Number of samples (default: 5) |
+
+### DatasetPreviewResponse
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `str` | `"success"` or `"error"` |
+| `modality` | `str \| None` | Detected modality |
+| `num_samples` | `int \| None` | Number of samples returned |
+| `samples` | `list[dict] \| None` | Preview samples |
+| `message` | `str \| None` | Error message |
+
+### DatasetValidateRequest
+
+`POST /datasets/validate` — validate a dataset configuration.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `dataset_config` | `DatasetConfig` | ✅ | Dataset configuration to validate |
+
+### DatasetValidateResponse
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `bool` | Whether the config is valid |
+| `errors` | `list[str]` | Blocking issues |
+| `warnings` | `list[str]` | Non-blocking issues |

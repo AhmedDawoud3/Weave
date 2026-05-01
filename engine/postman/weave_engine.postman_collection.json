@@ -813,6 +813,346 @@
           }
         }
       ]
+    },
+    {
+      "name": "Dataset Management",
+      "item": [
+        {
+          "name": "Datasets Catalog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has datasets array', function () {",
+                  "  pm.expect(body).to.have.property('datasets');",
+                  "  pm.expect(body.datasets).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (body.datasets.length > 0) {",
+                  "  pm.test('First dataset has required fields', function () {",
+                  "    const ds = body.datasets[0];",
+                  "    pm.expect(ds).to.have.property('name');",
+                  "    pm.expect(ds).to.have.property('shape');",
+                  "    pm.expect(ds).to.have.property('num_classes');",
+                  "    pm.expect(ds).to.have.property('description');",
+                  "    pm.expect(ds).to.have.property('tags');",
+                  "    pm.expect(ds).to.have.property('modality');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/datasets/catalog"
+          }
+        },
+        {
+          "name": "Transforms Catalog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has transforms array', function () {",
+                  "  pm.expect(body).to.have.property('transforms');",
+                  "  pm.expect(body.transforms).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (body.transforms.length > 0) {",
+                  "  pm.test('First transform has required fields', function () {",
+                  "    const t = body.transforms[0];",
+                  "    pm.expect(t).to.have.property('name');",
+                  "    pm.expect(t).to.have.property('description');",
+                  "    pm.expect(t).to.have.property('category');",
+                  "    pm.expect(t).to.have.property('params');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/transforms/catalog"
+          }
+        },
+        {
+          "name": "Scan - Image Folder",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has status field', function () {",
+                  "  pm.expect(body).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"./data\",\n  \"modality\": \"image\"\n}"
+            },
+            "url": "{{baseUrl}}/datasets/scan"
+          }
+        },
+        {
+          "name": "Scan - CSV File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has status field', function () {",
+                  "  pm.expect(body).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"./data/features.csv\",\n  \"modality\": \"tabular\"\n}"
+            },
+            "url": "{{baseUrl}}/datasets/scan"
+          }
+        },
+        {
+          "name": "Preview - Predefined Dataset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has status field', function () {",
+                  "  pm.expect(body).to.have.property('status');",
+                  "});",
+                  "",
+                  "if (body.status === 'success') {",
+                  "  pm.test('Response has samples', function () {",
+                  "    pm.expect(body).to.have.property('samples');",
+                  "    pm.expect(body).to.have.property('modality');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"CIFAR10\",\n    \"split\": \"train\"\n  },\n  \"num_samples\": 3\n}"
+            },
+            "url": "{{baseUrl}}/datasets/preview"
+          }
+        },
+        {
+          "name": "Preview - Custom Text Dataset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has status field', function () {",
+                  "  pm.expect(body).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"text\",\n    \"file_path\": \"./data/reviews.csv\",\n    \"text_column\": \"review\",\n    \"target_column\": \"sentiment\",\n    \"max_length\": 128\n  },\n  \"num_samples\": 5\n}"
+            },
+            "url": "{{baseUrl}}/datasets/preview"
+          }
+        },
+        {
+          "name": "Validate - Predefined Dataset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has valid field', function () {",
+                  "  pm.expect(body).to.have.property('valid');",
+                  "  pm.expect(body).to.have.property('errors');",
+                  "  pm.expect(body).to.have.property('warnings');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"MNIST\",\n    \"split\": \"train\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/datasets/validate"
+          }
+        },
+        {
+          "name": "Validate - Invalid Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Invalid config returns errors', function () {",
+                  "  pm.expect(body).to.have.property('valid');",
+                  "  pm.expect(body.valid).to.be.false;",
+                  "  pm.expect(body.errors).to.be.an('array');",
+                  "  pm.expect(body.errors.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"NonExistentDataset\",\n    \"split\": \"train\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/datasets/validate"
+          }
+        },
+        {
+          "name": "Validate - Custom Tabular Dataset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has validation result', function () {",
+                  "  pm.expect(body).to.have.property('valid');",
+                  "  pm.expect(body).to.have.property('errors');",
+                  "  pm.expect(body).to.have.property('warnings');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"tabular\",\n    \"file_path\": \"./data/features.csv\",\n    \"feature_columns\": [\"age\", \"income\"],\n    \"target_column\": \"label\",\n    \"categorical_columns\": [],\n    \"normalize\": true\n  }\n}"
+            },
+            "url": "{{baseUrl}}/datasets/validate"
+          }
+        }
+      ]
     }
   ]
 }
