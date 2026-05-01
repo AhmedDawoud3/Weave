@@ -31,7 +31,7 @@ jobs:
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       # 🛠️ Local Build Section (Optional)
       # We use `uv` to instantly generate a standard requirements.txt from pyproject.toml. 
@@ -42,13 +42,9 @@ jobs:
           uv export --no-hashes --format requirements.txt > requirements.txt
 
       # 📖 Build MkDocs documentation so /docs endpoint works on the deployed app
-      - name: Sync project dependencies
+      - name: Sync project and docs dependencies
         working-directory: ./engine
-        run: uv sync
-
-      - name: Install docs dependencies
-        working-directory: ./engine
-        run: uv pip install -r docs-requirements.txt
+        run: uv sync --group docs
 
       - name: Build MkDocs site
         working-directory: ./engine

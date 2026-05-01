@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from typing import Any
 
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
@@ -14,10 +15,15 @@ from schemas import (
     PredefinedDatasetConfig,
 )
 
-from .custom_loaders.audio_dataset import AudioDataset
 from .custom_loaders.csv_image_dataset import CSVImageDataset
 from .custom_loaders.tabular_dataset import TabularDataset
 from .custom_loaders.text_dataset import TextDataset
+
+try:
+    from .custom_loaders.audio_dataset import AudioDataset
+except (ImportError, OSError):
+    # OSError raised on CPU-only runners where CUDA shared libs are missing
+    AudioDataset: Any = None
 from .registry import load_registry
 from .transform_factory import build_transforms
 
@@ -196,6 +202,12 @@ def _create_custom_tabular(config: CustomDatasetConfig) -> Dataset:
 
 def _create_custom_audio(config: CustomDatasetConfig, transform: Compose | None) -> Dataset:
     """Create a custom audio dataset."""
+    if AudioDataset is None:
+        raise ImportError(
+            "torchaudio is required for audio datasets but could not be loaded. "
+            "Install it with: pip install torchaudio"
+        )
+
     if not config.root:
         raise ValueError("Custom audio dataset requires 'root' directory.")
 

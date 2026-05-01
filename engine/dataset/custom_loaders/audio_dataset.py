@@ -17,7 +17,8 @@ try:
     import torchaudio
 
     HAS_TORCHAUDIO = True
-except ImportError:
+except (ImportError, OSError):
+    # OSError raised on CPU-only runners where CUDA shared libs are missing
     HAS_TORCHAUDIO = False
 
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac"}
