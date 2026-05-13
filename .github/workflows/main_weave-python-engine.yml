@@ -1,0 +1,99 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Build and deploy Python app to Azure Web App - weave-python-engine
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://weave-python-engine-hegma8f3gvafg4c4.italynorth-01.azurewebsites.net/ # Link appears in GitHub UI
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 🛠️ Local Build Section (Optional)
+      # We use `uv` to instantly generate a standard requirements.txt from pyproject.toml. 
+      # This allows Azure's build engine (Oryx) to install dependencies natively on the server.
+      - name: Generate requirements.txt using uv
+        working-directory: ./engine
+        run: |
+          uv export --no-hashes --format requirements.txt > requirements.txt
+
+      # 📖 Build MkDocs documentation so /docs endpoint works on the deployed app
+      - name: Sync project dependencies
+        working-directory: ./engine
+        run: uv sync
+
+      - name: Install docs dependencies
+        working-directory: ./engine
+        run: uv pip install -r docs-requirements.txt
+
+      - name: Build MkDocs site
+        working-directory: ./engine
+        run: uv run mkdocs build
+
+      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            ./engine
+            !./engine/antenv/
+            !./engine/.venv/
+
+      # 🚫 Opting Out of Oryx Build
+      # If you prefer to disable the Oryx build process during deployment, follow these steps:
+      # 1. Remove the SCM_DO_BUILD_DURING_DEPLOYMENT app setting from your Azure App Service Environment variables.
+      # 2. Refer to sample workflows for alternative deployment strategies: https://github.com/Azure/actions-workflow-samples/tree/master/AppService
+      
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0CE1FFF3F97F4036B411E2D9FA15C49E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5E44147736554042BBCE9C0411350732 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C271FE427DBB4778B9F3FC74F4FDDD77 }}
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'weave-python-engine'
+          slot-name: 'Production'
+          

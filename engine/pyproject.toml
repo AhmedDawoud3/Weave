@@ -1,0 +1,92 @@
+[project]
+name = "engine"
+version = "0.1.0"
+description = "Weave Neural Network Engine"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.135.3",
+    "pydantic>=2.12.5",
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "uvicorn>=0.44.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.10.0",
+    "pytest>=9.0.2",
+    "ruff>=0.15.2",
+    "ty>=0.0.32",
+]
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["compiler", "dataset", "schemas.py", "main.py"]
+
+# ── Black ──────────────────────────────────────────────────────────────────
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311"]
+extend-exclude = '''
+/(
+  \.git
+  | \.venv
+  | venv
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+[tool.ty.src]
+exclude = ["tests/**"]
+
+# ── pytest ─────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m not slow')",
+    "gpu:  marks tests that require a CUDA-capable GPU",
+]
+
+# ── coverage ───────────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", ".venv/*", "venv/*", "setup.py"]
+
+[tool.coverage.report]
+fail_under = 70               # raise this as the codebase matures
+show_missing = true
+
+# ── bandit ─────────────────────────────────────────────────────────────────
+[tool.bandit]
+skips = ["B101"]              # skip assert_used – fine in tests
+exclude_dirs = [".venv", "venv", "engine/tests"]
+
+# ── ruff (optional fast linter / formatter) ────────────────────────────────
+[tool.ruff]
+line-length = 88
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "PT",       # flake8-pytest-style
+]
+ignore = ["E501", "UP007", "N812", "PT011", "C405", "N806"]             # line-too-long handled by black
+
+[tool.ruff.lint.isort]
+known-third-party = ["torch", "torchvision", "torchaudio", "numpy", "pandas"]

@@ -1,0 +1,818 @@
+{
+  "info": {
+    "_postman_id": "9d640f39-c4db-4d89-988f-4ba6bfc27f6f",
+    "name": "Weave Engine API",
+    "description": "Postman collection for testing the Weave Engine FastAPI endpoints. Covers /validate_pipeline, /infer/layer, and /infer/dataset with success and error scenarios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "github-copilot"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "OpenAPI - Service Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('OpenAPI has paths', function () {",
+                  "  pm.expect(body).to.have.property('paths');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/openapi.json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validate Pipeline",
+      "item": [
+        {
+          "name": "Success (Conv2d -> ReLU)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape matches expected', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([1, 16, 32, 32]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"relu1\",\n        \"type\": \"ReLU\",\n        \"params\": {}\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"conv1\" },\n      { \"source\": \"conv1\", \"target\": \"relu1\" },\n      { \"source\": \"relu1\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Success (Multi-Input Concat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Concat output shape is correct', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([1, 96, 32, 32]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 32,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"conv2\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 64,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"cat1\",\n        \"type\": \"Concat\",\n        \"params\": { \"dim\": 1 }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"conv1\" },\n      { \"source\": \"input\", \"target\": \"conv2\" },\n      { \"source\": \"conv1\", \"target\": \"cat1\" },\n      { \"source\": \"conv2\", \"target\": \"cat1\" },\n      { \"source\": \"cat1\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Error (Shape Mismatch)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is error', function () {",
+                  "  pm.expect(body.status).to.eql('error');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions shape mismatch', function () {",
+                  "  pm.expect(body.message).to.include('Shape mismatch');",
+                  "  pm.expect(body.message).to.include('fc1');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"fc1\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 128,\n          \"out_features\": 64\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"fc1\" },\n      { \"source\": \"fc1\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [32, 64]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Error (Disconnected Output)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is error', function () {",
+                  "  pm.expect(body.status).to.eql('error');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions graph connection issue', function () {",
+                  "  pm.expect(body.message).to.include('Graph connection issue');",
+                  "  pm.expect(body.message).to.include('No path leads to');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"stride\": 1,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"relu1\",\n        \"type\": \"ReLU\",\n        \"params\": {}\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"conv1\" },\n      { \"source\": \"conv1\", \"target\": \"relu1\" }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Error (Cycle Detection)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is error', function () {",
+                  "  pm.expect(body.status).to.eql('error');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions cycle or graph issue', function () {",
+                  "  pm.expect(body.message).to.include('Graph connection issue');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"conv1\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 3,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"padding\": 1\n        }\n      },\n      {\n        \"id\": \"conv2\",\n        \"type\": \"Conv2d\",\n        \"params\": {\n          \"in_channels\": 16,\n          \"out_channels\": 16,\n          \"kernel_size\": 3,\n          \"padding\": 1\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"conv1\" },\n      { \"source\": \"conv1\", \"target\": \"conv2\" },\n      { \"source\": \"conv2\", \"target\": \"conv1\" },\n      { \"source\": \"conv2\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Infer Layer Shape",
+      "item": [
+        {
+          "name": "Conv2d (Single-Input)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape is correct', function () {",
+                  "  pm.expect(body.output_shape).to.eql([1, 64, 32, 32]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"conv1\",\n    \"type\": \"Conv2d\",\n    \"params\": {\n      \"in_channels\": 3,\n      \"out_channels\": 64,\n      \"kernel_size\": 3,\n      \"stride\": 1,\n      \"padding\": 1\n    }\n  },\n  \"input_shape\": [1, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        },
+        {
+          "name": "Linear (Single-Input)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape is correct', function () {",
+                  "  pm.expect(body.output_shape).to.eql([32, 10]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"fc1\",\n    \"type\": \"Linear\",\n    \"params\": {\n      \"in_features\": 128,\n      \"out_features\": 10\n    }\n  },\n  \"input_shape\": [32, 128]\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        },
+        {
+          "name": "ReLU (Default Params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('ReLU preserves shape', function () {",
+                  "  pm.expect(body.output_shape).to.eql([1, 64, 32, 32]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"relu1\",\n    \"type\": \"ReLU\",\n    \"params\": {}\n  },\n  \"input_shape\": [1, 64, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        },
+        {
+          "name": "Concat (Multi-Input)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Concat output shape is correct', function () {",
+                  "  pm.expect(body.output_shape).to.eql([1, 96, 16, 16]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"cat1\",\n    \"type\": \"Concat\",\n    \"params\": { \"dim\": 1 }\n  },\n  \"input_shapes\": [[1, 32, 16, 16], [1, 64, 16, 16]]\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        },
+        {
+          "name": "Add (Multi-Input)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Add output shape is correct', function () {",
+                  "  pm.expect(body.output_shape).to.eql([1, 64, 16, 16]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"add1\",\n    \"type\": \"Add\",\n    \"params\": {}\n  },\n  \"input_shapes\": [[1, 64, 16, 16], [1, 64, 16, 16]]\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        },
+        {
+          "name": "Error (Missing input_shape)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is error', function () {",
+                  "  pm.expect(body.status).to.eql('error');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions requires input_shape', function () {",
+                  "  pm.expect(body.message).to.include('requires input_shape');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node\": {\n    \"id\": \"conv1\",\n    \"type\": \"Conv2d\",\n    \"params\": {\n      \"in_channels\": 3,\n      \"out_channels\": 64,\n      \"kernel_size\": 3,\n      \"padding\": 1\n    }\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/layer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Infer Dataset Shape",
+      "item": [
+        {
+          "name": "Predefined CIFAR10",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape is correct', function () {",
+                  "  pm.expect(body.per_sample_shape).to.eql([3, 32, 32]);",
+                  "});",
+                  "",
+                  "pm.test('Num classes is 10', function () {",
+                  "  pm.expect(body.num_classes).to.eql(10);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"CIFAR10\",\n    \"split\": \"train\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Predefined MNIST with Transforms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape has 3 dims', function () {",
+                  "  pm.expect(body.per_sample_shape.length).to.eql(3);",
+                  "});",
+                  "",
+                  "pm.test('Num classes is 10', function () {",
+                  "  pm.expect(body.num_classes).to.eql(10);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"MNIST\",\n    \"split\": \"train\",\n    \"transforms\": [\n      { \"type\": \"Resize\", \"size\": [32, 32] }\n    ],\n    \"dataloader\": {\n      \"batch_size\": 64,\n      \"shuffle\": true,\n      \"num_workers\": 2\n    }\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "ImageFolder",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape is [3, 256, 256]', function () {",
+                  "  pm.expect(body.per_sample_shape).to.eql([3, 256, 256]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"image_folder\",\n    \"root\": \"/data/my_dataset\",\n    \"split_ratio\": 0.8\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Custom Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape starts with 3 channels', function () {",
+                  "  pm.expect(body.per_sample_shape[0]).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"image\",\n    \"root\": \"/data/custom_images\",\n    \"label_source\": \"csv\",\n    \"label_file\": \"labels.csv\",\n    \"image_column\": \"filename\",\n    \"label_column\": \"label\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Custom Text",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape is [256]', function () {",
+                  "  pm.expect(body.per_sample_shape).to.eql([256]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"text\",\n    \"file_path\": \"/data/reviews.csv\",\n    \"text_column\": \"review\",\n    \"max_length\": 256\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Custom Tabular",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape matches feature count', function () {",
+                  "  pm.expect(body.per_sample_shape).to.eql([4]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"tabular\",\n    \"file_path\": \"/data/housing.csv\",\n    \"feature_columns\": [\"area\", \"bedrooms\", \"bathrooms\", \"age\"],\n    \"target_column\": \"price\",\n    \"normalize\": true\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Custom Audio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Per-sample shape has 2 dims (n_mels, time_frames)', function () {",
+                  "  pm.expect(body.per_sample_shape.length).to.eql(2);",
+                  "});",
+                  "",
+                  "pm.test('n_mels is 64', function () {",
+                  "  pm.expect(body.per_sample_shape[0]).to.eql(64);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"custom\",\n    \"modality\": \"audio\",\n    \"root\": \"/data/audio_files\",\n    \"sample_rate\": 16000,\n    \"max_duration_sec\": 1.0,\n    \"feature_extraction\": \"mel_spectrogram\",\n    \"n_mels\": 64\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        },
+        {
+          "name": "Error (Unknown Dataset)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is error', function () {",
+                  "  pm.expect(body.status).to.eql('error');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions not found in registry', function () {",
+                  "  pm.expect(body.message).to.include('not found in registry');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"ImageNet\",\n    \"split\": \"train\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/infer/dataset"
+          }
+        }
+      ]
+    }
+  ]
+}

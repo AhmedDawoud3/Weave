@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Weave - Convex + PyTorch Hackathon Project
 
 A modular drag-and-drop neural network editor built for rapid prototyping and experimentation.
@@ -94,3 +95,16 @@ weave/
 ## License
 
 Hackathon Project - MIT
+=======
+# Weave
+
+A modular drag-and-drop neural network editor built for rapid prototyping and experimentation.
+
+
+## Tech Stack
+
+* **Frontend:** React + TypeScript
+* **Backend:** ASP.NET Core (C#)
+* **Engine:** Python
+* **Infrastructure:** Docker
+>>>>>>> 1adbf742ce7746bfc6642c7f6d966da381f14943

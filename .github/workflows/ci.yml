@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ruff:
+    name: Linting (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run ruff check .
+
+  ty:
+    name: Type Checking (ty)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run ty check . 
+
+  pytest:
+    name: Unit Tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv run pytest
+
+  docs-build:
+    name: Docs Build Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "engine/uv.lock"
+      - run: uv sync
+      - run: uv pip install -r docs-requirements.txt
+      - run: uv run mkdocs build --strict
