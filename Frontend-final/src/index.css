@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/* إعدادات الصفحة الأساسية لضمان الخلفية الغامقة */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: oklch(0.145 0 0); /* لون الخلفية الغامق من الكود بتاعك */
+  color: oklch(0.985 0 0);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* إجبار الثيم على الدارك مود */
+:root {
+
+  --weave-teal: oklch(75.5% 0.15 185); /* #40d3b6 */
+  --weave-blue: oklch(62.5% 0.19 240); /* #1e8fd3 */
+  
+  /* تحديث اللون الأساسي للمشروع ليناسب الهوية الجديدة */
+  --primary: var(--weave-blue);
+  --primary-foreground: oklch(100% 0 0);
+
+  
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  
+  /* 1. خلي الكارت شفاف شوية عشان تأثير الـ Glassmorphism */
+  --card: oklch(0.205 0 0 / 80%); 
+  --card-foreground: oklch(0.985 0 0);
+  
+  /* 2. اللون الأزرق الأساسي (الـ Primary) - غيرناه من الأبيض للأزرق المضيء */
+  --primary: oklch(0.65 0.2 250); 
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* 3. الحدود - خليناها شفافة عشان تليق مع الـ Glow */
+  --border: oklch(1 0 0 / 15%);
+  --input: oklch(1 0 0 / 10%);
+  
+  --radius: 0.75rem; /* كبرنا الـ Radius شوية لشكل ألطف */
+
+  /* ألوان السايد بار */
+  --sidebar: oklch(0.18 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* تحسين شكل الـ React Flow Grid عشان يظهر زي الاستوديو الحقيقي */
+.react-flow__background {
+  background-color: oklch(0.145 0 0) !important;
+}
+
+.react-flow__edge-path {
+  stroke: oklch(0.922 0 0 / 30%);
+  stroke-width: 2;
+}
+
+
+/* تحسين شكل الخطوط الواصلة بين الـ Layers */
+.react-flow__edge-path {
+  stroke: var(--primary) !important;
+  stroke-opacity: 0.4;
+  stroke-width: 3;
+}
+
+/* تخلي النقط في الخلفية واضحة بس مش مزعجة */
+.react-flow__background pattern circle {
+  fill: oklch(1 0 0 / 10%) !important;
+}
+
+
+/* تأثير احترافي للأزرار الجانبية */
+.sidebar-button {
+  @apply flex items-center justify-start px-4 py-2 rounded-md 
+         bg-secondary/40 border border-primary/10 
+         text-sm font-medium transition-all duration-200
+         hover:bg-primary/20 hover:border-primary/40 hover:translate-x-1;
+}
+
+/* تحسين شكل الـ Scrollbar عشان يليق مع الدارك مود */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+  opacity: 0.5;
+}

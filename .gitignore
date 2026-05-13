@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+# Cursor/IDE
+skills/*
+.cursor/*
+.cursorrules
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+=======
 # MkDocs build output
 engine/site/
 
@@ -549,6 +561,7 @@ dist
 *.so
 
 # Distribution / packaging
+>>>>>>> 1adbf742ce7746bfc6642c7f6d966da381f14943
 .Python
 build/
 develop-eggs/
@@ -562,6 +575,55 @@ parts/
 sdist/
 var/
 wheels/
+<<<<<<< HEAD
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing/Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pytype/
+
+# Logs
+*.log
+backend/temp_script.py
+.uv-cache
+frontend/convex/_generated/*
+.vercel
+.env*.local
+backend/data/*
+checkpoints/*
+data/*
+=======
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -727,3 +789,4 @@ sketch
 
 site*/
 plans/
+>>>>>>> 1adbf742ce7746bfc6642c7f6d966da381f14943
