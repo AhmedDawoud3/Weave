@@ -1,7 +1,8 @@
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { Card } from "@/components/ui/card";
+import type { NodeData } from '../types';
 
-export function LayerNode({ data }: { data: any }) {
+export function LayerNode({ data }: NodeProps<NodeData>) {
   return (
     <div className="relative group">
       {/* 1. نقطة الاستقبال (بالأعلى) */}
