@@ -1,0 +1,62 @@
+# Deploy Weave Frontend to Azure Static Web Apps
+# NOTE: The AZURE_STATIC_WEB_APPS_API_TOKEN secret must be manually added to GitHub
+# after creating the Azure Static Web Apps resource in the Azure portal.
+
+name: Deploy Weave Frontend to Azure Static Web Apps
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Frontend/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write # Required for OIDC authentication with Azure
+  contents: read  # Required for actions/checkout
+
+environment: production
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0CE1FFF3F97F4036B411E2D9FA15C49E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5E44147736554042BBCE9C0411350732 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C271FE427DBB4778B9F3FC74F4FDDD77 }}
+
+      - name: Set production API URL
+        run: echo "VITE_API_URL=https://engine.weave-ai.dev" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_app_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          app_location: 'Frontend'
+          output_location: 'dist'
+          skip_app_build: true
+
+      - name: Logout from Azure
+        uses: azure/logout@v2
