@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 import { LayerNode } from "@/components/LayerNode";
 
 // Mock reactflow Handle and Position since they are DOM-drawing primitives
@@ -9,7 +10,7 @@ vi.mock("reactflow", () => ({
 }));
 
 // Cast to bypass reactflow's NodeProps type requirements in unit tests
-const LayerNodeAny = LayerNode as any;
+const LayerNodeAny = LayerNode as ComponentType<{ id: string; data: unknown }>;
 
 describe("LayerNode", () => {
   const baseData = {

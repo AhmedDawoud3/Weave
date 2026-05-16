@@ -10,7 +10,6 @@ import ReactFlow, {
   Edge,
   Connection,
 } from 'reactflow';
-// @ts-ignore
 import 'reactflow/dist/style.css';
 import { motion } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
