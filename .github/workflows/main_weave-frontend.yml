@@ -23,7 +23,7 @@ jobs:
 
       - name: Set production API URL
         working-directory: frontend
-        run: echo "VITE_API_URL=https://engine.weave-ai.dev" >> $GITHUB_ENV
+        run: echo "VITE_API_URL=https://weave-ai.dev" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
