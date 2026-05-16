@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - Weave-Frontend
+name: Build and deploy Node.js app to Azure Web App - weave-frontend
 
 on:
   push:
@@ -51,15 +51,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DC85BF21FBC44F7E9124E5579313D5DB }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2E3A69A375064DA0865F8971AD890B79 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_454C1786A1924197B41EF76FD3FE5240 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DAC5F66E93364CF9860E0A5903C451AF }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AA1BE143BB59444E853A0C2DFCD668C7 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EFBECCCFDF504D5FB73D625D2F8EE94B }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'Weave-Frontend'
+          app-name: 'weave-frontend'
           slot-name: 'Production'
           package: .
           
