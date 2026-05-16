@@ -1,8 +1,7 @@
-# Deploy Weave Frontend to Azure Static Web Apps
-# NOTE: The AZURE_STATIC_WEB_APPS_API_TOKEN secret must be manually added to GitHub
-# after creating the Azure Static Web Apps resource in the Azure portal.
+# Deploy Weave Frontend to Azure App Service
+# Azure App Service runs Node.js with Express to serve the React SPA
 
-name: Deploy Weave Frontend to Azure Static Web Apps
+name: Build and deploy Node.js app to Azure Web App - Weave-Frontend
 
 on:
   push:
@@ -12,33 +11,24 @@ on:
       - 'Frontend/**'
   workflow_dispatch:
 
-permissions:
-  id-token: write # Required for OIDC authentication with Azure
-  contents: read  # Required for actions/checkout
-
-# environment: production
-
 jobs:
-  build_and_deploy:
+  build:
+    name: Build and Upload Artifact
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0CE1FFF3F97F4036B411E2D9FA15C49E }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5E44147736554042BBCE9C0411350732 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C271FE427DBB4778B9F3FC74F4FDDD77 }}
-
       - name: Set production API URL
+        working-directory: Frontend
         run: echo "VITE_API_URL=https://engine.weave-ai.dev" >> $GITHUB_ENV
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: Frontend/package-lock.json
 
@@ -46,17 +36,40 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
-      - name: Build
+      - name: Build the SPA
         working-directory: Frontend
         run: npm run build
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v4
         with:
-          azure_static_web_app_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          app_location: 'Frontend'
-          output_location: 'dist'
-          skip_app_build: true
+          name: node-app
+          path: ./Frontend
 
-      - name: Logout from Azure
-        uses: azure/logout@v2
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DC85BF21FBC44F7E9124E5579313D5DB }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2E3A69A375064DA0865F8971AD890B79 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_454C1786A1924197B41EF76FD3FE5240 }}
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'Weave-Frontend'
+          slot-name: 'Production'
+          package: .
