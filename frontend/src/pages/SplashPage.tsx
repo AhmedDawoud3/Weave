@@ -1,0 +1,27 @@
+import { motion } from 'framer-motion';
+
+export function SplashPage() {
+  return (
+    <motion.div
+      key="splash"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="h-screen w-full bg-[#0a0a0a] flex flex-col items-center justify-center"
+    >
+      <motion.h1
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-6xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-[#40d3b6] to-[#1e8fd3]"
+      >
+        WEAVE
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.3 }}
+        className="text-white tracking-[0.5em] text-[10px] mt-4 font-bold uppercase"
+      >
+        Neural Design Studio
+      </motion.p>
+    </motion.div>
+  );
+}

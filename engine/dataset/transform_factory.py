@@ -4,12 +4,21 @@ from typing import Any
 
 from torchvision import transforms
 
+from .registry import load_transforms_registry
+
 TRANSFORM_MAP = {
     "Resize": transforms.Resize,
+    "CenterCrop": transforms.CenterCrop,
+    "RandomResizedCrop": transforms.RandomResizedCrop,
     "ToTensor": transforms.ToTensor,
     "Normalize": transforms.Normalize,
     "RandomHorizontalFlip": transforms.RandomHorizontalFlip,
+    "RandomVerticalFlip": transforms.RandomVerticalFlip,
     "RandomRotation": transforms.RandomRotation,
+    "ColorJitter": transforms.ColorJitter,
+    "GaussianBlur": transforms.GaussianBlur,
+    "RandomErasing": transforms.RandomErasing,
+    "Grayscale": transforms.Grayscale,
 }
 
 
@@ -46,3 +55,25 @@ def build_transforms(transform_list: list[dict[str, Any]]) -> transforms.Compose
         ops.append(transform_class(**params))
 
     return transforms.Compose(ops)
+
+
+def get_transform_catalog() -> list[dict[str, Any]]:
+    """Return the full transform catalog for the API.
+
+    Each entry includes the transform name, parameter schemas, category,
+    and description — everything the frontend needs to render dynamic
+    form fields in the visual editor.
+
+    Returns:
+        list[dict]: A list of transform catalog entries.
+    """
+    registry = load_transforms_registry()
+    catalog = []
+    for name, config in registry.items():
+        catalog.append({
+            "name": name,
+            "params": config.get("params", {}),
+            "category": config.get("category", "other"),
+            "description": config.get("description", ""),
+        })
+    return catalog

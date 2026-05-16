@@ -945,6 +945,86 @@ class InferenceResponse(BaseModel):
     predicted_class: int | None = None  # None for regression tasks
 
 
+# --- Dataset Catalog & Scan --------------------------------------------------
+
+
+class DatasetCatalogEntry(BaseModel):
+    """Single entry in the dataset catalog response."""
+
+    name: str
+    description: str
+    tags: list[str]
+    modality: str
+    shape: list[int] | None = None
+    num_classes: int | None = None
+
+
+class DatasetCatalogResponse(BaseModel):
+    """GET /datasets/catalog — list all predefined datasets."""
+
+    datasets: list[DatasetCatalogEntry]
+
+
+class TransformCatalogEntry(BaseModel):
+    """Single entry in the transform catalog response."""
+
+    name: str
+    params: dict[str, Any]
+    category: str
+    description: str
+
+
+class TransformCatalogResponse(BaseModel):
+    """GET /transforms/catalog — list all transforms with param schemas."""
+
+    transforms: list[TransformCatalogEntry]
+
+
+class DatasetScanRequest(BaseModel):
+    """POST /datasets/scan — scan a local path for data."""
+
+    path: str
+    modality: str | None = None
+
+
+class DatasetScanResponse(BaseModel):
+    """Response from scanning a local path."""
+
+    status: str
+    result: dict | None = None
+    message: str | None = None
+
+
+class DatasetPreviewRequest(BaseModel):
+    """POST /datasets/preview — preview samples from a dataset config."""
+
+    dataset_config: DatasetConfig
+    num_samples: int = 5
+
+
+class DatasetPreviewResponse(BaseModel):
+    """Response from dataset preview."""
+
+    status: str
+    samples: list[dict[str, Any]] = Field(default_factory=list)
+    total_size: int = 0
+    message: str | None = None
+
+
+class DatasetValidateRequest(BaseModel):
+    """POST /datasets/validate — validate a dataset config."""
+
+    dataset_config: DatasetConfig
+
+
+class DatasetValidateResponse(BaseModel):
+    """Response from dataset config validation."""
+
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 # --- Experiment Tracking -----------------------------------------------------
 
 
