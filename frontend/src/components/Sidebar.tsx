@@ -1,61 +1,43 @@
-import { Database, Brain, Gauge, Dumbbell } from 'lucide-react';
-import type { DragEvent } from 'react';
+import { DragEvent } from 'react';
+import { LayoutDashboard, Box } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import type { LayerType } from '../types';
 
-type NodeType = 'Dataset' | 'Model' | 'Optimizer' | 'Trainer';
-
-interface SidebarItem {
-  type: NodeType;
-  label: string;
-  icon: React.ElementType;
-  color: string;
+interface SidebarProps {
+  onNavigateDashboard: () => void;
 }
 
-const sidebarItems: SidebarItem[] = [
-  { type: 'Dataset', label: 'Dataset', icon: Database, color: 'bg-emerald-500/20 border-emerald-500 hover:bg-emerald-500/30' },
-  { type: 'Model', label: 'Model', icon: Brain, color: 'bg-blue-500/20 border-blue-500 hover:bg-blue-500/30' },
-  { type: 'Optimizer', label: 'Optimizer', icon: Gauge, color: 'bg-amber-500/20 border-amber-500 hover:bg-amber-500/30' },
-  { type: 'Trainer', label: 'Trainer', icon: Dumbbell, color: 'bg-purple-500/20 border-purple-500 hover:bg-purple-500/30' },
-];
+const LAYER_TYPES: LayerType[] = ['CONV2D', 'LINEAR', 'DROPOUT'];
 
-function Sidebar() {
-  const onDragStart = (event: DragEvent<HTMLDivElement>, nodeType: NodeType) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.effectAllowed = 'move';
+export function Sidebar({ onNavigateDashboard }: SidebarProps) {
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, type: LayerType) => {
+    e.dataTransfer.setData('application/reactflow', type);
   };
 
   return (
-    <aside className="w-56 bg-slate-800 border-r border-slate-700 p-4 flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
-        Components
-      </h2>
-      
-      {sidebarItems.map((item) => {
-        const Icon = item.icon;
-        return (
-          <div
-            key={item.type}
-            className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg border
-              cursor-grab active:cursor-grabbing
-              transition-all duration-150
-              ${item.color}
-            `}
-            draggable
-            onDragStart={(e) => onDragStart(e, item.type)}
-          >
-            <Icon className="w-5 h-5 text-slate-300" />
-            <span className="text-sm font-medium text-white">{item.label}</span>
-          </div>
-        );
-      })}
-
-      <div className="mt-auto pt-4 border-t border-slate-700">
-        <p className="text-xs text-slate-500">
-          Drag components onto the canvas to build your neural network pipeline.
-        </p>
+    <div className="w-80 border-r border-white/5 bg-card/20 p-6 flex flex-col gap-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-[#40d3b6] cursor-pointer" onClick={onNavigateDashboard}>WEAVE</h1>
+        <Button variant="ghost" size="icon" onClick={onNavigateDashboard} className="hover:bg-[#40d3b6]/10 text-muted-foreground hover:text-[#40d3b6]">
+          <LayoutDashboard size={20} />
+        </Button>
       </div>
-    </aside>
+      <Separator className="bg-white/5" />
+      <div className="space-y-4">
+        <Label className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Components</Label>
+        {LAYER_TYPES.map(l => (
+          <div
+            key={l}
+            onDragStart={(e) => handleDragStart(e, l)}
+            draggable
+            className="p-4 bg-white/5 border border-white/5 cursor-grab active:cursor-grabbing hover:border-[#40d3b6]/30 transition-all text-xs font-bold tracking-widest uppercase flex items-center"
+          >
+            <Box size={14} className="mr-2 text-[#40d3b6]/50" /> {l}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
-
-export default Sidebar;
