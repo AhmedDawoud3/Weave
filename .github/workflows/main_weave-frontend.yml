@@ -8,7 +8,7 @@ on:
     branches:
       - main
     paths:
-      - 'Frontend/**'
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set production API URL
-        working-directory: Frontend
+        working-directory: frontend
         run: echo "VITE_API_URL=https://engine.weave-ai.dev" >> $GITHUB_ENV
 
       - name: Setup Node.js
@@ -30,21 +30,21 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: Frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: Frontend
+        working-directory: frontend
         run: npm ci
 
       - name: Build the SPA
-        working-directory: Frontend
+        working-directory: frontend
         run: npm run build
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: ./Frontend
+          path: ./frontend
 
   deploy:
     runs-on: ubuntu-latest

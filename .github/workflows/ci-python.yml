@@ -1,10 +1,13 @@
-name: CI
+name: CI for the python engine
 
 on:
   push:
     paths:
       - 'engine/**'
-
+  pull_request:
+    paths:
+      - 'engine/**'
+      
 jobs:
   ruff:
     name: Linting (ruff)
