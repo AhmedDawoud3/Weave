@@ -1,25 +1,28 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# Logs
+*.log
+
 # OS files
 .DS_Store
 Thumbs.db
 
-# IDE / Editor
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-.idea/
-*.swp
-*.swo
-*~
-
-# Cursor
-skills/*
-.cursor/*
-.cursorrules
-
-# Project-level generated / cache
-plans/
-checkpoints/*
-data/*
+# Publish output
 publish/
+
+# Debug Release
+Debug/
+Release/
+
+# Environment
+.env
