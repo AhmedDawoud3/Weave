@@ -1,28 +1,88 @@
-# Build folders
-bin/
-obj/
-
-# Visual Studio
-.vs/
-*.user
-*.suo
-
-# Rider
-.idea/
-
-# Logs
-*.log
-
-# OS files
+# -----------------------------
+# General
+# -----------------------------
 .DS_Store
 Thumbs.db
-
-# Publish output
-publish/
-
-# Debug Release
-Debug/
-Release/
-
-# Environment
+*.log
 .env
+.env.local
+.env.*.local
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor / AI
+skills/*
+.cursor/*
+.cursorrules
+
+# Project-level generated / cache
+plans/
+checkpoints/*
+data/*
+
+# -----------------------------
+# Backend (C# / .NET)
+# -----------------------------
+backend/bin/
+backend/obj/
+backend/.vs/
+backend/*.user
+backend/*.suo
+backend/publish/
+backend/Debug/
+backend/Release/
+[Bb]in/
+[Oo]bj/
+*.userprefs
+
+# -----------------------------
+# Frontend (Node / React)
+# -----------------------------
+node_modules/
+dist/
+build/
+.npm/
+.yarn/
+*.tsbuildinfo
+
+# -----------------------------
+# Engine (Python / PyTorch)
+# -----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.uv-cache
