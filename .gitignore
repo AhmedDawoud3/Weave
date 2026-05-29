@@ -16,6 +16,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+publish/
 
 # Cursor / AI
 skills/*
@@ -35,7 +36,6 @@ backend/obj/
 backend/.vs/
 backend/*.user
 backend/*.suo
-backend/publish/
 backend/Debug/
 backend/Release/
 [Bb]in/
