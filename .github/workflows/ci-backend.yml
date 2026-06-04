@@ -1,0 +1,36 @@
+name: CI for the C# backend
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+  pull_request:
+    paths:
+      - 'backend/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-format:
+    name: Build & Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore Dependencies
+        run: dotnet restore backend/Weave.sln
+
+      - name: Build Solution (Release)
+        run: dotnet build backend/Weave.sln --no-restore --configuration Release
+
+      - name: Verify Formatting
+        run: dotnet format backend/Weave.sln --verify-no-changes --no-restore
