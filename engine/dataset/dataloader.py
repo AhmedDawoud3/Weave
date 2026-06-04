@@ -41,7 +41,9 @@ def create_dataloader(
     )
 
 
-def create_dataloader_from_config(dataset: Dataset, config: DataLoaderConfig) -> DataLoader:
+def create_dataloader_from_config(
+    dataset: Dataset, config: DataLoaderConfig
+) -> DataLoader:
     """Create a PyTorch DataLoader from a DataLoaderConfig schema.
 
     Args:

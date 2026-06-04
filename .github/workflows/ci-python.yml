@@ -26,10 +26,8 @@ jobs:
           enable-cache: true
       - name: Lint with Ruff
         run: uvx ruff check .
-      - name: Format Check with Black
-        run: uvx black --check .
-      - name: Import Sort Check with Isort
-        run: uvx isort --check-only .
+      - name: Format Check with Ruff
+        run: uvx ruff format --check .
 
   ty:
     name: Type Checking (ty)

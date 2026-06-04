@@ -2,7 +2,6 @@
 Tests for dataset.shape_inference — dataset output shape inference.
 """
 
-
 from dataset.shape_inference import infer_dataset_shape
 from schemas import (
     CustomDatasetConfig,

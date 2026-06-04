@@ -75,9 +75,7 @@ class AudioDataset(Dataset):
 
         # Discover classes and files
         self.classes = sorted(
-            d
-            for d in os.listdir(root)
-            if os.path.isdir(os.path.join(root, d))
+            d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))
         )
         self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
 
@@ -88,7 +86,9 @@ class AudioDataset(Dataset):
             for fname in sorted(os.listdir(cls_dir)):
                 ext = os.path.splitext(fname)[1].lower()
                 if ext in AUDIO_EXTENSIONS:
-                    self.samples.append((os.path.join(cls_dir, fname), self.class_to_idx[cls]))
+                    self.samples.append(
+                        (os.path.join(cls_dir, fname), self.class_to_idx[cls])
+                    )
 
         # Mel spectrogram transform
         self._mel_transform = torchaudio.transforms.MelSpectrogram(
@@ -109,7 +109,9 @@ class AudioDataset(Dataset):
 
         # Resample if needed
         if sr != self.sample_rate:
-            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=self.sample_rate)
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=sr, new_freq=self.sample_rate
+            )
             waveform = resampler(waveform)
 
         # Convert to mono if stereo

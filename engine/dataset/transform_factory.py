@@ -70,10 +70,12 @@ def get_transform_catalog() -> list[dict[str, Any]]:
     registry = load_transforms_registry()
     catalog = []
     for name, config in registry.items():
-        catalog.append({
-            "name": name,
-            "params": config.get("params", {}),
-            "category": config.get("category", "other"),
-            "description": config.get("description", ""),
-        })
+        catalog.append(
+            {
+                "name": name,
+                "params": config.get("params", {}),
+                "category": config.get("category", "other"),
+                "description": config.get("description", ""),
+            }
+        )
     return catalog
