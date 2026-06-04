@@ -6,7 +6,6 @@ Tests for the custom_loaders package:
   - AudioDataset: folder of audio class subfolders
 """
 
-
 import pytest
 import torch
 
@@ -31,10 +30,12 @@ def test_csv_image_dataset_loads_csv(tmp_path):
 
     # Create CSV
     csv_path = tmp_path / "labels.csv"
-    df = pd.DataFrame({
-        "image": ["images/img1.jpg", "images/img2.jpg"],
-        "label": ["cat", "dog"],
-    })
+    df = pd.DataFrame(
+        {
+            "image": ["images/img1.jpg", "images/img2.jpg"],
+            "label": ["cat", "dog"],
+        }
+    )
     df.to_csv(csv_path, index=False)
 
     ds = CSVImageDataset(
@@ -90,10 +91,12 @@ def test_text_dataset_loads_csv(tmp_path):
     from dataset.custom_loaders.text_dataset import TextDataset
 
     csv_path = tmp_path / "text.csv"
-    df = pd.DataFrame({
-        "review": ["hello world", "foo bar baz"],
-        "sentiment": ["positive", "negative"],
-    })
+    df = pd.DataFrame(
+        {
+            "review": ["hello world", "foo bar baz"],
+            "sentiment": ["positive", "negative"],
+        }
+    )
     df.to_csv(csv_path, index=False)
 
     ds = TextDataset(
@@ -161,11 +164,13 @@ def test_tabular_dataset_loads_csv(tmp_path):
     from dataset.custom_loaders.tabular_dataset import TabularDataset
 
     csv_path = tmp_path / "data.csv"
-    df = pd.DataFrame({
-        "age": [25, 30, 35],
-        "income": [50000, 60000, 70000],
-        "label": [0, 1, 0],
-    })
+    df = pd.DataFrame(
+        {
+            "age": [25, 30, 35],
+            "income": [50000, 60000, 70000],
+            "label": [0, 1, 0],
+        }
+    )
     df.to_csv(csv_path, index=False)
 
     ds = TabularDataset(
@@ -188,10 +193,12 @@ def test_tabular_dataset_normalizes(tmp_path):
     from dataset.custom_loaders.tabular_dataset import TabularDataset
 
     csv_path = tmp_path / "data.csv"
-    df = pd.DataFrame({
-        "x": [1.0, 2.0, 3.0],
-        "y": [10.0, 20.0, 30.0],
-    })
+    df = pd.DataFrame(
+        {
+            "x": [1.0, 2.0, 3.0],
+            "y": [10.0, 20.0, 30.0],
+        }
+    )
     df.to_csv(csv_path, index=False)
 
     ds = TabularDataset(
@@ -219,10 +226,12 @@ def test_tabular_dataset_categorical_encoding(tmp_path):
     from dataset.custom_loaders.tabular_dataset import TabularDataset
 
     csv_path = tmp_path / "data.csv"
-    df = pd.DataFrame({
-        "color": ["red", "blue", "green", "red"],
-        "value": [1.0, 2.0, 3.0, 4.0],
-    })
+    df = pd.DataFrame(
+        {
+            "color": ["red", "blue", "green", "red"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
     df.to_csv(csv_path, index=False)
 
     ds = TabularDataset(

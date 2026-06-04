@@ -150,7 +150,9 @@ def _create_custom(config: CustomDatasetConfig) -> Dataset:
         raise ValueError(f"Unknown custom dataset modality: {config.modality}")
 
 
-def _create_custom_image(config: CustomDatasetConfig, transform: Compose | None) -> Dataset:
+def _create_custom_image(
+    config: CustomDatasetConfig, transform: Compose | None
+) -> Dataset:
     """Create a custom image dataset (CSV-labeled or folder-based)."""
     if config.label_source == "csv" and config.label_file:
         return CSVImageDataset(
@@ -200,7 +202,9 @@ def _create_custom_tabular(config: CustomDatasetConfig) -> Dataset:
     )
 
 
-def _create_custom_audio(config: CustomDatasetConfig, transform: Compose | None) -> Dataset:
+def _create_custom_audio(
+    config: CustomDatasetConfig, transform: Compose | None
+) -> Dataset:
     """Create a custom audio dataset."""
     if AudioDataset is None:
         raise ImportError(

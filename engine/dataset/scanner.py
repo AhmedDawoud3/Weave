@@ -203,7 +203,11 @@ def smart_scan(path: str, modality: str | None = None) -> dict[str, Any]:
     if modality == "image":
         return scan_folder(path)
     elif modality in ("text", "tabular"):
-        return scan_text_file(path) if os.path.isfile(path) else {"error": "Expected a file for text/tabular modality"}
+        return (
+            scan_text_file(path)
+            if os.path.isfile(path)
+            else {"error": "Expected a file for text/tabular modality"}
+        )
     elif modality == "audio":
         return scan_audio_folder(path)
 

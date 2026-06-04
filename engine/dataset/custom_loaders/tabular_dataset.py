@@ -71,7 +71,9 @@ class TabularDataset(Dataset):
         self._mean: dict[str, float] = {}
         self._std: dict[str, float] = {}
         if normalize:
-            num_cols = [c for c in self.feature_columns if c not in self.categorical_columns]
+            num_cols = [
+                c for c in self.feature_columns if c not in self.categorical_columns
+            ]
             for col in num_cols:
                 self._mean[col] = float(self.df[col].mean())
                 self._std[col] = float(self.df[col].std())
@@ -85,7 +87,9 @@ class TabularDataset(Dataset):
         if target_column and target_column in self.df.columns:
             unique_labels = sorted(self.df[target_column].unique())
             self.classes = [str(label) for label in unique_labels]
-            self.class_to_idx = {str(label): idx for idx, label in enumerate(unique_labels)}
+            self.class_to_idx = {
+                str(label): idx for idx, label in enumerate(unique_labels)
+            }
 
     def _get_features(self, row: pd.Series) -> list[float]:
         """Extract and transform feature values from a DataFrame row."""

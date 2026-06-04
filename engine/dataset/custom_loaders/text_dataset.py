@@ -66,13 +66,17 @@ class TextDataset(Dataset):
         if target_column and target_column in self.df.columns:
             unique_labels = sorted(self.df[target_column].unique())
             self.classes = [str(label) for label in unique_labels]
-            self.class_to_idx = {str(label): idx for idx, label in enumerate(unique_labels)}
+            self.class_to_idx = {
+                str(label): idx for idx, label in enumerate(unique_labels)
+            }
 
     def _build_vocab(self) -> dict[str, int]:
         """Build a word-to-index mapping from the corpus."""
         word_counts: dict[str, int] = {}
         for text in self.df[self.text_column].dropna():
-            tokens = str(text).split() if self.tokenizer == "whitespace" else list(str(text))
+            tokens = (
+                str(text).split() if self.tokenizer == "whitespace" else list(str(text))
+            )
             for token in tokens:
                 word_counts[token] = word_counts.get(token, 0) + 1
 

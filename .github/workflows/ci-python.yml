@@ -7,10 +7,14 @@ on:
   pull_request:
     paths:
       - 'engine/**'
-      
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  ruff:
-    name: Linting (ruff)
+  lint-and-format:
+    name: Lint & Format Check
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,9 +24,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
-      - run: uv sync
-      - run: uv run ruff check .
+      - name: Lint with Ruff
+        run: uvx ruff check .
+      - name: Format Check with Ruff
+        run: uvx ruff format --check .
 
   ty:
     name: Type Checking (ty)
@@ -35,7 +40,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
       - run: uv run ty check . 
 
@@ -50,7 +54,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
       - run: uv sync
       - run: uv run pytest
 
@@ -65,6 +68,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "engine/uv.lock"
       - run: uv sync --group docs
       - run: uv run mkdocs build --strict
