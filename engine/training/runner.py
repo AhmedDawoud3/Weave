@@ -8,9 +8,8 @@ scheduler creation, and device fallbacks. Tracks active background training jobs
 import asyncio
 import logging
 import uuid
-
+from typing import Dict, Optional
 import torch
-
 from compiler.compiler import GraphCompiler
 from compiler.factory import get_loss_function, get_optimizer
 from dataset import get_dataset_from_config
@@ -28,9 +27,9 @@ class TrainingRunner:
     def __init__(self):
         """Initializes the training runner state."""
         # Maps run_id -> Trainer instance
-        self.active_runs: dict[str, Trainer] = {}
+        self.active_runs: Dict[str, Trainer] = {}
         # Maps run_id -> asyncio.Queue
-        self.event_queues: dict[str, asyncio.Queue] = {}
+        self.event_queues: Dict[str, asyncio.Queue] = {}
 
     def start_run(self, config: TrainingConfig) -> str:
         """Starts a background training run.
@@ -71,12 +70,12 @@ class TrainingRunner:
         # Get batch size configuration from config or default to 32
         batch_size = 32
         if hasattr(config.dataset_config, "batch_size"):
-            batch_size = int(config.dataset_config.batch_size)  # type: ignore
+            batch_size = config.dataset_config.batch_size
         elif (
             hasattr(config.dataset_config, "loader_config")
             and config.dataset_config.loader_config
         ):
-            batch_size = int(config.dataset_config.loader_config.batch_size)  # type: ignore
+            batch_size = config.dataset_config.loader_config.batch_size
 
         train_loader = create_dataloader(
             train_ds, batch_size=batch_size, shuffle=True
@@ -172,7 +171,7 @@ class TrainingRunner:
             return True
         return False
 
-    def get_trainer(self, run_id: str) -> Trainer | None:
+    def get_trainer(self, run_id: str) -> Optional[Trainer]:
         """Gets the trainer instance for a run.
 
         Args:
@@ -183,7 +182,7 @@ class TrainingRunner:
         """
         return self.active_runs.get(run_id)
 
-    def get_queue(self, run_id: str) -> asyncio.Queue | None:
+    def get_queue(self, run_id: str) -> Optional[asyncio.Queue]:
         """Gets the asyncio event queue for streaming.
 
         Args:

@@ -9,12 +9,10 @@ import asyncio
 import logging
 import threading
 import time
-from typing import Any
-
+from typing import Any, Dict, Optional
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from schemas import TrainingConfig
 from training.callbacks import Checkpointing, EarlyStopping
 from training.metrics import EpochMetricsTracker, compute_batch_metrics
@@ -75,22 +73,16 @@ class Trainer:
         self.is_paused = False
         self.is_stopped = False
         self.status = "running"
-        self.thread: threading.Thread | None = None
+        self.thread: Optional[threading.Thread] = None
 
         # State tracking for API status requests
         self.current_epoch = 0
         self.total_epochs = self.settings.epochs
-        self.latest_metrics: dict[str, float] = {}
+        self.latest_metrics: Dict[str, float] = {}
 
         # Best metrics tracker
         self.best_epoch = 0
         self.best_val_loss = float("inf")
-
-        # Experiment tracking
-        from datetime import datetime
-        self.created_at = datetime.now()
-        self.start_time: float | None = None
-        self.metrics_history: list[dict[str, Any]] = []
 
     def start(self) -> None:
         """Spawns the background execution thread."""
@@ -112,7 +104,7 @@ class Trainer:
         self.is_stopped = True
         self.status = "stopped"
 
-    def _push_event(self, msg: dict[str, Any]) -> None:
+    def _push_event(self, msg: Dict[str, Any]) -> None:
         """Pushes a message to the asyncio queue in a thread-safe way.
 
         Args:
@@ -143,8 +135,6 @@ class Trainer:
         best_epoch = 0
 
         try:
-            self.start_time = time.time()
-            self._save_experiment_run()
             self.model.to(self.device)
 
             for epoch in range(1, self.settings.epochs + 1):
@@ -348,10 +338,6 @@ class Trainer:
                     best_val_loss = val_loss_val
                     best_epoch = epoch
 
-                # Save epoch history to RunRecord
-                self.metrics_history.append({"epoch": epoch, **epoch_combined_metrics})
-                self._save_experiment_run()
-
             # Mark completed
             if self.status not in ["stopped", "failed"]:
                 self.status = "completed"
@@ -364,7 +350,6 @@ class Trainer:
                 "best_val_loss": best_val_loss,
             }
             self._push_event(complete_msg)
-            self._save_experiment_run()
 
         except Exception as e:
             logger.exception("Error in training thread loop.")
@@ -375,52 +360,4 @@ class Trainer:
                 "error": str(e),
             }
             self._push_event(fail_msg)
-            try:
-                self._save_experiment_run()
-            except Exception:
-                pass
             raise e
-
-    def _save_experiment_run(self) -> None:
-        """Saves or updates the current run record in local disk storage."""
-        import os
-
-        from schemas import RunRecord
-        from training.experiments import save_run
-
-        duration = None
-        if self.start_time is not None:
-            duration = time.time() - self.start_time
-
-        checkpoint_path = None
-        if self.checkpointing:
-            checkpoint_path = os.path.abspath(
-                os.path.join(self.checkpointing.directory, "best.pt")
-            )
-
-        best_metrics = None
-        if self.early_stopping and self.early_stopping.best_metric not in [
-            float("inf"),
-            float("-inf"),
-        ]:
-            best_metrics = {self.early_stopping.monitor: self.early_stopping.best_metric}
-
-        status = self.status
-        if status not in ["running", "completed", "failed", "stopped"]:
-            status = "stopped"
-
-        record = RunRecord(
-            run_id=self.run_id,
-            created_at=self.created_at,
-            status=status,  # type: ignore
-            config=self.config.model_dump(),
-            graph_snapshot=self.config.model_graph.model_dump(),
-            metrics_history=self.metrics_history,
-            best_metrics=best_metrics,
-            checkpoint_path=checkpoint_path,
-            duration_seconds=duration,
-        )
-        try:
-            save_run(record)
-        except Exception as e:
-            logger.error(f"Failed to auto-save run record: {e}")
