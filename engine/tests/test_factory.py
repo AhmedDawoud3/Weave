@@ -137,7 +137,7 @@ def test_get_optimizer_missing_type_raises():
 def test_get_loss_function_unsupported_type_raises():
     """Test loss mapper raises for unsupported type."""
     with pytest.raises(ValueError, match="Unsupported loss type"):
-        get_loss_function({"type": "BCEWithLogitsLoss"})
+        get_loss_function({"type": "UnsupportedLoss"})
 
 
 def test_get_optimizer_unsupported_type_raises():
@@ -145,4 +145,4 @@ def test_get_optimizer_unsupported_type_raises():
     model = nn.Linear(4, 2)
 
     with pytest.raises(ValueError, match="Unsupported optimizer type"):
-        get_optimizer(model.parameters(), {"type": "RMSprop"})
+        get_optimizer(model.parameters(), {"type": "UnsupportedOptimizer"})

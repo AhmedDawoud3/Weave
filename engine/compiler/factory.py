@@ -73,6 +73,9 @@ def get_loss_function(config: dict[str, Any]) -> nn.Module:
     loss_registry: dict[str, type[nn.Module]] = {
         "CrossEntropyLoss": nn.CrossEntropyLoss,
         "MSELoss": nn.MSELoss,
+        "NLLLoss": nn.NLLLoss,
+        "BCEWithLogitsLoss": nn.BCEWithLogitsLoss,
+        "L1Loss": nn.L1Loss,
     }
 
     if loss_type not in loss_registry:
@@ -102,12 +105,15 @@ def get_optimizer(
     optimizer_registry = {
         "Adam": optim.Adam,
         "SGD": optim.SGD,
+        "AdamW": optim.AdamW,
+        "RMSprop": optim.RMSprop,
+        "Adagrad": optim.Adagrad,
     }
 
     if optimizer_type not in optimizer_registry:
         raise ValueError(f"Unsupported optimizer type: {optimizer_type}")
 
-    if optimizer_type == "Adam":
+    if optimizer_type in {"Adam", "AdamW"}:
         optimizer_params.setdefault("lr", 0.001)
 
     return optimizer_registry[optimizer_type](model_params, **optimizer_params)
