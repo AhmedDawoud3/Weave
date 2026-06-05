@@ -75,6 +75,7 @@ nav:
       - Validate Pipeline: api/validate-pipeline.md
       - Infer Layer Shape: api/infer-layer.md
       - Infer Dataset Shape: api/infer-dataset.md
+      - Training Runs: api/training.md
   - Schemas:
       - schemas/index.md
       - Layer Params: schemas/layer-params.md

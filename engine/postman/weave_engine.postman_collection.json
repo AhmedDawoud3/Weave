@@ -1153,6 +1153,154 @@
           }
         }
       ]
+    },
+    {
+      "name": "Training Runs",
+      "item": [
+        {
+          "name": "Start Training",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataset_config\": {\n    \"source\": \"predefined\",\n    \"name\": \"MNIST\",\n    \"root_dir\": \"./data\",\n    \"batch_size\": 32,\n    \"split\": \"train\"\n  },\n  \"model_graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"fc1\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 784,\n          \"out_features\": 10\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"fc1\" },\n      { \"source\": \"fc1\", \"target\": \"output\" }\n    ]\n  },\n  \"loss\": {\n    \"type\": \"CrossEntropyLoss\",\n    \"params\": {}\n  },\n  \"optimizer\": {\n    \"type\": \"Adam\",\n    \"params\": {\n      \"lr\": 0.001\n    }\n  },\n  \"training\": {\n    \"epochs\": 5,\n    \"device\": \"cpu\",\n    \"mixed_precision\": false,\n    \"gradient_clip_norm\": 1.0,\n    \"gradient_accumulation_steps\": 1,\n    \"validation_frequency\": 1,\n    \"early_stopping\": {\n      \"enabled\": true,\n      \"patience\": 2,\n      \"monitor\": \"val_loss\"\n    },\n    \"checkpointing\": {\n      \"save_best\": true,\n      \"save_every_n_epochs\": 1,\n      \"monitor\": \"val_loss\",\n      \"directory\": \"/checkpoints\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/training/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stream Training Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/training/stream/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "stream",
+                "{{runId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Control Training (Pause)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"pause\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/training/control/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "control",
+                "{{runId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Control Training (Resume)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"resume\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/training/control/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "control",
+                "{{runId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Control Training (Stop)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"stop\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/training/control/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "control",
+                "{{runId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Training Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/training/status/{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "training",
+                "status",
+                "{{runId}}"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

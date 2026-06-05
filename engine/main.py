@@ -1,10 +1,14 @@
 import os
+import json
+import asyncio
+import logging
 from importlib.metadata import metadata
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sse_starlette.sse import EventSourceResponse
 
 from compiler.compiler import GraphCompiler
 from dataset.preview import preview_dataset
@@ -13,6 +17,7 @@ from dataset.scanner import smart_scan
 from dataset.shape_inference import infer_dataset_shape
 from dataset.transform_factory import get_transform_catalog
 from dataset.validator import validate_dataset_config
+from training.runner import TrainingRunner
 from schemas import (
     DatasetCatalogEntry,
     DatasetCatalogResponse,
@@ -30,6 +35,9 @@ from schemas import (
     ShapeInferenceResponse,
     TransformCatalogEntry,
     TransformCatalogResponse,
+    TrainingConfig,
+    TrainingControlMessage,
+    TrainingStatusResponse,
 )
 
 # Retrieve project metadata
@@ -58,7 +66,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger = logging.getLogger(__name__)
 compiler = GraphCompiler()
+runner = TrainingRunner()
 
 # Serve MkDocs-built documentation at /docs (if the site has been built)
 _site_dir = os.path.join(os.path.dirname(__file__), "site")
@@ -248,6 +258,123 @@ def datasets_validate(request: DatasetValidateRequest):
     """
     result = validate_dataset_config(request.dataset_config)
     return DatasetValidateResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# Training endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.post("/training/start")
+def start_training(config: TrainingConfig):
+    """Starts a training run in the background.
+
+    Args:
+        config: TrainingConfig containing dataset, model graph, loss, optimizer, and settings.
+
+    Returns:
+        dict: Containing the generated unique run_id.
+    """
+    try:
+        run_id = runner.start_run(config)
+        return {"run_id": run_id}
+    except Exception as e:
+        logger.exception("Failed to start training.")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to start training: {str(e)}"
+        )
+
+
+@app.get("/training/stream/{run_id}")
+async def stream_training(run_id: str):
+    """Streams step-level and epoch-level metrics from a run using Server-Sent Events (SSE).
+
+    Args:
+        run_id: The training run identifier.
+
+    Returns:
+        EventSourceResponse: Event stream containing metrics messages.
+    """
+    queue = runner.get_queue(run_id)
+    if not queue:
+        raise HTTPException(status_code=404, detail="Run ID not found.")
+
+    async def event_generator():
+        try:
+            while True:
+                msg = await queue.get()
+                yield {
+                    "event": msg["event"] if "event" in msg else msg.get("type", "step_metrics"),
+                    "data": json.dumps(msg)
+                }
+
+                if msg.get("type") in ["training_complete", "training_failed", "stopped"]:
+                    break
+        except asyncio.CancelledError:
+            logger.info(f"SSE stream cancelled for run_id: {run_id}")
+        finally:
+            trainer = runner.get_trainer(run_id)
+            if trainer and trainer.status in ["completed", "failed", "stopped"]:
+                runner.cleanup_run(run_id)
+
+    return EventSourceResponse(event_generator())
+
+
+@app.post("/training/control/{run_id}")
+def control_training(run_id: str, message: TrainingControlMessage):
+    """Controls an active training run (pause, resume, or stop).
+
+    Args:
+        run_id: The training run identifier.
+        message: TrainingControlMessage containing the action to perform.
+
+    Returns:
+        dict: Success status and action taken.
+    """
+    action = message.action
+    if action == "pause":
+        success = runner.pause_run(run_id)
+    elif action == "resume":
+        success = runner.resume_run(run_id)
+    elif action == "stop":
+        success = runner.stop_run(run_id)
+    else:
+        success = False
+
+    if not success:
+        raise HTTPException(
+            status_code=404, detail=f"Run ID {run_id} not found or action {action} failed."
+        )
+
+    return {"status": "success", "action": action}
+
+
+@app.get("/training/status/{run_id}", response_model=TrainingStatusResponse)
+def get_training_status(run_id: str):
+    """Gets the current status and latest metrics for a training run.
+
+    Args:
+        run_id: The training run identifier.
+
+    Returns:
+        TrainingStatusResponse: Containing status, current epoch, total epochs, and latest metrics.
+    """
+    trainer = runner.get_trainer(run_id)
+    if not trainer:
+        raise HTTPException(status_code=404, detail="Run ID not found.")
+
+    # Status value mapping
+    status_val = trainer.status
+    if status_val not in ["running", "paused", "completed", "failed", "stopped"]:
+        status_val = "failed"
+
+    return TrainingStatusResponse(
+        run_id=run_id,
+        status=status_val,
+        current_epoch=trainer.current_epoch,
+        total_epochs=trainer.total_epochs,
+        latest_metrics=trainer.latest_metrics,
+    )
 
 
 def main():
