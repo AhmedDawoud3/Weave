@@ -103,9 +103,6 @@ nav:
   - Training Module:
       - training/index.md
       - Training Schedulers: training/schedulers.md
-      - Metrics Computation: training/metrics.md
-      - Checkpointing & Early Stopping: training/callbacks.md
-      - Background Trainer & Runner: training/trainer.md
   - API Reference:
       - reference/compiler.md
       - reference/dataset.md
