@@ -1,29 +1,23 @@
-import asyncio
-import json
-import logging
 import os
+import json
+import asyncio
+import logging
 from importlib.metadata import metadata
 
-import torch.nn as nn
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
-from compiler import (
-    GraphCompiler,
-    export_onnx,
-    export_pytorch,
-    export_torchscript,
-    get_optimizer,
-)
+from compiler.compiler import GraphCompiler
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
 from dataset.scanner import smart_scan
 from dataset.shape_inference import infer_dataset_shape
 from dataset.transform_factory import get_transform_catalog
 from dataset.validator import validate_dataset_config
+from training.runner import TrainingRunner
 from schemas import (
     DatasetCatalogEntry,
     DatasetCatalogResponse,
@@ -35,31 +29,18 @@ from schemas import (
     DatasetShapeInferenceResponse,
     DatasetValidateRequest,
     DatasetValidateResponse,
-    ExperimentCompareRequest,
-    ExperimentCompareResponse,
-    ExportRequest,
-    ExportResponse,
-    InferenceRequest,
-    InferenceResponse,
-    LossSuggestionRequest,
-    LossSuggestionResponse,
-    LRSchedulePreviewRequest,
-    LRSchedulePreviewResponse,
-    MetricsSuggestionRequest,
-    MetricsSuggestionResponse,
     PipelineValidationRequest,
     PipelineValidationResponse,
-    SchedulerConfig,
     ShapeInferenceRequest,
     ShapeInferenceResponse,
+    TransformCatalogEntry,
+    TransformCatalogResponse,
     TrainingConfig,
     TrainingControlMessage,
     TrainingStatusResponse,
-    TransformCatalogEntry,
-    TransformCatalogResponse,
+    LossSuggestionRequest,
+    LossSuggestionResponse,
 )
-from training.runner import TrainingRunner
-from training.scheduler_factory import create_scheduler
 
 # Retrieve project metadata
 pkg_meta = metadata("engine")
@@ -320,242 +301,6 @@ def suggest_loss(request: LossSuggestionRequest):
     return LossSuggestionResponse(suggested=suggested, alternatives=alternatives)
 
 
-@app.post("/optimizer/preview_lr_schedule", response_model=LRSchedulePreviewResponse)
-def preview_lr_schedule(request: LRSchedulePreviewRequest):
-    """Simulates learning rate updates step-by-step for visualization.
-
-    Args:
-        request: LRSchedulePreviewRequest containing optimizer, scheduler, and total steps.
-
-    Returns:
-        LRSchedulePreviewResponse with step-by-step [step, lr] pairs.
-    """
-    try:
-        # 1. Instantiate minimal dummy model (single parameter tensor) to speed up creation
-        dummy_model = nn.Linear(1, 1)
-
-        # 2. Instantiate optimizer using the factory
-        optimizer = get_optimizer(
-            dummy_model.parameters(),
-            {"type": request.optimizer, "params": request.optimizer_params},
-        )
-
-        # 3. Instantiate scheduler config and scheduler
-        sched_config = SchedulerConfig(
-            type=request.scheduler, params=request.scheduler_params
-        )
-        scheduler = create_scheduler(
-            optimizer, sched_config, epochs=1, steps_per_epoch=request.total_steps
-        )
-
-        if not scheduler:
-            # If scheduler is None, return constant learning rate
-            initial_lr = optimizer.param_groups[0]["lr"]
-            schedule = [[float(step), float(initial_lr)] for step in range(request.total_steps)]
-            return LRSchedulePreviewResponse(schedule=schedule)
-
-        # 4. Simulate step-by-step learning rate values
-        schedule = []
-        for step in range(request.total_steps):
-            current_lr = optimizer.param_groups[0]["lr"]
-            schedule.append([float(step), float(current_lr)])
-
-            # Dummy step to satisfy PyTorch's step warning
-            optimizer.step()
-
-            # Update scheduler
-            try:
-                if scheduler.__class__.__name__ == "ReduceLROnPlateau":
-                    # Pass a constant loss to trigger plateau decay
-                    scheduler.step(1.0)
-                else:
-                    scheduler.step()
-            except Exception as e:
-                logger.warning(f"Error stepping scheduler in simulation: {e}")
-                pass
-
-        return LRSchedulePreviewResponse(schedule=schedule)
-
-    except Exception as e:
-        logger.exception("Failed to preview learning rate schedule.")
-        raise HTTPException(
-            status_code=400,
-            detail=f"Failed to simulate learning rate schedule: {str(e)}",
-        ) from e
-
-
-@app.post("/metrics/suggest", response_model=MetricsSuggestionResponse)
-def suggest_metrics(request: MetricsSuggestionRequest):
-    """Suggests validation metrics based on task type.
-
-    Args:
-        request: MetricsSuggestionRequest with task type and optional num classes.
-
-    Returns:
-        MetricsSuggestionResponse with suggested validation metrics.
-    """
-    task_type = request.task_type
-    if task_type == "classification":
-        suggested = ["Accuracy", "F1Score", "ConfusionMatrix"]
-    elif task_type == "regression":
-        suggested = ["MSE", "MAE", "R2Score"]
-    elif task_type == "multi_label":
-        suggested = ["Accuracy", "F1Score", "Precision", "Recall"]
-    else:
-        suggested = ["Accuracy"]
-
-    return MetricsSuggestionResponse(suggested=suggested)
-
-
-@app.post("/export/onnx", response_model=ExportResponse)
-def export_onnx_endpoint(request: ExportRequest):
-    """Exports a trained model graph to ONNX format.
-
-    Args:
-        request: ExportRequest with graph config, checkpoint, and output paths.
-
-    Returns:
-        ExportResponse with status and output path.
-    """
-    try:
-        path = export_onnx(request)
-        return ExportResponse(status="success", output_path=path)
-    except Exception as e:
-        logger.exception("ONNX export failed.")
-        return ExportResponse(status="error", output_path="", message=str(e))
-
-
-@app.post("/export/pytorch", response_model=ExportResponse)
-def export_pytorch_endpoint(request: ExportRequest):
-    """Exports a trained model graph weights (state_dict).
-
-    Args:
-        request: ExportRequest with graph config, checkpoint, and output paths.
-
-    Returns:
-        ExportResponse with status and output path.
-    """
-    try:
-        path = export_pytorch(request)
-        return ExportResponse(status="success", output_path=path)
-    except Exception as e:
-        logger.exception("PyTorch weights export failed.")
-        return ExportResponse(status="error", output_path="", message=str(e))
-
-
-@app.post("/export/torchscript", response_model=ExportResponse)
-def export_torchscript_endpoint(request: ExportRequest):
-    """Exports a trained model graph to platform-independent TorchScript format.
-
-    Args:
-        request: ExportRequest with graph config, checkpoint, and output paths.
-
-    Returns:
-        ExportResponse with status and output path.
-    """
-    try:
-        path = export_torchscript(request)
-        return ExportResponse(status="success", output_path=path)
-    except Exception as e:
-        logger.exception("TorchScript export failed.")
-        return ExportResponse(status="error", output_path="", message=str(e))
-
-
-@app.post("/inference/predict", response_model=InferenceResponse)
-def predict_endpoint(request: InferenceRequest):
-    """Evaluates input samples using a compiled model loaded from a checkpoint.
-
-    Args:
-        request: InferenceRequest with graph, checkpoint_path, and input list.
-
-    Returns:
-        InferenceResponse with prediction values and predicted_class index.
-    """
-    import torch
-
-    from compiler.exporter import load_checkpoint_model
-
-    try:
-        # Load the compiled model and place it on CPU first
-        model = load_checkpoint_model(request.graph, request.checkpoint_path)
-
-        # Handle device selection with fallback
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model.to(device)
-
-        # Convert input array to PyTorch tensor
-        input_tensor = torch.tensor(request.input, dtype=torch.float32).to(device)
-
-        # Run forward pass under inference mode
-        with torch.inference_mode():
-            output = model(input_tensor)
-
-        # Move outputs back to CPU for serialization
-        output = output.cpu()
-
-        # Handle batch dimension of size 1 if present
-        if output.ndim > 1 and output.shape[0] == 1:
-            output = output.squeeze(0)
-
-        if output.ndim == 1:
-            prediction = output.tolist()
-            if len(prediction) > 1:
-                predicted_class = int(output.argmax(dim=-1).item())
-            else:
-                predicted_class = None
-        elif output.ndim == 0:
-            prediction = [float(output.item())]
-            predicted_class = None
-        else:
-            # Flatten multi-dimensional output batch
-            prediction = output.flatten().tolist()
-            predicted_class = int(output.argmax(dim=-1).flatten()[0].item())
-
-        return InferenceResponse(prediction=prediction, predicted_class=predicted_class)
-
-    except Exception as e:
-        logger.exception("Inference prediction failed.")
-        raise HTTPException(status_code=400, detail=str(e)) from e
-
-
-@app.post("/experiments/compare", response_model=ExperimentCompareResponse)
-def compare_experiments(request: ExperimentCompareRequest):
-    """Retrieves logs for multiple run IDs to compare their training progress.
-
-    Args:
-        request: ExperimentCompareRequest with run_ids and metrics list.
-
-    Returns:
-        ExperimentCompareResponse containing requested metrics for each run.
-    """
-    from typing import Any
-    from training.experiments import get_run
-
-    runs_data = []
-    for run_id in request.run_ids:
-        try:
-            run = get_run(run_id)
-            if run is None:
-                logger.warning(f"Run {run_id} not found, skipping comparison.")
-                continue
-
-            run_dict: dict[str, Any] = {"run_id": run_id}
-            # Extract historical values for each requested metric
-            for metric in request.metrics:
-                values = []
-                for epoch_metrics in run.metrics_history:
-                    if metric in epoch_metrics:
-                        values.append(epoch_metrics[metric])
-                run_dict[metric] = values
-
-            runs_data.append(run_dict)
-        except Exception as e:
-            logger.warning(f"Error loading run {run_id} for comparison: {e}")
-            continue
-
-    return ExperimentCompareResponse(runs=runs_data)
-
-
 # ---------------------------------------------------------------------------
 # Training endpoints
 # ---------------------------------------------------------------------------
@@ -578,7 +323,7 @@ def start_training(config: TrainingConfig):
         logger.exception("Failed to start training.")
         raise HTTPException(
             status_code=400, detail=f"Failed to start training: {str(e)}"
-        ) from e
+        )
 
 
 @app.get("/training/stream/{run_id}")
@@ -666,7 +411,7 @@ def get_training_status(run_id: str):
 
     return TrainingStatusResponse(
         run_id=run_id,
-        status=status_val,  # type: ignore
+        status=status_val,
         current_epoch=trainer.current_epoch,
         total_epochs=trainer.total_epochs,
         latest_metrics=trainer.latest_metrics,
