@@ -66,13 +66,17 @@ def create_scheduler(
                 params["max_lr"] = max_lrs
 
         # Compute total_steps if not already explicitly provided
-        if "total_steps" not in params and ("epochs" not in params or "steps_per_epoch" not in params):
+        if "total_steps" not in params and (
+            "epochs" not in params or "steps_per_epoch" not in params
+        ):
             if epochs is not None and steps_per_epoch is not None:
                 params["total_steps"] = epochs * steps_per_epoch
 
     try:
         scheduler = scheduler_class(optimizer, **params)
     except Exception as e:
-        raise ValueError(f"Error instantiating scheduler '{scheduler_type}': {e}") from e
+        raise ValueError(
+            f"Error instantiating scheduler '{scheduler_type}': {e}"
+        ) from e
 
     return scheduler
