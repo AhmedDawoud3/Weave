@@ -38,6 +38,8 @@ from schemas import (
     TrainingConfig,
     TrainingControlMessage,
     TrainingStatusResponse,
+    LossSuggestionRequest,
+    LossSuggestionResponse,
 )
 
 # Retrieve project metadata
@@ -258,6 +260,45 @@ def datasets_validate(request: DatasetValidateRequest):
     """
     result = validate_dataset_config(request.dataset_config)
     return DatasetValidateResponse(**result)
+
+
+@app.post("/loss/suggest", response_model=LossSuggestionResponse)
+def suggest_loss(request: LossSuggestionRequest):
+    """Suggests a loss function based on task type and final activation.
+
+    Args:
+        request: LossSuggestionRequest with output shape, activation, and task type.
+
+    Returns:
+        LossSuggestionResponse with suggested loss and alternative choices.
+    """
+    task_type = request.task_type
+    final_activation = request.final_activation.lower()
+
+    if task_type == "classification":
+        if final_activation == "log_softmax":
+            suggested = "NLLLoss"
+            alternatives = ["CrossEntropyLoss"]
+        elif final_activation == "none":
+            suggested = "CrossEntropyLoss"
+            alternatives = ["NLLLoss"]
+        elif final_activation == "softmax":
+            suggested = "NLLLoss"
+            alternatives = ["CrossEntropyLoss"]
+        else:
+            suggested = "CrossEntropyLoss"
+            alternatives = ["NLLLoss"]
+    elif task_type == "multi_label":
+        suggested = "BCEWithLogitsLoss"
+        alternatives = ["BCELoss"]
+    elif task_type == "regression":
+        suggested = "MSELoss"
+        alternatives = ["L1Loss"]
+    else:
+        suggested = "MSELoss"
+        alternatives = []
+
+    return LossSuggestionResponse(suggested=suggested, alternatives=alternatives)
 
 
 # ---------------------------------------------------------------------------

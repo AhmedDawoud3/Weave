@@ -1301,6 +1301,89 @@
           }
         }
       ]
+    },
+    {
+      "name": "Auxiliary & Suggestions",
+      "item": [
+        {
+          "name": "Suggest Loss Function",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"output_shape\": [32, 10],\n  \"final_activation\": \"none\",\n  \"task_type\": \"classification\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loss/suggest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loss",
+                "suggest"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Preview LR Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optimizer\": \"AdamW\",\n  \"optimizer_params\": {\"lr\": 0.001},\n  \"scheduler\": \"CosineAnnealingLR\",\n  \"scheduler_params\": {\"T_max\": 100, \"eta_min\": 1e-6},\n  \"total_steps\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/optimizer/preview_lr_schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "optimizer",
+                "preview_lr_schedule"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suggest Metrics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_type\": \"classification\",\n  \"num_classes\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/metrics/suggest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics",
+                "suggest"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
