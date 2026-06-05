@@ -4,18 +4,20 @@ scheduler_factory.py — Scheduler Factory for training execution engine.
 Instantiates PyTorch learning rate schedulers based on SchedulerConfig.
 """
 
-from typing import Any, Optional
+from typing import Any
+
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+
 from schemas import SchedulerConfig
 
 
 def create_scheduler(
     optimizer: optim.Optimizer,
-    config: Optional[SchedulerConfig],
-    epochs: Optional[int] = None,
-    steps_per_epoch: Optional[int] = None,
-) -> Optional[Any]:
+    config: SchedulerConfig | None,
+    epochs: int | None = None,
+    steps_per_epoch: int | None = None,
+) -> Any | None:
     """Creates a PyTorch learning rate scheduler from a SchedulerConfig.
 
     Args:

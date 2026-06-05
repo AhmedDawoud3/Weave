@@ -1,31 +1,29 @@
-import os
-import json
 import asyncio
+import json
 import logging
+import os
 from importlib.metadata import metadata
 
+import torch.nn as nn
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
-import torch.nn as nn
 from compiler import (
     GraphCompiler,
-    get_optimizer,
     export_onnx,
     export_pytorch,
     export_torchscript,
+    get_optimizer,
 )
-from training.scheduler_factory import create_scheduler
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
 from dataset.scanner import smart_scan
 from dataset.shape_inference import infer_dataset_shape
 from dataset.transform_factory import get_transform_catalog
 from dataset.validator import validate_dataset_config
-from training.runner import TrainingRunner
 from schemas import (
     DatasetCatalogEntry,
     DatasetCatalogResponse,
@@ -37,27 +35,31 @@ from schemas import (
     DatasetShapeInferenceResponse,
     DatasetValidateRequest,
     DatasetValidateResponse,
-    PipelineValidationRequest,
-    PipelineValidationResponse,
-    ShapeInferenceRequest,
-    ShapeInferenceResponse,
-    TransformCatalogEntry,
-    TransformCatalogResponse,
-    TrainingConfig,
-    TrainingControlMessage,
-    TrainingStatusResponse,
-    LossSuggestionRequest,
-    LossSuggestionResponse,
-    SchedulerConfig,
-    LRSchedulePreviewRequest,
-    LRSchedulePreviewResponse,
-    MetricsSuggestionRequest,
-    MetricsSuggestionResponse,
+    ExperimentCompareRequest,
+    ExperimentCompareResponse,
     ExportRequest,
     ExportResponse,
     InferenceRequest,
     InferenceResponse,
+    LossSuggestionRequest,
+    LossSuggestionResponse,
+    LRSchedulePreviewRequest,
+    LRSchedulePreviewResponse,
+    MetricsSuggestionRequest,
+    MetricsSuggestionResponse,
+    PipelineValidationRequest,
+    PipelineValidationResponse,
+    SchedulerConfig,
+    ShapeInferenceRequest,
+    ShapeInferenceResponse,
+    TrainingConfig,
+    TrainingControlMessage,
+    TrainingStatusResponse,
+    TransformCatalogEntry,
+    TransformCatalogResponse,
 )
+from training.runner import TrainingRunner
+from training.scheduler_factory import create_scheduler
 
 # Retrieve project metadata
 pkg_meta = metadata("engine")
@@ -379,7 +381,7 @@ def preview_lr_schedule(request: LRSchedulePreviewRequest):
         raise HTTPException(
             status_code=400,
             detail=f"Failed to simulate learning rate schedule: {str(e)}",
-        )
+        ) from e
 
 
 @app.post("/metrics/suggest", response_model=MetricsSuggestionResponse)
@@ -470,6 +472,7 @@ def predict_endpoint(request: InferenceRequest):
         InferenceResponse with prediction values and predicted_class index.
     """
     import torch
+
     from compiler.exporter import load_checkpoint_model
 
     try:
@@ -512,8 +515,45 @@ def predict_endpoint(request: InferenceRequest):
 
     except Exception as e:
         logger.exception("Inference prediction failed.")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
+
+@app.post("/experiments/compare", response_model=ExperimentCompareResponse)
+def compare_experiments(request: ExperimentCompareRequest):
+    """Retrieves logs for multiple run IDs to compare their training progress.
+
+    Args:
+        request: ExperimentCompareRequest with run_ids and metrics list.
+
+    Returns:
+        ExperimentCompareResponse containing requested metrics for each run.
+    """
+    from typing import Any
+    from training.experiments import get_run
+
+    runs_data = []
+    for run_id in request.run_ids:
+        try:
+            run = get_run(run_id)
+            if run is None:
+                logger.warning(f"Run {run_id} not found, skipping comparison.")
+                continue
+
+            run_dict: dict[str, Any] = {"run_id": run_id}
+            # Extract historical values for each requested metric
+            for metric in request.metrics:
+                values = []
+                for epoch_metrics in run.metrics_history:
+                    if metric in epoch_metrics:
+                        values.append(epoch_metrics[metric])
+                run_dict[metric] = values
+
+            runs_data.append(run_dict)
+        except Exception as e:
+            logger.warning(f"Error loading run {run_id} for comparison: {e}")
+            continue
+
+    return ExperimentCompareResponse(runs=runs_data)
 
 
 # ---------------------------------------------------------------------------
@@ -538,7 +578,7 @@ def start_training(config: TrainingConfig):
         logger.exception("Failed to start training.")
         raise HTTPException(
             status_code=400, detail=f"Failed to start training: {str(e)}"
-        )
+        ) from e
 
 
 @app.get("/training/stream/{run_id}")
@@ -626,7 +666,7 @@ def get_training_status(run_id: str):
 
     return TrainingStatusResponse(
         run_id=run_id,
-        status=status_val,
+        status=status_val,  # type: ignore
         current_epoch=trainer.current_epoch,
         total_epochs=trainer.total_epochs,
         latest_metrics=trainer.latest_metrics,
