@@ -100,6 +100,9 @@ nav:
       - Preview: dataset/preview.md
       - Validator: dataset/validator.md
       - Custom Loaders: dataset/custom-loaders.md
+  - Training Module:
+      - training/index.md
+      - Training Schedulers: training/schedulers.md
   - API Reference:
       - reference/compiler.md
       - reference/dataset.md
