@@ -10,6 +10,8 @@ from .block import WeaveBlock
 from .factory import ComponentFactory
 from .modules import AddModule, ConcatModule, MultiplyModule
 
+logger = logging.getLogger(__name__)
+
 
 class GraphCompiler:
     """Takes validated GraphConfig and compiles into a runnable PyTorch Module."""
@@ -20,6 +22,10 @@ class GraphCompiler:
             graph = GraphConfig(**graph_json)
         else:
             graph = graph_json
+
+        logger.info(
+            f"Compiling graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges."
+        )
 
         # Topo sort data structure
         adj_list = defaultdict(list)
@@ -94,12 +100,19 @@ class GraphCompiler:
         return WeaveBlock(exec_order, node_map, incoming_edges)
 
     def validate_pipeline(self, graph: GraphConfig, input_shape: list[int]) -> dict:
+        logger.info(f"Validating pipeline with input shape: {input_shape}")
         try:
             # 1. Compile the graph to get execution order and operations
             block = self.compile(graph)
         except ValueError as e:
+            logger.warning(
+                f"Pipeline validation failed due to user graph configuration issue: {e}"
+            )
             return {"status": "error", "message": f"Graph connection issue: {str(e)}"}
         except Exception as e:
+            logger.error(
+                f"Pipeline validation failed with unexpected error: {e}", exc_info=True
+            )
             return {
                 "status": "error",
                 "message": f"Whoops, we couldn't compile the graph: {str(e)}",
@@ -113,7 +126,7 @@ class GraphCompiler:
 
             if total_elements > MAX_TENSOR_ELEMENTS:
                 # RAI: Plain language bounds warning
-                logging.warning(
+                logger.warning(
                     f"AUDIT TRAIL: Blocked tensor creation of shape {input_shape} ({total_elements} elements). Exceeds {MAX_TENSOR_ELEMENTS} limit."
                 )
                 return {
@@ -129,6 +142,7 @@ class GraphCompiler:
             }
 
         # 3. Simulate the forward pass, recording shapes
+        logger.info("Starting shape propagation simulation for compiled graph...")
         block.eval()
         tensors = {"input": x}
         node_shapes = {"input": list(x.shape)}
@@ -187,6 +201,12 @@ class GraphCompiler:
 
                 tensors[node_id] = out
                 node_shapes[node_id] = list(out.shape)
+                logger.debug(
+                    f"Node '{node_id}' shape propagation: output_shape={node_shapes[node_id]}"
+                )
+        logger.info(
+            f"Pipeline validation completed successfully. Output shape: {node_shapes.get('output')}"
+        )
         return {"status": "success", "node_shapes": node_shapes}
 
     # Layer types that accept multiple inputs

@@ -45,6 +45,7 @@ class TrainingRunner:
             Exception: If setup or model compilation fails.
         """
         run_id = str(uuid.uuid4())
+        logger.info(f"Initiating training run. Assigned run_id: {run_id}")
 
         # 1. Device selection with fallback warning
         requested_device = config.training.device
@@ -59,10 +60,12 @@ class TrainingRunner:
                 device = torch.device("cpu")
         else:
             device = torch.device(requested_device)
+        logger.info(f"Run {run_id}: Target device configured as: {device}")
 
         # 2. Model compilation
         compiler = GraphCompiler()
         model = compiler.compile(config.model_graph)
+        logger.info(f"Run {run_id}: Model graph compiled successfully.")
 
         # 3. Dataset loading and splitting
         full_dataset = get_dataset_from_config(config.dataset_config)
@@ -80,10 +83,16 @@ class TrainingRunner:
 
         train_loader = create_dataloader(train_ds, batch_size=batch_size, shuffle=True)
         val_loader = create_dataloader(val_ds, batch_size=batch_size, shuffle=False)
+        logger.info(
+            f"Run {run_id}: Dataset loaded and split. Train size={len(train_ds)}, Val size={len(val_ds)}, Batch size={batch_size}"
+        )
 
         # 4. Loss and Optimizer
         loss_fn = get_loss_function(config.loss.model_dump())
         optimizer = get_optimizer(model.parameters(), config.optimizer.model_dump())
+        logger.info(
+            f"Run {run_id}: Instantiated loss function '{config.loss.type}' and optimizer '{config.optimizer.type}'"
+        )
 
         # 5. Step calculations and Scheduler instantiation
         steps_per_epoch = len(train_loader)
@@ -122,6 +131,7 @@ class TrainingRunner:
         self.event_queues[run_id] = event_queue
 
         trainer.start()
+        logger.info(f"Run {run_id}: Background training thread spawned and started.")
         return run_id
 
     def pause_run(self, run_id: str) -> bool:
@@ -135,7 +145,9 @@ class TrainingRunner:
         """
         if run_id in self.active_runs:
             self.active_runs[run_id].pause()
+            logger.info(f"Run {run_id}: Training run successfully paused.")
             return True
+        logger.warning(f"Run {run_id}: Pause requested, but no active run was found.")
         return False
 
     def resume_run(self, run_id: str) -> bool:
@@ -149,7 +161,9 @@ class TrainingRunner:
         """
         if run_id in self.active_runs:
             self.active_runs[run_id].resume()
+            logger.info(f"Run {run_id}: Training run successfully resumed.")
             return True
+        logger.warning(f"Run {run_id}: Resume requested, but no active run was found.")
         return False
 
     def stop_run(self, run_id: str) -> bool:
@@ -163,7 +177,9 @@ class TrainingRunner:
         """
         if run_id in self.active_runs:
             self.active_runs[run_id].stop()
+            logger.info(f"Run {run_id}: Training run successfully stopped.")
             return True
+        logger.warning(f"Run {run_id}: Stop requested, but no active run was found.")
         return False
 
     def get_trainer(self, run_id: str) -> Trainer | None:
@@ -198,3 +214,6 @@ class TrainingRunner:
             del self.active_runs[run_id]
         if run_id in self.event_queues:
             del self.event_queues[run_id]
+        logger.info(
+            f"Run {run_id}: State cleaned up successfully from runner tracking."
+        )

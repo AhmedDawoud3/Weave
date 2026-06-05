@@ -4,6 +4,7 @@ callbacks.py — Callbacks for checkpointing and early stopping.
 Manages saving model states and early termination of training.
 """
 
+import logging
 import os
 
 import torch
@@ -11,6 +12,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from schemas import CheckpointingConfig, EarlyStoppingConfig
+
+logger = logging.getLogger(__name__)
 
 
 class EarlyStopping:
@@ -65,10 +68,19 @@ class EarlyStopping:
                 improved = True
 
         if improved:
+            logger.info(
+                f"EarlyStopping: Monitored metric '{self.monitor}' improved to {self.best_metric:.6f}. Resetting patience."
+            )
             self.wait = 0
         else:
             self.wait += 1
+            logger.info(
+                f"EarlyStopping: Monitored metric '{self.monitor}' did not improve from {self.best_metric:.6f}. Patience: {self.wait}/{self.patience}"
+            )
             if self.wait >= self.patience:
+                logger.warning(
+                    f"EarlyStopping: Patience of {self.patience} epochs exceeded. Stopping training."
+                )
                 self.should_stop = True
 
         return self.should_stop
@@ -147,6 +159,9 @@ class Checkpointing:
             temp_path = path + ".tmp"
             torch.save(state, temp_path)
             os.replace(temp_path, path)
+            logger.info(
+                f"Checkpointing: Saved new best model checkpoint to {path} (epoch {epoch}, monitored '{self.monitor}' = {current:.6f})"
+            )
             saved_path = path
 
         # Save periodic checkpoint
@@ -155,6 +170,9 @@ class Checkpointing:
             temp_path = path + ".tmp"
             torch.save(state, temp_path)
             os.replace(temp_path, path)
+            logger.info(
+                f"Checkpointing: Saved periodic model checkpoint to {path} (epoch {epoch})"
+            )
             saved_path = path
 
         return saved_path

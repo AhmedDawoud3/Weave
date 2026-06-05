@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from importlib.metadata import metadata
 
 import torch.nn as nn
@@ -63,6 +64,15 @@ from training.runner import TrainingRunner
 from training.scheduler_factory import create_scheduler
 
 load_dotenv()
+
+# Configure logging configuration at startup
+log_level_name = os.environ.get("WEAVE_ENGINE_LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    force=True,  # Overwrites any pre-existing basicConfig (e.g. from uvicorn or tests)
+)
 
 # Retrieve project metadata
 pkg_meta = metadata("engine")
@@ -163,6 +173,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    client_host = request.client.host if request.client else "unknown"
+    method = request.method
+    path = request.url.path
+
+    logger.info(f"Incoming request: {method} {path} from {client_host}")
+
+    try:
+        response = await call_next(request)
+        process_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"Completed request: {method} {path} - Status: {response.status_code} "
+            f"in {process_time:.2f}ms"
+        )
+        return response
+    except Exception as e:
+        process_time = (time.time() - start_time) * 1000
+        logger.error(
+            f"Failed request: {method} {path} - Error: {e} in {process_time:.2f}ms",
+            exc_info=True,
+        )
+        raise e
+
 
 logger = logging.getLogger(__name__)
 compiler = GraphCompiler()

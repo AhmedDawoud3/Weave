@@ -145,20 +145,34 @@ class Trainer:
             self.start_time = time.time()
             self._save_experiment_run()
             self.model.to(self.device)
+            logger.info(
+                f"Run {self.run_id}: Starting training loop on device '{self.device}' for {self.settings.epochs} epochs."
+            )
 
             for epoch in range(1, self.settings.epochs + 1):
                 if self.is_stopped:
+                    logger.info(
+                        f"Run {self.run_id}: Stop signal detected at epoch {epoch}."
+                    )
                     break
 
                 # Handle pause state
+                if self.is_paused and not self.is_stopped:
+                    logger.info(f"Run {self.run_id}: Training paused at epoch {epoch}.")
                 while self.is_paused and not self.is_stopped:
                     time.sleep(0.1)
 
                 if self.is_stopped:
+                    logger.info(
+                        f"Run {self.run_id}: Stop signal detected during pause at epoch {epoch}."
+                    )
                     break
 
                 self.current_epoch = epoch
                 self.model.train()
+                logger.info(
+                    f"Run {self.run_id}: Starting epoch {epoch}/{self.settings.epochs}..."
+                )
                 train_tracker = EpochMetricsTracker(task_type)
 
                 for batch_idx, (inputs, targets) in enumerate(self.train_loader):
@@ -263,6 +277,9 @@ class Trainer:
                 if self.val_loader is not None and (
                     epoch % self.settings.validation_frequency == 0
                 ):
+                    logger.info(
+                        f"Run {self.run_id}: Running validation for epoch {epoch}..."
+                    )
                     self.model.eval()
                     val_tracker = EpochMetricsTracker(task_type)
                     with torch.no_grad():
@@ -302,6 +319,9 @@ class Trainer:
                     **{f"train_{k}": v for k, v in epoch_train_metrics.items()},
                     **{f"val_{k}": v for k, v in epoch_val_metrics.items()},
                 }
+                logger.info(
+                    f"Run {self.run_id}: Epoch {epoch} completed. Metrics: {epoch_combined_metrics}"
+                )
 
                 self.latest_metrics = epoch_combined_metrics
 
@@ -340,6 +360,9 @@ class Trainer:
             # Mark completed
             if self.status not in ["stopped", "failed"]:
                 self.status = "completed"
+            logger.info(
+                f"Run {self.run_id}: Training finished loop. Status={self.status}, Best Epoch={best_epoch}, Best Val Loss={best_val_loss:.6f}"
+            )
 
             # Push complete event
             complete_msg = {
@@ -352,7 +375,9 @@ class Trainer:
             self._save_experiment_run()
 
         except Exception as e:
-            logger.exception("Error in training thread loop.")
+            logger.exception(
+                f"Run {self.run_id}: Exception occurred in training thread loop: {e}"
+            )
             self.status = "failed"
             fail_msg = {
                 "type": "training_failed",
