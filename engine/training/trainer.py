@@ -5,7 +5,6 @@ Runs the neural network training loop in a background thread, handles mixed
 precision, gradient accumulation, and control commands (pause/resume/stop).
 """
 
-import asyncio
 import logging
 import threading
 import time
@@ -17,6 +16,7 @@ import torch.optim as optim
 
 from schemas import TrainingConfig
 from training.callbacks import Checkpointing, EarlyStopping
+from training.event_bus import EventBus
 from training.metrics import EpochMetricsTracker, compute_batch_metrics
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,8 @@ class Trainer:
         loss_fn: nn.Module | None = None,
         scheduler: Any = None,
         device: torch.device | None = None,
-        loop: asyncio.AbstractEventLoop | None = None,
-        event_queue: asyncio.Queue | None = None,
+        loop: None = None,
+        event_bus: EventBus | None = None,
     ):
         """Initializes the background trainer.
 
@@ -51,8 +51,8 @@ class Trainer:
             loss_fn (nn.Module): Loss function module.
             scheduler (Any): Learning rate scheduler instance.
             device (torch.device): Device to execute computations on.
-            loop (asyncio.AbstractEventLoop): Main event loop.
-            event_queue (asyncio.Queue): Thread-safe queue for metrics.
+            loop: Deprecated, kept for backward compat (unused).
+            event_bus (EventBus): Thread-safe event store for metrics streaming.
         """
         self.run_id = run_id
         self.config = config
@@ -64,8 +64,7 @@ class Trainer:
         self.loss_fn = loss_fn
         self.scheduler = scheduler
         self.device = device
-        self.loop = loop
-        self.event_queue = event_queue
+        self.event_bus = event_bus
 
         # Callbacks
         self.early_stopping = EarlyStopping(self.settings.early_stopping)
@@ -114,12 +113,13 @@ class Trainer:
         self.status = "stopped"
 
     def _push_event(self, msg: dict[str, Any]) -> None:
-        """Pushes a message to the asyncio queue in a thread-safe way.
+        """Pushes an event to the EventBus (thread-safe).
 
         Args:
-            msg (Dict[str, Any]): Dictionary message to enqueue.
+            msg (Dict[str, Any]): Dictionary message to store.
         """
-        self.loop.call_soon_threadsafe(self.event_queue.put_nowait, msg)
+        if self.event_bus:
+            self.event_bus.push(msg)
 
     def _run_loop(self) -> None:
         """Main training thread function."""
@@ -477,6 +477,8 @@ class Trainer:
                 "best_val_loss": best_val_loss,
             }
             self._push_event(complete_msg)
+            if self.event_bus:
+                self.event_bus.mark_finished()
             self._save_experiment_run()
 
         except Exception as e:
@@ -490,6 +492,8 @@ class Trainer:
                 "error": str(e),
             }
             self._push_event(fail_msg)
+            if self.event_bus:
+                self.event_bus.mark_finished()
             try:
                 self._save_experiment_run()
             except Exception:

@@ -97,9 +97,11 @@ def _create_pre_configured_runner(
     device = torch.device("cpu")
 
     loop = asyncio.get_running_loop()
-    event_queue = asyncio.Queue()
 
+    from training.event_bus import EventBus
     from training.trainer import Trainer
+
+    event_bus = EventBus(loop)
 
     trainer = Trainer(
         run_id="test-run",
@@ -111,13 +113,12 @@ def _create_pre_configured_runner(
         loss_fn=loss_fn,
         scheduler=None,
         device=device,
-        loop=loop,
-        event_queue=event_queue,
+        event_bus=event_bus,
     )
 
     run_id = "test-run"
     runner.active_runs[run_id] = trainer
-    runner.event_queues[run_id] = event_queue
+    runner.event_buses[run_id] = event_bus
 
     return runner, run_id, trainer
 
@@ -127,21 +128,17 @@ async def test_training_runner_success(training_config, dummy_loaders):
     runner, run_id, trainer = _create_pre_configured_runner(
         training_config, dummy_loaders
     )
-    queue = runner.get_queue(run_id)
+    event_bus = runner.get_event_bus(run_id)
 
     # Start the trainer thread
     trainer.start()
 
-    # Collect event messages from the queue
+    # Collect event messages from the event bus
     events = []
-    start_time = time.time()
-    while time.time() - start_time < 10.0:
-        if not queue.empty():
-            msg = await queue.get()
-            events.append(msg)
-            if msg["type"] in ("training_complete", "training_failed"):
-                break
-        await asyncio.sleep(0.05)
+    async for msg in event_bus.iter_events():
+        events.append(msg)
+        if msg["type"] in ("training_complete", "training_failed"):
+            break
 
     # Assert correct messages were streamed
     assert len(events) > 0
@@ -208,17 +205,12 @@ async def test_device_fallback(training_config, dummy_dataset):
     with patch("torch.cuda.is_available", return_value=False):
         run_id = runner.start_run(training_config)
         trainer = runner.get_trainer(run_id)
-        queue = runner.get_queue(run_id)
 
         # Wait for the trainer thread to set up and reach the device selection
         start_time = time.time()
         while time.time() - start_time < 10.0:
             if trainer.device is not None:
                 break
-            if not queue.empty():
-                msg = await queue.get()
-                if msg.get("type") == "training_failed":
-                    break
             await asyncio.sleep(0.1)
 
         assert trainer.device is not None

@@ -99,15 +99,17 @@ async def test_stream_training_api_success():
     # SSE testing using async client
     from httpx import ASGITransport, AsyncClient
 
-    # Create a mock queue
-    queue = asyncio.Queue()
-    queue.put_nowait({"type": "step_metrics", "step": 1, "metrics": {"loss": 0.5}})
-    queue.put_nowait(
-        {"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5}
-    )
+    from training.event_bus import EventBus
+
+    # Create an EventBus pre-loaded with events
+    loop = asyncio.get_running_loop()
+    event_bus = EventBus(loop)
+    event_bus.push({"type": "step_metrics", "step": 1, "metrics": {"loss": 0.5}})
+    event_bus.push({"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5})
+    event_bus.mark_finished()
 
     with (
-        patch.object(runner, "get_queue", return_value=queue),
+        patch.object(runner, "get_event_bus", return_value=event_bus),
         patch.object(runner, "get_trainer", return_value=None),
         patch.object(runner, "cleanup_run"),
     ):

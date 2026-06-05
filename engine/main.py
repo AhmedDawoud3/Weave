@@ -746,39 +746,28 @@ def start_training(config: TrainingConfig):
 async def stream_training(run_id: str):
     """Streams step-level and epoch-level metrics from a run using Server-Sent Events (SSE).
 
+    The event bus buffers all events, so clients connecting after training
+    has started (or even finished) will receive the full event history.
+
     Args:
         run_id: The training run identifier.
 
     Returns:
         EventSourceResponse: Event stream containing metrics messages.
     """
-    queue = runner.get_queue(run_id)
-    if not queue:
+    event_bus = runner.get_event_bus(run_id)
+    if not event_bus:
         raise HTTPException(status_code=404, detail="Run ID not found.")
 
     async def event_generator():
         try:
-            while True:
-                msg = await queue.get()
+            async for msg in event_bus.iter_events():
                 yield {
-                    "event": msg["event"]
-                    if "event" in msg
-                    else msg.get("type", "step_metrics"),
+                    "event": msg.get("event", msg.get("type", "step_metrics")),
                     "data": json.dumps(msg),
                 }
-
-                if msg.get("type") in [
-                    "training_complete",
-                    "training_failed",
-                    "stopped",
-                ]:
-                    break
         except asyncio.CancelledError:
             logger.info(f"SSE stream cancelled for run_id: {run_id}")
-        finally:
-            trainer = runner.get_trainer(run_id)
-            if trainer and trainer.status in ["completed", "failed", "stopped"]:
-                runner.cleanup_run(run_id)
 
     return EventSourceResponse(event_generator())
 

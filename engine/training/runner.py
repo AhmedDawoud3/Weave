@@ -10,6 +10,7 @@ import logging
 import uuid
 
 from schemas import TrainingConfig
+from training.event_bus import EventBus
 from training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
@@ -22,8 +23,8 @@ class TrainingRunner:
         """Initializes the training runner state."""
         # Maps run_id -> Trainer instance
         self.active_runs: dict[str, Trainer] = {}
-        # Maps run_id -> asyncio.Queue
-        self.event_queues: dict[str, asyncio.Queue] = {}
+        # Maps run_id -> EventBus
+        self.event_buses: dict[str, EventBus] = {}
 
     def start_run(self, config: TrainingConfig) -> str:
         """Starts a background training run.
@@ -47,7 +48,7 @@ class TrainingRunner:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        event_queue = asyncio.Queue()
+        event_bus = EventBus(loop)
 
         # 2. Trainer instantiation with deferred parameters
         trainer = Trainer(
@@ -61,11 +62,11 @@ class TrainingRunner:
             scheduler=None,
             device=None,
             loop=loop,
-            event_queue=event_queue,
+            event_bus=event_bus,
         )
 
         self.active_runs[run_id] = trainer
-        self.event_queues[run_id] = event_queue
+        self.event_buses[run_id] = event_bus
 
         trainer.start()
         logger.info(
@@ -132,16 +133,16 @@ class TrainingRunner:
         """
         return self.active_runs.get(run_id)
 
-    def get_queue(self, run_id: str) -> asyncio.Queue | None:
-        """Gets the asyncio event queue for streaming.
+    def get_event_bus(self, run_id: str) -> EventBus | None:
+        """Gets the EventBus for streaming.
 
         Args:
             run_id (str): The run identifier.
 
         Returns:
-            Optional[asyncio.Queue]: The queue, or None if not found.
+            Optional[EventBus]: The event bus, or None if not found.
         """
-        return self.event_queues.get(run_id)
+        return self.event_buses.get(run_id)
 
     def cleanup_run(self, run_id: str) -> None:
         """Removes run state tracking.
@@ -151,8 +152,8 @@ class TrainingRunner:
         """
         if run_id in self.active_runs:
             del self.active_runs[run_id]
-        if run_id in self.event_queues:
-            del self.event_queues[run_id]
+        if run_id in self.event_buses:
+            del self.event_buses[run_id]
         logger.info(
             f"Run {run_id}: State cleaned up successfully from runner tracking."
         )
