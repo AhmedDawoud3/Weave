@@ -11,8 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
 import torch.nn as nn
-from compiler.compiler import GraphCompiler
-from compiler.factory import get_optimizer
+from compiler import (
+    GraphCompiler,
+    get_optimizer,
+    export_onnx,
+    export_pytorch,
+    export_torchscript,
+)
 from training.scheduler_factory import create_scheduler
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
@@ -48,6 +53,8 @@ from schemas import (
     LRSchedulePreviewResponse,
     MetricsSuggestionRequest,
     MetricsSuggestionResponse,
+    ExportRequest,
+    ExportResponse,
 )
 
 # Retrieve project metadata
@@ -394,6 +401,60 @@ def suggest_metrics(request: MetricsSuggestionRequest):
         suggested = ["Accuracy"]
 
     return MetricsSuggestionResponse(suggested=suggested)
+
+
+@app.post("/export/onnx", response_model=ExportResponse)
+def export_onnx_endpoint(request: ExportRequest):
+    """Exports a trained model graph to ONNX format.
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_onnx(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("ONNX export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
+
+
+@app.post("/export/pytorch", response_model=ExportResponse)
+def export_pytorch_endpoint(request: ExportRequest):
+    """Exports a trained model graph weights (state_dict).
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_pytorch(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("PyTorch weights export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
+
+
+@app.post("/export/torchscript", response_model=ExportResponse)
+def export_torchscript_endpoint(request: ExportRequest):
+    """Exports a trained model graph to platform-independent TorchScript format.
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_torchscript(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("TorchScript export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
 
 
 # ---------------------------------------------------------------------------
