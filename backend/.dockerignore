@@ -1,0 +1,10 @@
+global.json
+bin/
+obj/
+publish/
+.vs/
+.idea/
+*.user
+*.suo
+Debug/
+Release/

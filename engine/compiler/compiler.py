@@ -3,12 +3,22 @@ import math
 from collections import defaultdict, deque
 
 import torch
+import torch.nn as nn
 
 from schemas import GraphConfig, NodeConfig
 
 from .block import WeaveBlock
 from .factory import ComponentFactory
-from .modules import AddModule, ConcatModule, MultiplyModule
+from .modules import (
+    AddModule,
+    ConcatModule,
+    DivModule,
+    MatMulModule,
+    MultiplyModule,
+    SubModule,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class GraphCompiler:
@@ -20,6 +30,10 @@ class GraphCompiler:
             graph = GraphConfig(**graph_json)
         else:
             graph = graph_json
+
+        logger.info(
+            f"Compiling graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges."
+        )
 
         # Topo sort data structure
         adj_list = defaultdict(list)
@@ -94,12 +108,19 @@ class GraphCompiler:
         return WeaveBlock(exec_order, node_map, incoming_edges)
 
     def validate_pipeline(self, graph: GraphConfig, input_shape: list[int]) -> dict:
+        logger.info(f"Validating pipeline with input shape: {input_shape}")
         try:
             # 1. Compile the graph to get execution order and operations
             block = self.compile(graph)
         except ValueError as e:
+            logger.warning(
+                f"Pipeline validation failed due to user graph configuration issue: {e}"
+            )
             return {"status": "error", "message": f"Graph connection issue: {str(e)}"}
         except Exception as e:
+            logger.error(
+                f"Pipeline validation failed with unexpected error: {e}", exc_info=True
+            )
             return {
                 "status": "error",
                 "message": f"Whoops, we couldn't compile the graph: {str(e)}",
@@ -113,7 +134,7 @@ class GraphCompiler:
 
             if total_elements > MAX_TENSOR_ELEMENTS:
                 # RAI: Plain language bounds warning
-                logging.warning(
+                logger.warning(
                     f"AUDIT TRAIL: Blocked tensor creation of shape {input_shape} ({total_elements} elements). Exceeds {MAX_TENSOR_ELEMENTS} limit."
                 )
                 return {
@@ -129,6 +150,7 @@ class GraphCompiler:
             }
 
         # 3. Simulate the forward pass, recording shapes
+        logger.info("Starting shape propagation simulation for compiled graph...")
         block.eval()
         tensors = {"input": x}
         node_shapes = {"input": list(x.shape)}
@@ -163,7 +185,17 @@ class GraphCompiler:
                 # Execute layer safely
                 layer = block.operations[node_id]
                 try:
-                    if isinstance(layer, (AddModule, ConcatModule)):
+                    if isinstance(
+                        layer,
+                        (
+                            AddModule,
+                            ConcatModule,
+                            MultiplyModule,
+                            SubModule,
+                            DivModule,
+                            MatMulModule,
+                        ),
+                    ):
                         out = layer(input_tensors)
                     else:
                         if len(input_tensors) != 1:
@@ -171,7 +203,12 @@ class GraphCompiler:
                                 "status": "error",
                                 "message": f"Node '{node_id}' expected 1 arrow pointing towards it, but received {len(input_tensors)}.",
                             }
-                        out = layer(input_tensors[0])
+                        inp = input_tensors[0]
+                        # Auto-flatten for Linear layers (mirrors WeaveBlock.forward)
+                        if isinstance(layer, nn.Linear) and inp.dim() > 2:
+                            if inp.shape[-1] != layer.in_features:
+                                inp = inp.flatten(1)
+                        out = layer(inp)
                 except RuntimeError as e:
                     # RAI: Translate PyTorch's cryptic error messages into accessible language
                     return {
@@ -187,10 +224,16 @@ class GraphCompiler:
 
                 tensors[node_id] = out
                 node_shapes[node_id] = list(out.shape)
+                logger.debug(
+                    f"Node '{node_id}' shape propagation: output_shape={node_shapes[node_id]}"
+                )
+        logger.info(
+            f"Pipeline validation completed successfully. Output shape: {node_shapes.get('output')}"
+        )
         return {"status": "success", "node_shapes": node_shapes}
 
     # Layer types that accept multiple inputs
-    MULTI_INPUT_TYPES = {"Add", "Concat", "Multiply"}
+    MULTI_INPUT_TYPES = {"Add", "Concat", "Multiply", "Sub", "Div", "MatMul"}
 
     # Layer types that contain a nested subgraph
     BLOCK_TYPES = {
@@ -288,6 +331,9 @@ class GraphCompiler:
         layer.eval()
         with torch.inference_mode():
             try:
+                if isinstance(layer, nn.Linear) and x.dim() > 2:
+                    if x.shape[-1] != layer.in_features:
+                        x = x.flatten(1)
                 out = layer(x)
             except RuntimeError as e:
                 return {
@@ -332,7 +378,17 @@ class GraphCompiler:
         layer.eval()
         with torch.inference_mode():
             try:
-                if isinstance(layer, (AddModule, ConcatModule, MultiplyModule)):
+                if isinstance(
+                    layer,
+                    (
+                        AddModule,
+                        ConcatModule,
+                        MultiplyModule,
+                        SubModule,
+                        DivModule,
+                        MatMulModule,
+                    ),
+                ):
                     out = layer(tensors)
                 else:
                     return {

@@ -61,3 +61,5 @@ pyrightconfig.json
 
 # Docker
 .dockerignore
+
+/data/*

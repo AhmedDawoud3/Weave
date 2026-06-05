@@ -88,7 +88,11 @@ def _validate_image_folder(
         return
 
     # Check for class subfolders
-    subdirs = [d for d in os.listdir(config.root) if os.path.isdir(os.path.join(config.root, d))]
+    subdirs = [
+        d
+        for d in os.listdir(config.root)
+        if os.path.isdir(os.path.join(config.root, d))
+    ]
     if len(subdirs) == 0:
         errors.append(
             f"No class subfolders found in '{config.root}'. "
@@ -141,7 +145,9 @@ def _validate_custom_image(
     else:
         # Folder-based
         if not config.root:
-            errors.append("Custom image dataset requires 'root' when not using CSV labels.")
+            errors.append(
+                "Custom image dataset requires 'root' when not using CSV labels."
+            )
         elif not os.path.isdir(config.root):
             warnings.append(f"Root path does not exist: {config.root}")
 
@@ -202,7 +208,9 @@ def _validate_custom_audio(
         errors.append(f"sample_rate must be positive, got {config.sample_rate}.")
 
     if config.max_duration_sec <= 0:
-        errors.append(f"max_duration_sec must be positive, got {config.max_duration_sec}.")
+        errors.append(
+            f"max_duration_sec must be positive, got {config.max_duration_sec}."
+        )
 
     if config.n_mels <= 0:
         errors.append(f"n_mels must be positive, got {config.n_mels}.")
@@ -243,9 +251,9 @@ def _validate_transforms(
         PredefinedDatasetConfig,
     )
 
-    is_image = isinstance(config, (PredefinedDatasetConfig, ImageFolderDatasetConfig)) or (
-        isinstance(config, CustomDatasetConfig) and config.modality == "image"
-    )
+    is_image = isinstance(
+        config, (PredefinedDatasetConfig, ImageFolderDatasetConfig)
+    ) or (isinstance(config, CustomDatasetConfig) and config.modality == "image")
 
     if is_image and transforms_list and not has_to_tensor:
         warnings.append(

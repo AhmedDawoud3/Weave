@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: production
-      url: https://weave-python-engine-hegma8f3gvafg4c4.italynorth-01.azurewebsites.net/ # Link appears in GitHub UI
+      url: https://engine.weave-ai.dev # Link appears in GitHub UI
     permissions:
       contents: read #This is required for actions/checkout
 
@@ -51,6 +51,12 @@ jobs:
       - name: Build MkDocs site
         working-directory: ./engine
         run: uv run mkdocs build
+
+      - name: Create .env file for deployment
+        working-directory: ./engine
+        run: |
+          echo "WEAVE_ENGINE_API_KEY=${{ secrets.WEAVE_ENGINE_API_KEY }}" > .env
+          echo "WEAVE_ENGINE_DISABLE_AUTH=false" >> .env
 
       # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
       - name: Upload artifact for deployment jobs

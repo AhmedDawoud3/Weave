@@ -1,4 +1,5 @@
 import types
+from typing import Any, cast
 
 import torch
 from torch.utils.data import TensorDataset
@@ -52,10 +53,10 @@ def test_get_dataset_uses_registry_and_split(monkeypatch, tmp_path):
         dataset_factory.importlib, "import_module", lambda _: fake_module
     )
 
-    transform = object()
-    dataset = dataset_factory.get_dataset(
+    transform = T.Compose([])
+    dataset = cast(Any, dataset_factory.get_dataset(
         "Dummy", str(tmp_path), transform=transform, split="test"
-    )
+    ))
 
     assert dataset.root == str(tmp_path)
     assert dataset.transform is transform

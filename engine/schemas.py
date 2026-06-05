@@ -90,6 +90,46 @@ class BatchNorm2dParams(BaseModel):
     affine: bool = True
 
 
+class SubParams(BaseModel):
+    pass
+
+
+class DivParams(BaseModel):
+    pass
+
+
+class SqrtParams(BaseModel):
+    eps: float = 0.0
+
+
+class MeanParams(BaseModel):
+    dim: list[int]
+    keepdim: bool = True
+
+
+class VarParams(BaseModel):
+    dim: list[int]
+    keepdim: bool = True
+    unbiased: bool = False
+
+
+class MatMulParams(BaseModel):
+    pass
+
+
+class ScaleParams(BaseModel):
+    value: float
+
+
+class ChannelScaleBiasParams(BaseModel):
+    num_features: int
+
+
+class SliceParams(BaseModel):
+    dim: int
+    index: int
+
+
 class LayerNormParams(BaseModel):
     normalized_shape: int | list[int]
     eps: float = 1e-5
@@ -118,6 +158,11 @@ class SigmoidParams(BaseModel):
 
 class TanhParams(BaseModel):
     pass
+
+
+class CustomAutogradParams(BaseModel):
+    forward_code: str
+    backward_code: str
 
 
 class SoftmaxParams(BaseModel):
@@ -223,6 +268,60 @@ class BatchNorm2dNode(BaseModel):
     params: BatchNorm2dParams
 
 
+class SubNode(BaseModel):
+    id: str
+    type: Literal["Sub"]
+    params: SubParams = SubParams()
+
+
+class DivNode(BaseModel):
+    id: str
+    type: Literal["Div"]
+    params: DivParams = DivParams()
+
+
+class SqrtNode(BaseModel):
+    id: str
+    type: Literal["Sqrt"]
+    params: SqrtParams = SqrtParams()
+
+
+class MeanNode(BaseModel):
+    id: str
+    type: Literal["Mean"]
+    params: MeanParams
+
+
+class VarNode(BaseModel):
+    id: str
+    type: Literal["Var"]
+    params: VarParams
+
+
+class MatMulNode(BaseModel):
+    id: str
+    type: Literal["MatMul"]
+    params: MatMulParams = MatMulParams()
+
+
+class ScaleNode(BaseModel):
+    id: str
+    type: Literal["Scale"]
+    params: ScaleParams
+
+
+class ChannelScaleBiasNode(BaseModel):
+    id: str
+    type: Literal["ChannelScaleBias"]
+    params: ChannelScaleBiasParams
+
+
+class SliceNode(BaseModel):
+    id: str
+    type: Literal["Slice"]
+    params: SliceParams
+
+
 class LayerNormNode(BaseModel):
     id: str
     type: Literal["LayerNorm"]
@@ -257,6 +356,12 @@ class TanhNode(BaseModel):
     id: str
     type: Literal["Tanh"]
     params: TanhParams = Field(default_factory=TanhParams)
+
+
+class CustomAutogradNode(BaseModel):
+    id: str
+    type: Literal["CustomAutograd"]
+    params: CustomAutogradParams
 
 
 class SoftmaxNode(BaseModel):
@@ -408,11 +513,22 @@ NodeConfig = Annotated[
         BatchNorm2dNode,
         LayerNormNode,
         GroupNormNode,
+        # Math & Tensor Primitives
+        SubNode,
+        DivNode,
+        SqrtNode,
+        MeanNode,
+        VarNode,
+        MatMulNode,
+        ScaleNode,
+        ChannelScaleBiasNode,
+        SliceNode,
         # Activations
         ReLUNode,
         GELUNode,
         SigmoidNode,
         TanhNode,
+        CustomAutogradNode,
         SoftmaxNode,
         # Shape Manipulation
         FlattenNode,

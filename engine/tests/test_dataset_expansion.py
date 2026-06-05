@@ -2,7 +2,6 @@
 Tests for expanded registry, transform_factory, scanner, preview, and validator.
 """
 
-
 import pytest
 import torch
 from torch.utils.data import TensorDataset
@@ -282,7 +281,9 @@ def test_validate_predefined_valid():
 
 def test_validate_predefined_unknown_dataset():
     """Unknown dataset name should produce an error."""
-    config = PredefinedDatasetConfig(source="predefined", name="FakeDataset", split="train")
+    config = PredefinedDatasetConfig(
+        source="predefined", name="FakeDataset", split="train"
+    )
     result = validate_dataset_config(config)
     assert result["valid"] is False
     assert any("not found" in e for e in result["errors"])
@@ -290,7 +291,9 @@ def test_validate_predefined_unknown_dataset():
 
 def test_validate_predefined_invalid_split():
     """Invalid split should produce an error."""
-    config = PredefinedDatasetConfig(source="predefined", name="MNIST", split="validate")
+    config = PredefinedDatasetConfig(
+        source="predefined", name="MNIST", split="validate"
+    )
     result = validate_dataset_config(config)
     assert result["valid"] is False
     assert any("split" in e.lower() for e in result["errors"])

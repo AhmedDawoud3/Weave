@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: weave-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - weave-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: weave-frontend
+    restart: always
+    environment:
+      - PORT=3000
+      - VITE_API_URL=https://weave-ai.dev
+    networks:
+      - weave-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: weave-backend
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Engine__BaseUrl=http://172.17.0.1:8000
+      - Engine__ApiKey=${WEAVE_ENGINE_API_KEY}
+      # Azure SQL Database / Managed DB Connection String (Replace placeholders)
+      - ConnectionStrings__DefaultConnection=Server=tcp:YOUR-AZURE-DB-SERVER.database.windows.net,1433;Initial Catalog=WeaveDb;Persist Security Info=False;User ID=YOUR-USERNAME;Password=YOUR-PASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+    networks:
+      - weave-network
+
+networks:
+  weave-network:
+    driver: bridge

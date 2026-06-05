@@ -76,7 +76,11 @@ class CSVImageDataset(Dataset):
         label_raw = row[self.label_column]
 
         image = Image.open(img_path).convert("RGB")
-        label = self.class_to_idx[label_raw] if isinstance(label_raw, str) else int(label_raw)
+        label = (
+            self.class_to_idx[label_raw]
+            if isinstance(label_raw, str)
+            else int(label_raw)
+        )
 
         if self.transform is not None:
             image = self.transform(image)
