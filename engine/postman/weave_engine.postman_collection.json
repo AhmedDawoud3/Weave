@@ -1493,6 +1493,32 @@
           ]
         }
       }
+    },
+    {
+      "name": "Compare Experiments",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"run_ids\": [\n    \"run_comp_1\",\n    \"run_comp_2\"\n  ],\n  \"metrics\": [\n    \"loss\",\n    \"accuracy\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/experiments/compare",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "experiments",
+            "compare"
+          ]
+        }
+      }
     }
   ]
 }

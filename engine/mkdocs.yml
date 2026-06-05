@@ -81,6 +81,7 @@ nav:
       - Suggest Validation Metrics: api/metrics-suggest.md
       - Model Export: api/export.md
       - Predictive Inference: api/inference.md
+      - Compare Experiments: api/experiments.md
   - Schemas:
       - schemas/index.md
       - Layer Params: schemas/layer-params.md

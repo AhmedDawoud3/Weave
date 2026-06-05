@@ -57,6 +57,8 @@ from schemas import (
     ExportResponse,
     InferenceRequest,
     InferenceResponse,
+    ExperimentCompareRequest,
+    ExperimentCompareResponse,
 )
 
 # Retrieve project metadata
@@ -514,6 +516,42 @@ def predict_endpoint(request: InferenceRequest):
         logger.exception("Inference prediction failed.")
         raise HTTPException(status_code=400, detail=str(e))
 
+
+@app.post("/experiments/compare", response_model=ExperimentCompareResponse)
+def compare_experiments(request: ExperimentCompareRequest):
+    """Retrieves logs for multiple run IDs to compare their training progress.
+
+    Args:
+        request: ExperimentCompareRequest with run_ids and metrics list.
+
+    Returns:
+        ExperimentCompareResponse containing requested metrics for each run.
+    """
+    from training.experiments import get_run
+
+    runs_data = []
+    for run_id in request.run_ids:
+        try:
+            run = get_run(run_id)
+            if run is None:
+                logger.warning(f"Run {run_id} not found, skipping comparison.")
+                continue
+
+            run_dict = {"run_id": run_id}
+            # Extract historical values for each requested metric
+            for metric in request.metrics:
+                values = []
+                for epoch_metrics in run.metrics_history:
+                    if metric in epoch_metrics:
+                        values.append(epoch_metrics[metric])
+                run_dict[metric] = values
+
+            runs_data.append(run_dict)
+        except Exception as e:
+            logger.warning(f"Error loading run {run_id} for comparison: {e}")
+            continue
+
+    return ExperimentCompareResponse(runs=runs_data)
 
 
 # ---------------------------------------------------------------------------
