@@ -29,15 +29,15 @@ class Trainer:
         self,
         run_id: str,
         config: TrainingConfig,
-        model: nn.Module,
-        train_loader: Any,
-        val_loader: Any,
-        optimizer: optim.Optimizer,
-        loss_fn: nn.Module,
-        scheduler: Any,
-        device: torch.device,
-        loop: asyncio.AbstractEventLoop,
-        event_queue: asyncio.Queue,
+        model: nn.Module | None = None,
+        train_loader: Any = None,
+        val_loader: Any = None,
+        optimizer: optim.Optimizer | None = None,
+        loss_fn: nn.Module | None = None,
+        scheduler: Any = None,
+        device: torch.device | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        event_queue: asyncio.Queue | None = None,
     ):
         """Initializes the background trainer.
 
@@ -123,26 +123,131 @@ class Trainer:
 
     def _run_loop(self) -> None:
         """Main training thread function."""
-        # 1. Determine task type based on loss class name
-        loss_name = self.loss_fn.__class__.__name__
-        if loss_name in ["MSELoss", "L1Loss"]:
-            task_type = "regression"
-        elif loss_name in ["BCEWithLogitsLoss", "BCELoss"]:
-            task_type = "multi_label"
-        else:
-            task_type = "classification"
-
-        # 2. Mixed Precision Setup
-        scaler = torch.amp.GradScaler(
-            "cuda", enabled=self.settings.mixed_precision and self.device.type == "cuda"
-        )
-
-        global_step = 0
-        best_val_loss = float("inf")
-        best_epoch = 0
-
         try:
             self.start_time = time.time()
+
+            if self.model is None:
+                # Import dependencies dynamically to keep trainer imports clean
+                from compiler.compiler import GraphCompiler
+                from compiler.factory import get_loss_function, get_optimizer
+                from dataset import get_dataset_from_config
+                from dataset.dataloader import create_dataloader, split_dataset
+                from training.scheduler_factory import create_scheduler
+
+                # 1. Device selection
+                requested_device = self.config.training.device
+                if "cuda" in requested_device:
+                    if torch.cuda.is_available():
+                        self.device = torch.device(requested_device)
+                    else:
+                        logger.warning(
+                            f"CUDA requested ('{requested_device}'), but CUDA is not available. "
+                            "Falling back to 'cpu'."
+                        )
+                        self.device = torch.device("cpu")
+                else:
+                    self.device = torch.device(requested_device)
+                logger.info(
+                    f"Run {self.run_id}: Target device configured as: {self.device}"
+                )
+
+                # Notify setup status: compiling model
+                self._push_event(
+                    {
+                        "type": "setup_status",
+                        "run_id": self.run_id,
+                        "status": "compiling_model",
+                        "message": "Compiling neural network model graph...",
+                    }
+                )
+
+                # 2. Model compilation
+                compiler = GraphCompiler()
+                self.model = compiler.compile(self.config.model_graph)
+                logger.info(f"Run {self.run_id}: Model graph compiled successfully.")
+
+                # Notify setup status: loading dataset
+                self._push_event(
+                    {
+                        "type": "setup_status",
+                        "run_id": self.run_id,
+                        "status": "loading_dataset",
+                        "message": "Loading and preparing dataset (downloading if necessary)...",
+                    }
+                )
+
+                # 3. Dataset loading and splitting
+                full_dataset = get_dataset_from_config(self.config.dataset_config)
+                train_ds, val_ds = split_dataset(full_dataset, split_ratio=0.8)
+
+                batch_size = 32
+                if hasattr(self.config.dataset_config, "batch_size"):
+                    batch_size = int(self.config.dataset_config.batch_size)  # type: ignore
+                elif (
+                    hasattr(self.config.dataset_config, "loader_config")
+                    and self.config.dataset_config.loader_config
+                ):
+                    batch_size = int(
+                        self.config.dataset_config.loader_config.batch_size
+                    )  # type: ignore
+
+                self.train_loader = create_dataloader(
+                    train_ds, batch_size=batch_size, shuffle=True
+                )
+                self.val_loader = create_dataloader(
+                    val_ds, batch_size=batch_size, shuffle=False
+                )
+                logger.info(
+                    f"Run {self.run_id}: Dataset loaded and split. Train size={len(train_ds)}, Val size={len(val_ds)}, Batch size={batch_size}"
+                )
+
+                # Notify setup status: initializing training
+                self._push_event(
+                    {
+                        "type": "setup_status",
+                        "run_id": self.run_id,
+                        "status": "initializing_training",
+                        "message": "Initializing loss, optimizer, and scheduler...",
+                    }
+                )
+
+                # 4. Loss and Optimizer
+                self.loss_fn = get_loss_function(self.config.loss.model_dump())
+                self.optimizer = get_optimizer(
+                    self.model.parameters(), self.config.optimizer.model_dump()
+                )
+                logger.info(
+                    f"Run {self.run_id}: Instantiated loss function '{self.config.loss.type}' and optimizer '{self.config.optimizer.type}'"
+                )
+
+                # 5. Step calculations and Scheduler instantiation
+                steps_per_epoch = len(self.train_loader)
+                self.scheduler = create_scheduler(
+                    self.optimizer,
+                    self.config.scheduler,
+                    epochs=self.config.training.epochs,
+                    steps_per_epoch=steps_per_epoch,
+                )
+
+            # Determine task type based on loss class name
+            loss_name = self.loss_fn.__class__.__name__
+            if loss_name in ["MSELoss", "L1Loss"]:
+                task_type = "regression"
+            elif loss_name in ["BCEWithLogitsLoss", "BCELoss"]:
+                task_type = "multi_label"
+            else:
+                task_type = "classification"
+
+            # Mixed Precision Setup
+            scaler = torch.amp.GradScaler(
+                "cuda",
+                enabled=self.settings.mixed_precision and self.device.type == "cuda",
+            )
+
+            global_step = 0
+            best_val_loss = float("inf")
+            best_epoch = 0
+
             self._save_experiment_run()
             self.model.to(self.device)
             logger.info(

@@ -9,14 +9,7 @@ import asyncio
 import logging
 import uuid
 
-import torch
-
-from compiler.compiler import GraphCompiler
-from compiler.factory import get_loss_function, get_optimizer
-from dataset import get_dataset_from_config
-from dataset.dataloader import create_dataloader, split_dataset
 from schemas import TrainingConfig
-from training.scheduler_factory import create_scheduler
 from training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
@@ -47,63 +40,7 @@ class TrainingRunner:
         run_id = str(uuid.uuid4())
         logger.info(f"Initiating training run. Assigned run_id: {run_id}")
 
-        # 1. Device selection with fallback warning
-        requested_device = config.training.device
-        if "cuda" in requested_device:
-            if torch.cuda.is_available():
-                device = torch.device(requested_device)
-            else:
-                logger.warning(
-                    f"CUDA requested ('{requested_device}'), but CUDA is not available. "
-                    "Falling back to 'cpu'."
-                )
-                device = torch.device("cpu")
-        else:
-            device = torch.device(requested_device)
-        logger.info(f"Run {run_id}: Target device configured as: {device}")
-
-        # 2. Model compilation
-        compiler = GraphCompiler()
-        model = compiler.compile(config.model_graph)
-        logger.info(f"Run {run_id}: Model graph compiled successfully.")
-
-        # 3. Dataset loading and splitting
-        full_dataset = get_dataset_from_config(config.dataset_config)
-        train_ds, val_ds = split_dataset(full_dataset, split_ratio=0.8)
-
-        # Get batch size configuration from config or default to 32
-        batch_size = 32
-        if hasattr(config.dataset_config, "batch_size"):
-            batch_size = int(config.dataset_config.batch_size)  # type: ignore
-        elif (
-            hasattr(config.dataset_config, "loader_config")
-            and config.dataset_config.loader_config
-        ):
-            batch_size = int(config.dataset_config.loader_config.batch_size)  # type: ignore
-
-        train_loader = create_dataloader(train_ds, batch_size=batch_size, shuffle=True)
-        val_loader = create_dataloader(val_ds, batch_size=batch_size, shuffle=False)
-        logger.info(
-            f"Run {run_id}: Dataset loaded and split. Train size={len(train_ds)}, Val size={len(val_ds)}, Batch size={batch_size}"
-        )
-
-        # 4. Loss and Optimizer
-        loss_fn = get_loss_function(config.loss.model_dump())
-        optimizer = get_optimizer(model.parameters(), config.optimizer.model_dump())
-        logger.info(
-            f"Run {run_id}: Instantiated loss function '{config.loss.type}' and optimizer '{config.optimizer.type}'"
-        )
-
-        # 5. Step calculations and Scheduler instantiation
-        steps_per_epoch = len(train_loader)
-        scheduler = create_scheduler(
-            optimizer,
-            config.scheduler,
-            epochs=config.training.epochs,
-            steps_per_epoch=steps_per_epoch,
-        )
-
-        # 6. Event loop registration
+        # 1. Event loop registration
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -112,17 +49,17 @@ class TrainingRunner:
 
         event_queue = asyncio.Queue()
 
-        # 7. Trainer instantiation
+        # 2. Trainer instantiation with deferred parameters
         trainer = Trainer(
             run_id=run_id,
             config=config,
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            optimizer=optimizer,
-            loss_fn=loss_fn,
-            scheduler=scheduler,
-            device=device,
+            model=None,
+            train_loader=None,
+            val_loader=None,
+            optimizer=None,
+            loss_fn=None,
+            scheduler=None,
+            device=None,
             loop=loop,
             event_queue=event_queue,
         )
@@ -131,7 +68,9 @@ class TrainingRunner:
         self.event_queues[run_id] = event_queue
 
         trainer.start()
-        logger.info(f"Run {run_id}: Background training thread spawned and started.")
+        logger.info(
+            f"Run {run_id}: Background training thread spawned with deferred configuration setup."
+        )
         return run_id
 
     def pause_run(self, run_id: str) -> bool:

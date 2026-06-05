@@ -6,7 +6,7 @@ from typing import Any
 
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import Compose
+from torchvision.transforms import Compose, ToTensor
 
 from schemas import (
     CustomDatasetConfig,
@@ -111,6 +111,7 @@ def get_dataset_from_config(config: DatasetConfig) -> Dataset:
 def _create_predefined(config: PredefinedDatasetConfig) -> Dataset:
     """Create a predefined torchvision dataset."""
     transform = _build_transforms_if_any(config.transforms)
+    transform = _ensure_tensor_transform(transform)
     return get_dataset(
         name=config.name,
         root_dir=os.path.join(".", "data"),
@@ -125,6 +126,7 @@ def _create_image_folder(config: ImageFolderDatasetConfig) -> Dataset:
         raise ValueError(f"Image folder path does not exist: {config.root}")
 
     transform = _build_transforms_if_any(config.transforms)
+    transform = _ensure_tensor_transform(transform)
     full_dataset = ImageFolder(root=config.root, transform=transform)
 
     if config.split_ratio < 1.0:
@@ -137,6 +139,8 @@ def _create_image_folder(config: ImageFolderDatasetConfig) -> Dataset:
 def _create_custom(config: CustomDatasetConfig) -> Dataset:
     """Create a custom dataset based on modality."""
     transform = _build_transforms_if_any(config.transforms)
+    if config.modality == "image":
+        transform = _ensure_tensor_transform(transform)
 
     if config.modality == "image":
         return _create_custom_image(config, transform)
@@ -231,3 +235,22 @@ def _build_transforms_if_any(transforms_list: list | None) -> Compose | None:
         return None
     transform_dicts = [t.model_dump() for t in transforms_list]
     return build_transforms(transform_dicts)
+
+
+def _ensure_tensor_transform(transform: Any) -> Compose:
+    """Ensure that ToTensor transform exists in the Compose pipeline for image datasets."""
+    if transform is None:
+        return Compose([ToTensor()])
+
+    if not hasattr(transform, "transforms"):
+        if isinstance(transform, ToTensor):
+            return Compose([transform])
+        return Compose([transform, ToTensor()])
+
+    has_to_tensor = any(isinstance(t, ToTensor) for t in transform.transforms)
+    if not has_to_tensor:
+        new_transforms = list(transform.transforms)
+        new_transforms.append(ToTensor())
+        return Compose(new_transforms)
+
+    return transform
