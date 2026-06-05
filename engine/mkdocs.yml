@@ -112,6 +112,7 @@ nav:
       - Metrics Computation: training/metrics.md
       - Checkpointing & Early Stopping: training/callbacks.md
       - Background Trainer & Runner: training/trainer.md
+      - Experiments Storage: training/experiments.md
   - API Reference:
       - reference/compiler.md
       - reference/dataset.md
