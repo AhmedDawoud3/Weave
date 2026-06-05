@@ -1,7 +1,6 @@
 import pytest
 import torch.nn as nn
 import torch.optim as optim
-
 from schemas import SchedulerConfig
 from training.scheduler_factory import create_scheduler
 
