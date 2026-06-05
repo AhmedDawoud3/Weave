@@ -75,7 +75,17 @@ class WeaveBlock(nn.Module):
             layer = self.operations[node_id]
 
             # Single-input vs Multi-input resolution boundary
-            if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
+            if isinstance(
+                layer,
+                (
+                    AddModule,
+                    ConcatModule,
+                    MultiplyModule,
+                    SubModule,
+                    DivModule,
+                    MatMulModule,
+                ),
+            ):
                 out = layer(input_tensors)
             else:
                 if len(input_tensors) != 1:

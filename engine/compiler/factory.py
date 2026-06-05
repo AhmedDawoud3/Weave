@@ -387,7 +387,9 @@ def _build_custom_autograd(node: NodeConfig) -> nn.Module:
     if not isinstance(node, CustomAutogradNode):
         raise ValueError("Expected CustomAutograd")
     p = node.params
-    return CustomAutogradModule(forward_code=p.forward_code, backward_code=p.backward_code)
+    return CustomAutogradModule(
+        forward_code=p.forward_code, backward_code=p.backward_code
+    )
 
 
 @ComponentFactory.register("Reshape")
@@ -396,4 +398,3 @@ def _build_reshape(node: NodeConfig) -> nn.Module:
         raise ValueError("Expected Reshape")
     p = node.params
     return ReshapeModule(target_shape=p.target_shape)
-

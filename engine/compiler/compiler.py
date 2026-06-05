@@ -185,7 +185,17 @@ class GraphCompiler:
                 # Execute layer safely
                 layer = block.operations[node_id]
                 try:
-                    if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
+                    if isinstance(
+                        layer,
+                        (
+                            AddModule,
+                            ConcatModule,
+                            MultiplyModule,
+                            SubModule,
+                            DivModule,
+                            MatMulModule,
+                        ),
+                    ):
                         out = layer(input_tensors)
                     else:
                         if len(input_tensors) != 1:
@@ -368,7 +378,17 @@ class GraphCompiler:
         layer.eval()
         with torch.inference_mode():
             try:
-                if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
+                if isinstance(
+                    layer,
+                    (
+                        AddModule,
+                        ConcatModule,
+                        MultiplyModule,
+                        SubModule,
+                        DivModule,
+                        MatMulModule,
+                    ),
+                ):
                     out = layer(tensors)
                 else:
                     return {

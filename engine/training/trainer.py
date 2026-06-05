@@ -182,13 +182,25 @@ class Trainer:
 
                 batch_size = 32
                 ds_config = self.config.dataset_config
-                if hasattr(ds_config, "dataloader") and ds_config.dataloader is not None:
+                if (
+                    hasattr(ds_config, "dataloader")
+                    and ds_config.dataloader is not None
+                ):
                     batch_size = int(ds_config.dataloader.batch_size)
-                elif hasattr(ds_config, "batch_size") and ds_config.batch_size is not None:
+                elif (
+                    hasattr(ds_config, "batch_size")
+                    and ds_config.batch_size is not None
+                ):
                     batch_size = int(ds_config.batch_size)
-                elif hasattr(ds_config, "loader_config") and ds_config.loader_config is not None:
+                elif (
+                    hasattr(ds_config, "loader_config")
+                    and ds_config.loader_config is not None
+                ):
                     loader_cfg = ds_config.loader_config
-                    if hasattr(loader_cfg, "batch_size") and loader_cfg.batch_size is not None:
+                    if (
+                        hasattr(loader_cfg, "batch_size")
+                        and loader_cfg.batch_size is not None
+                    ):
                         batch_size = int(loader_cfg.batch_size)
 
                 self.train_loader = create_dataloader(

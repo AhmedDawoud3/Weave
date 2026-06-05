@@ -167,7 +167,7 @@ class TanhFunction(torch.autograd.Function):
     @staticmethod
     def backward(ctx: Any, *grad_outputs: Any) -> Any:
         grad_output = grad_outputs[0]
-        y, = ctx.saved_tensors
+        (y,) = ctx.saved_tensors
         # Tanh derivative is 1 - y^2
         grad_input = grad_output * (1.0 - y * y)
         return grad_input
@@ -218,9 +218,13 @@ class CustomAutogradModule(nn.Module):
         self.backward_fn = loc_b.get("backward")
 
         if self.forward_fn is None:
-            raise ValueError("forward_code must define a 'forward' function, e.g., 'def forward(x): return x.tanh()'")
+            raise ValueError(
+                "forward_code must define a 'forward' function, e.g., 'def forward(x): return x.tanh()'"
+            )
         if self.backward_fn is None:
-            raise ValueError("backward_code must define a 'backward' function, e.g., 'def backward(x, y, grad_output): return grad_output * (1.0 - y * y)'")
+            raise ValueError(
+                "backward_code must define a 'backward' function, e.g., 'def backward(x, y, grad_output): return grad_output * (1.0 - y * y)'"
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return CustomAutogradFunction.apply(x, self.forward_fn, self.backward_fn)
@@ -235,5 +239,3 @@ class ReshapeModule(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x.reshape(*self.target_shape)
-
-
