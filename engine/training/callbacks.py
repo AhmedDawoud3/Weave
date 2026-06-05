@@ -5,10 +5,11 @@ Manages saving model states and early termination of training.
 """
 
 import os
-from typing import Any, Dict, Optional
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
 from schemas import CheckpointingConfig, EarlyStoppingConfig
 
 
@@ -37,7 +38,7 @@ class EarlyStopping:
         self.wait = 0
         self.should_stop = False
 
-    def step(self, epoch_metrics: Dict[str, float]) -> bool:
+    def step(self, epoch_metrics: dict[str, float]) -> bool:
         """Updates tracking and checks if patience has been exceeded.
 
         Args:
@@ -106,8 +107,8 @@ class Checkpointing:
         epoch: int,
         model: nn.Module,
         optimizer: optim.Optimizer,
-        epoch_metrics: Dict[str, float],
-    ) -> Optional[str]:
+        epoch_metrics: dict[str, float],
+    ) -> str | None:
         """Saves checkpoints atomically if the monitored metric improves or epoch count matches.
 
         Args:

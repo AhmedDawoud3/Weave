@@ -1,10 +1,11 @@
-import os
-import pytest
 from datetime import datetime
+
+import pytest
 from fastapi.testclient import TestClient
+
 from main import app
 from schemas import RunRecord
-from training.experiments import save_run, delete_run
+from training.experiments import delete_run, save_run
 
 
 @pytest.fixture

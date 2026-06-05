@@ -5,8 +5,10 @@ Handles loading weights from a checkpoint path and saving compiled model graphs.
 """
 
 from typing import Any
+
 import torch
 import torch.nn as nn
+
 from compiler.compiler import GraphCompiler
 from schemas import ExportRequest
 
@@ -60,7 +62,7 @@ def export_onnx(request: ExportRequest) -> str:
     try:
         torch.onnx.export(
             model,
-            dummy_input,
+            (dummy_input,),
             request.output_path,
             export_params=True,
             opset_version=request.opset_version or 17,

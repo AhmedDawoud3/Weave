@@ -1,8 +1,7 @@
-import os
 import json
 import logging
-from datetime import datetime
-from typing import Any, List, Optional
+import os
+
 from schemas import RunRecord
 
 logger = logging.getLogger(__name__)
@@ -45,7 +44,7 @@ def save_run(record: RunRecord) -> None:
         raise e
 
 
-def get_run(run_id: str) -> Optional[RunRecord]:
+def get_run(run_id: str) -> RunRecord | None:
     """Retrieves a RunRecord from disk by run_id.
 
     Args:
@@ -59,7 +58,7 @@ def get_run(run_id: str) -> Optional[RunRecord]:
     if not os.path.exists(filepath):
         return None
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
         return RunRecord(**data)
     except Exception as e:
@@ -67,7 +66,7 @@ def get_run(run_id: str) -> Optional[RunRecord]:
         return None
 
 
-def list_runs() -> List[RunRecord]:
+def list_runs() -> list[RunRecord]:
     """Lists all saved RunRecords from disk."""
     runs_dir = get_runs_dir()
     records = []

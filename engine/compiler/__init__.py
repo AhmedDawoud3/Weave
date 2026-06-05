@@ -1,7 +1,7 @@
 from .block import WeaveBlock
 from .compiler import GraphCompiler
-from .factory import get_loss_function, get_optimizer
 from .exporter import export_onnx, export_pytorch, export_torchscript
+from .factory import get_loss_function, get_optimizer
 
 __all__ = [
     "GraphCompiler",

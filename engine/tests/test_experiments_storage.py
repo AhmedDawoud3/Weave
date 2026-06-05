@@ -1,9 +1,10 @@
 import os
-import shutil
-import pytest
 from datetime import datetime
+
+import pytest
+
 from schemas import RunRecord
-from training.experiments import save_run, get_run, list_runs, delete_run, get_runs_dir
+from training.experiments import delete_run, get_run, get_runs_dir, list_runs, save_run
 
 
 @pytest.fixture(autouse=True)

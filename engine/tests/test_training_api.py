@@ -1,9 +1,10 @@
 import asyncio
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
+
 from main import app, runner
-from schemas import TrainingStatusResponse
 
 
 @pytest.fixture
@@ -94,27 +95,27 @@ def test_get_training_status_api_success(client):
 @pytest.mark.anyio
 async def test_stream_training_api_success():
     # SSE testing using async client
-    from httpx import AsyncClient, ASGITransport
-    
+    from httpx import ASGITransport, AsyncClient
+
     # Create a mock queue
     queue = asyncio.Queue()
     queue.put_nowait({"type": "step_metrics", "step": 1, "metrics": {"loss": 0.5}})
     queue.put_nowait({"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5})
 
-    with patch.object(runner, "get_queue", return_value=queue) as mock_get_q, \
+    with patch.object(runner, "get_queue", return_value=queue), \
          patch.object(runner, "get_trainer", return_value=None), \
-         patch.object(runner, "cleanup_run") as mock_cleanup:
-        
+         patch.object(runner, "cleanup_run"):
+
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             response = await ac.get("/training/stream/test-run-123")
             assert response.status_code == 200
-            
+
             # Read streaming response lines
             lines = []
             async for line in response.aiter_lines():
                 if line:
                     lines.append(line)
-                    
+
             assert len(lines) >= 4
             assert "event: step_metrics" in lines[0]
             assert "data:" in lines[1]
