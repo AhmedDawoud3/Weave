@@ -103,6 +103,7 @@ nav:
   - Training Module:
       - training/index.md
       - Training Schedulers: training/schedulers.md
+      - Metrics Computation: training/metrics.md
   - API Reference:
       - reference/compiler.md
       - reference/dataset.md
