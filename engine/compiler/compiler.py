@@ -3,6 +3,7 @@ import math
 from collections import defaultdict, deque
 
 import torch
+import torch.nn as nn
 
 from schemas import GraphConfig, NodeConfig
 
@@ -185,7 +186,11 @@ class GraphCompiler:
                                 "status": "error",
                                 "message": f"Node '{node_id}' expected 1 arrow pointing towards it, but received {len(input_tensors)}.",
                             }
-                        out = layer(input_tensors[0])
+                        inp = input_tensors[0]
+                        # Auto-flatten for Linear layers (mirrors WeaveBlock.forward)
+                        if isinstance(layer, nn.Linear) and inp.dim() > 2:
+                            inp = inp.flatten(1)
+                        out = layer(inp)
                 except RuntimeError as e:
                     # RAI: Translate PyTorch's cryptic error messages into accessible language
                     return {

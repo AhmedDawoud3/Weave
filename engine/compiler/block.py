@@ -75,7 +75,14 @@ class WeaveBlock(nn.Module):
                     raise RuntimeError(
                         f"Node {node_id} ({type(layer).__name__}) expected 1 input but received {len(input_tensors)}. Invalid DAG state."
                     )
-                out = layer(input_tensors[0])
+                inp = input_tensors[0]
+                # Auto-flatten: Linear layers expect 2D (batch, features).
+                # If the input has more dimensions (e.g. images: batch, C, H, W),
+                # flatten to (batch, -1) automatically so users don't need an
+                # explicit Flatten node in simple graphs.
+                if isinstance(layer, nn.Linear) and inp.dim() > 2:
+                    inp = inp.flatten(1)
+                out = layer(inp)
 
             tensors[node_id] = out
 
