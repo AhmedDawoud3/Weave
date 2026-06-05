@@ -32,10 +32,12 @@ def classification_checkpoint(tmp_path):
 
     # Set weights to make a specific output high so argmax is deterministic
     with torch.no_grad():
+        fc_op = model.operations["fc1"]
+        assert isinstance(fc_op, torch.nn.Linear)
         # Make node 2 have very high bias/weights
-        model.operations["fc1"].weight.fill_(0.0)
-        model.operations["fc1"].bias.fill_(0.0)
-        model.operations["fc1"].bias[2] = 10.0
+        fc_op.weight.fill_(0.0)
+        fc_op.bias.fill_(0.0)
+        fc_op.bias[2] = 10.0
 
     checkpoint_dir = tmp_path / "checkpoints"
     checkpoint_dir.mkdir()
@@ -70,8 +72,10 @@ def regression_checkpoint(tmp_path):
 
     # Set bias to a specific value
     with torch.no_grad():
-        model.operations["fc1"].weight.fill_(0.0)
-        model.operations["fc1"].bias.fill_(4.5)
+        fc_op = model.operations["fc1"]
+        assert isinstance(fc_op, torch.nn.Linear)
+        fc_op.weight.fill_(0.0)
+        fc_op.bias.fill_(4.5)
 
     checkpoint_dir = tmp_path / "checkpoints"
     checkpoint_dir.mkdir()

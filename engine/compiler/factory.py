@@ -8,18 +8,48 @@ from torch.nn.parameter import Parameter
 from schemas import (
     AdaptiveAvgPool2dNode,
     BatchNorm2dNode,
+    ChannelScaleBiasNode,
     ConcatNode,
     Conv2dNode,
+    CustomAutogradNode,
+    DivNode,
     FlattenNode,
     GELUNode,
     LinearNode,
+    MatMulNode,
     MaxPool2dNode,
+    MeanNode,
     NodeConfig,
+    PermuteNode,
     ReLUNode,
+    ReshapeNode,
+    ScaleNode,
+    SliceNode,
     SoftmaxNode,
+    SqrtNode,
+    SubNode,
+    TanhNode,
+    VarNode,
 )
 
-from .modules import AddModule, ConcatModule, MultiplyModule
+from .modules import (
+    AddModule,
+    ChannelScaleBias,
+    ConcatModule,
+    CustomAutogradModule,
+    DivModule,
+    MatMulModule,
+    MeanModule,
+    MultiplyModule,
+    PermuteModule,
+    ReshapeModule,
+    ScaleModule,
+    SliceModule,
+    SqrtModule,
+    SubModule,
+    TanhModule,
+    VarModule,
+)
 
 # Type alias for a function that takes a NodeConfig and returns an nn.Module
 LayerBuilder = Callable[[NodeConfig], nn.Module]
@@ -266,3 +296,104 @@ def _build_concat(node: NodeConfig) -> nn.Module:
 def _build_multiply(node: NodeConfig) -> nn.Module:
     _ = node  # Not needed for Multiply operation
     return MultiplyModule()
+
+
+@ComponentFactory.register("Sub")
+def _build_sub(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SubNode):
+        raise ValueError("Expected Sub")
+    return SubModule()
+
+
+@ComponentFactory.register("Div")
+def _build_div(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, DivNode):
+        raise ValueError("Expected Div")
+    return DivModule()
+
+
+@ComponentFactory.register("Sqrt")
+def _build_sqrt(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SqrtNode):
+        raise ValueError("Expected Sqrt")
+    p = node.params
+    return SqrtModule(eps=p.eps)
+
+
+@ComponentFactory.register("Mean")
+def _build_mean(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, MeanNode):
+        raise ValueError("Expected Mean")
+    p = node.params
+    return MeanModule(dim=p.dim, keepdim=p.keepdim)
+
+
+@ComponentFactory.register("Var")
+def _build_var(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, VarNode):
+        raise ValueError("Expected Var")
+    p = node.params
+    return VarModule(dim=p.dim, keepdim=p.keepdim, unbiased=p.unbiased)
+
+
+@ComponentFactory.register("MatMul")
+def _build_matmul(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, MatMulNode):
+        raise ValueError("Expected MatMul")
+    return MatMulModule()
+
+
+@ComponentFactory.register("Scale")
+def _build_scale(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, ScaleNode):
+        raise ValueError("Expected Scale")
+    p = node.params
+    return ScaleModule(value=p.value)
+
+
+@ComponentFactory.register("ChannelScaleBias")
+def _build_channel_scale_bias(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, ChannelScaleBiasNode):
+        raise ValueError("Expected ChannelScaleBias")
+    p = node.params
+    return ChannelScaleBias(num_features=p.num_features)
+
+
+@ComponentFactory.register("Slice")
+def _build_slice(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SliceNode):
+        raise ValueError("Expected Slice")
+    p = node.params
+    return SliceModule(dim=p.dim, index=p.index)
+
+
+@ComponentFactory.register("Permute")
+def _build_permute(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, PermuteNode):
+        raise ValueError("Expected Permute")
+    p = node.params
+    return PermuteModule(dims=p.dims)
+
+
+@ComponentFactory.register("Tanh")
+def _build_tanh(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, TanhNode):
+        raise ValueError("Expected Tanh")
+    return TanhModule()
+
+
+@ComponentFactory.register("CustomAutograd")
+def _build_custom_autograd(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, CustomAutogradNode):
+        raise ValueError("Expected CustomAutograd")
+    p = node.params
+    return CustomAutogradModule(forward_code=p.forward_code, backward_code=p.backward_code)
+
+
+@ComponentFactory.register("Reshape")
+def _build_reshape(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, ReshapeNode):
+        raise ValueError("Expected Reshape")
+    p = node.params
+    return ReshapeModule(target_shape=p.target_shape)
+

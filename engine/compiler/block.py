@@ -4,7 +4,14 @@ import torch.nn as nn
 from schemas import NodeConfig
 
 from .factory import ComponentFactory
-from .modules import AddModule, ConcatModule
+from .modules import (
+    AddModule,
+    ConcatModule,
+    DivModule,
+    MatMulModule,
+    MultiplyModule,
+    SubModule,
+)
 
 
 class WeaveBlock(nn.Module):
@@ -68,7 +75,7 @@ class WeaveBlock(nn.Module):
             layer = self.operations[node_id]
 
             # Single-input vs Multi-input resolution boundary
-            if isinstance(layer, (AddModule, ConcatModule)):
+            if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
                 out = layer(input_tensors)
             else:
                 if len(input_tensors) != 1:
@@ -81,7 +88,8 @@ class WeaveBlock(nn.Module):
                 # flatten to (batch, -1) automatically so users don't need an
                 # explicit Flatten node in simple graphs.
                 if isinstance(layer, nn.Linear) and inp.dim() > 2:
-                    inp = inp.flatten(1)
+                    if inp.shape[-1] != layer.in_features:
+                        inp = inp.flatten(1)
                 out = layer(inp)
 
             tensors[node_id] = out

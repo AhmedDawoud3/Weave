@@ -243,6 +243,162 @@
             },
             "url": "{{baseUrl}}/validate_pipeline"
           }
+        },
+        {
+          "name": "Success (BatchNorm2d Manual Block)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape matches expected', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([2, 3, 32, 32]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"mean\",\n        \"type\": \"Mean\",\n        \"params\": {\n          \"dim\": [0, 2, 3],\n          \"keepdim\": true\n        }\n      },\n      {\n        \"id\": \"x_sub\",\n        \"type\": \"Sub\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"var\",\n        \"type\": \"Var\",\n        \"params\": {\n          \"dim\": [0, 2, 3],\n          \"keepdim\": true,\n          \"unbiased\": false\n        }\n      },\n      {\n        \"id\": \"std\",\n        \"type\": \"Sqrt\",\n        \"params\": {\n          \"eps\": 1e-5\n        }\n      },\n      {\n        \"id\": \"x_norm\",\n        \"type\": \"Div\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"scale_bias\",\n        \"type\": \"ChannelScaleBias\",\n        \"params\": {\n          \"num_features\": 3\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"mean\" },\n      { \"source\": \"input\", \"target\": \"x_sub\" },\n      { \"source\": \"mean\", \"target\": \"x_sub\" },\n      { \"source\": \"input\", \"target\": \"var\" },\n      { \"source\": \"var\", \"target\": \"std\" },\n      { \"source\": \"x_sub\", \"target\": \"x_norm\" },\n      { \"source\": \"std\", \"target\": \"x_norm\" },\n      { \"source\": \"x_norm\", \"target\": \"scale_bias\" },\n      { \"source\": \"scale_bias\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [2, 3, 32, 32]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Success (Attention Manual Block)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape matches expected', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([2, 5, 8]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"q_proj\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 8,\n          \"out_features\": 8\n        }\n      },\n      {\n        \"id\": \"k_proj\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 8,\n          \"out_features\": 8\n        }\n      },\n      {\n        \"id\": \"v_proj\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 8,\n          \"out_features\": 8\n        }\n      },\n      {\n        \"id\": \"k_trans\",\n        \"type\": \"Permute\",\n        \"params\": {\n          \"dims\": [0, 2, 1]\n        }\n      },\n      {\n        \"id\": \"scores\",\n        \"type\": \"MatMul\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"scaled_scores\",\n        \"type\": \"Scale\",\n        \"params\": {\n          \"value\": 0.35355339\n        }\n      },\n      {\n        \"id\": \"attn_weights\",\n        \"type\": \"Softmax\",\n        \"params\": {\n          \"dim\": -1\n        }\n      },\n      {\n        \"id\": \"context\",\n        \"type\": \"MatMul\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"out_proj\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 8,\n          \"out_features\": 8\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"q_proj\" },\n      { \"source\": \"input\", \"target\": \"k_proj\" },\n      { \"source\": \"input\", \"target\": \"v_proj\" },\n      { \"source\": \"k_proj\", \"target\": \"k_trans\" },\n      { \"source\": \"q_proj\", \"target\": \"scores\" },\n      { \"source\": \"k_trans\", \"target\": \"scores\" },\n      { \"source\": \"scores\", \"target\": \"scaled_scores\" },\n      { \"source\": \"scaled_scores\", \"target\": \"attn_weights\" },\n      { \"source\": \"attn_weights\", \"target\": \"context\" },\n      { \"source\": \"v_proj\", \"target\": \"context\" },\n      { \"source\": \"context\", \"target\": \"out_proj\" },\n      { \"source\": \"out_proj\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [2, 5, 8]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Success (RNN Manual Block)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape matches expected', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([2, 3, 6]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"slice_0\",\n        \"type\": \"Slice\",\n        \"params\": {\n          \"dim\": 1,\n          \"index\": 0\n        }\n      },\n      {\n        \"id\": \"slice_1\",\n        \"type\": \"Slice\",\n        \"params\": {\n          \"dim\": 1,\n          \"index\": 1\n        }\n      },\n      {\n        \"id\": \"slice_2\",\n        \"type\": \"Slice\",\n        \"params\": {\n          \"dim\": 1,\n          \"index\": 2\n        }\n      },\n      {\n        \"id\": \"i2h_0\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 4,\n          \"out_features\": 6\n        }\n      },\n      {\n        \"id\": \"h0\",\n        \"type\": \"Tanh\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"i2h_1\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 4,\n          \"out_features\": 6\n        }\n      },\n      {\n        \"id\": \"h2h_1\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 6,\n          \"out_features\": 6\n        }\n      },\n      {\n        \"id\": \"add_1\",\n        \"type\": \"Add\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"h1\",\n        \"type\": \"Tanh\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"i2h_2\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 4,\n          \"out_features\": 6\n        }\n      },\n      {\n        \"id\": \"h2h_2\",\n        \"type\": \"Linear\",\n        \"params\": {\n          \"in_features\": 6,\n          \"out_features\": 6\n        }\n      },\n      {\n        \"id\": \"add_2\",\n        \"type\": \"Add\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"h2\",\n        \"type\": \"Tanh\",\n        \"params\": {}\n      },\n      {\n        \"id\": \"concat_h\",\n        \"type\": \"Concat\",\n        \"params\": {\n          \"dim\": 1\n        }\n      },\n      {\n        \"id\": \"reshape_out\",\n        \"type\": \"Reshape\",\n        \"params\": {\n          \"target_shape\": [-1, 3, 6]\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"slice_0\" },\n      { \"source\": \"input\", \"target\": \"slice_1\" },\n      { \"source\": \"input\", \"target\": \"slice_2\" },\n      { \"source\": \"slice_0\", \"target\": \"i2h_0\" },\n      { \"source\": \"i2h_0\", \"target\": \"h0\" },\n      { \"source\": \"slice_1\", \"target\": \"i2h_1\" },\n      { \"source\": \"h0\", \"target\": \"h2h_1\" },\n      { \"source\": \"i2h_1\", \"target\": \"add_1\" },\n      { \"source\": \"h2h_1\", \"target\": \"add_1\" },\n      { \"source\": \"add_1\", \"target\": \"h1\" },\n      { \"source\": \"slice_2\", \"target\": \"i2h_2\" },\n      { \"source\": \"h1\", \"target\": \"h2h_2\" },\n      { \"source\": \"i2h_2\", \"target\": \"add_2\" },\n      { \"source\": \"h2h_2\", \"target\": \"add_2\" },\n      { \"source\": \"add_2\", \"target\": \"h2\" },\n      { \"source\": \"h0\", \"target\": \"concat_h\" },\n      { \"source\": \"h1\", \"target\": \"concat_h\" },\n      { \"source\": \"h2\", \"target\": \"concat_h\" },\n      { \"source\": \"concat_h\", \"target\": \"reshape_out\" },\n      { \"source\": \"reshape_out\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [2, 3, 4]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
+        },
+        {
+          "name": "Success (CustomAutograd Manual Block)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Validation status is success', function () {",
+                  "  pm.expect(body.status).to.eql('success');",
+                  "});",
+                  "",
+                  "pm.test('Output shape matches expected', function () {",
+                  "  pm.expect(body.node_shapes.output).to.eql([2, 5, 8]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph\": {\n    \"nodes\": [\n      {\n        \"id\": \"custom_act\",\n        \"type\": \"CustomAutograd\",\n        \"params\": {\n          \"forward_code\": \"def forward(x):\\n    return x * x\",\n          \"backward_code\": \"def backward(x, y, grad_output):\\n    return grad_output * 2.0 * x\"\n        }\n      }\n    ],\n    \"edges\": [\n      { \"source\": \"input\", \"target\": \"custom_act\" },\n      { \"source\": \"custom_act\", \"target\": \"output\" }\n    ]\n  },\n  \"input_shape\": [2, 5, 8]\n}"
+            },
+            "url": "{{baseUrl}}/validate_pipeline"
+          }
         }
       ]
     },

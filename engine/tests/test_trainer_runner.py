@@ -9,6 +9,7 @@ import torch.utils.data as data
 
 from schemas import TrainingConfig
 from training.runner import TrainingRunner
+from training.trainer import Trainer
 
 
 @pytest.fixture
@@ -84,7 +85,7 @@ def training_config():
 
 def _create_pre_configured_runner(
     training_config, dummy_loaders
-) -> tuple[TrainingRunner, str]:
+) -> tuple[TrainingRunner, str, Trainer]:
     """Helper that starts a run with pre-built model/loaders injected into the Trainer,
     bypassing the deferred setup in _run_loop."""
     runner = TrainingRunner()
@@ -99,7 +100,6 @@ def _create_pre_configured_runner(
     loop = asyncio.get_running_loop()
 
     from training.event_bus import EventBus
-    from training.trainer import Trainer
 
     event_bus = EventBus(loop)
 
@@ -129,6 +129,7 @@ async def test_training_runner_success(training_config, dummy_loaders):
         training_config, dummy_loaders
     )
     event_bus = runner.get_event_bus(run_id)
+    assert event_bus is not None
 
     # Start the trainer thread
     trainer.start()
@@ -205,6 +206,7 @@ async def test_device_fallback(training_config, dummy_dataset):
     with patch("torch.cuda.is_available", return_value=False):
         run_id = runner.start_run(training_config)
         trainer = runner.get_trainer(run_id)
+        assert trainer is not None
 
         # Wait for the trainer thread to set up and reach the device selection
         start_time = time.time()

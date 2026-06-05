@@ -1,0 +1,7 @@
+[tool.ty.src]
+exclude = [
+    "**/tests/**",
+    "tests/**",
+    "engine/tests/**",
+    "backend/tests/**"
+]

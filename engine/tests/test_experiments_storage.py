@@ -69,6 +69,7 @@ def test_run_crud_success():
     save_run(record)
 
     loaded_updated = get_run("run_123")
+    assert loaded_updated is not None
     assert loaded_updated.status == "completed"
     assert len(loaded_updated.metrics_history) == 2
 

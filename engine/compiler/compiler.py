@@ -9,7 +9,14 @@ from schemas import GraphConfig, NodeConfig
 
 from .block import WeaveBlock
 from .factory import ComponentFactory
-from .modules import AddModule, ConcatModule, MultiplyModule
+from .modules import (
+    AddModule,
+    ConcatModule,
+    DivModule,
+    MatMulModule,
+    MultiplyModule,
+    SubModule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +185,7 @@ class GraphCompiler:
                 # Execute layer safely
                 layer = block.operations[node_id]
                 try:
-                    if isinstance(layer, (AddModule, ConcatModule)):
+                    if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
                         out = layer(input_tensors)
                     else:
                         if len(input_tensors) != 1:
@@ -189,7 +196,8 @@ class GraphCompiler:
                         inp = input_tensors[0]
                         # Auto-flatten for Linear layers (mirrors WeaveBlock.forward)
                         if isinstance(layer, nn.Linear) and inp.dim() > 2:
-                            inp = inp.flatten(1)
+                            if inp.shape[-1] != layer.in_features:
+                                inp = inp.flatten(1)
                         out = layer(inp)
                 except RuntimeError as e:
                     # RAI: Translate PyTorch's cryptic error messages into accessible language
@@ -215,7 +223,7 @@ class GraphCompiler:
         return {"status": "success", "node_shapes": node_shapes}
 
     # Layer types that accept multiple inputs
-    MULTI_INPUT_TYPES = {"Add", "Concat", "Multiply"}
+    MULTI_INPUT_TYPES = {"Add", "Concat", "Multiply", "Sub", "Div", "MatMul"}
 
     # Layer types that contain a nested subgraph
     BLOCK_TYPES = {
@@ -313,6 +321,9 @@ class GraphCompiler:
         layer.eval()
         with torch.inference_mode():
             try:
+                if isinstance(layer, nn.Linear) and x.dim() > 2:
+                    if x.shape[-1] != layer.in_features:
+                        x = x.flatten(1)
                 out = layer(x)
             except RuntimeError as e:
                 return {
@@ -357,7 +368,7 @@ class GraphCompiler:
         layer.eval()
         with torch.inference_mode():
             try:
-                if isinstance(layer, (AddModule, ConcatModule, MultiplyModule)):
+                if isinstance(layer, (AddModule, ConcatModule, MultiplyModule, SubModule, DivModule, MatMulModule)):
                     out = layer(tensors)
                 else:
                     return {

@@ -36,7 +36,7 @@ class Trainer:
         loss_fn: nn.Module | None = None,
         scheduler: Any = None,
         device: torch.device | None = None,
-        loop: None = None,
+        loop: Any = None,
         event_bus: EventBus | None = None,
     ):
         """Initializes the background trainer.
@@ -181,15 +181,15 @@ class Trainer:
                 train_ds, val_ds = split_dataset(full_dataset, split_ratio=0.8)
 
                 batch_size = 32
-                if hasattr(self.config.dataset_config, "batch_size"):
-                    batch_size = int(self.config.dataset_config.batch_size)  # type: ignore
-                elif (
-                    hasattr(self.config.dataset_config, "loader_config")
-                    and self.config.dataset_config.loader_config
-                ):
-                    batch_size = int(
-                        self.config.dataset_config.loader_config.batch_size
-                    )  # type: ignore
+                ds_config = self.config.dataset_config
+                if hasattr(ds_config, "dataloader") and getattr(ds_config, "dataloader") is not None:
+                    batch_size = int(getattr(ds_config, "dataloader").batch_size)
+                elif hasattr(ds_config, "batch_size") and getattr(ds_config, "batch_size") is not None:
+                    batch_size = int(getattr(ds_config, "batch_size"))
+                elif hasattr(ds_config, "loader_config") and getattr(ds_config, "loader_config") is not None:
+                    loader_cfg = getattr(ds_config, "loader_config")
+                    if hasattr(loader_cfg, "batch_size") and getattr(loader_cfg, "batch_size") is not None:
+                        batch_size = int(getattr(loader_cfg, "batch_size"))
 
                 self.train_loader = create_dataloader(
                     train_ds, batch_size=batch_size, shuffle=True
@@ -228,6 +228,12 @@ class Trainer:
                     epochs=self.config.training.epochs,
                     steps_per_epoch=steps_per_epoch,
                 )
+
+            # Refine types for static analysis
+            assert self.model is not None
+            assert self.device is not None
+            assert self.loss_fn is not None
+            assert self.optimizer is not None
 
             # Determine task type based on loss class name
             loss_name = self.loss_fn.__class__.__name__
