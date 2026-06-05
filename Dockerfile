@@ -45,10 +45,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
 WORKDIR /app
 COPY --from=backend-build /app/publish .
 
-# Expose port 8080 (standard for .NET 10 base images)
+# Expose ports 8080 and 80 for maximum compatibility
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:8080;http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 ENTRYPOINT ["dotnet", "Weave.API.dll"]
+
 
