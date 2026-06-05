@@ -11,8 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
 import torch.nn as nn
-from compiler.compiler import GraphCompiler
-from compiler.factory import get_optimizer
+from compiler import (
+    GraphCompiler,
+    get_optimizer,
+    export_onnx,
+    export_pytorch,
+    export_torchscript,
+)
 from training.scheduler_factory import create_scheduler
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
@@ -48,6 +53,10 @@ from schemas import (
     LRSchedulePreviewResponse,
     MetricsSuggestionRequest,
     MetricsSuggestionResponse,
+    ExportRequest,
+    ExportResponse,
+    InferenceRequest,
+    InferenceResponse,
 )
 
 # Retrieve project metadata
@@ -394,6 +403,117 @@ def suggest_metrics(request: MetricsSuggestionRequest):
         suggested = ["Accuracy"]
 
     return MetricsSuggestionResponse(suggested=suggested)
+
+
+@app.post("/export/onnx", response_model=ExportResponse)
+def export_onnx_endpoint(request: ExportRequest):
+    """Exports a trained model graph to ONNX format.
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_onnx(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("ONNX export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
+
+
+@app.post("/export/pytorch", response_model=ExportResponse)
+def export_pytorch_endpoint(request: ExportRequest):
+    """Exports a trained model graph weights (state_dict).
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_pytorch(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("PyTorch weights export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
+
+
+@app.post("/export/torchscript", response_model=ExportResponse)
+def export_torchscript_endpoint(request: ExportRequest):
+    """Exports a trained model graph to platform-independent TorchScript format.
+
+    Args:
+        request: ExportRequest with graph config, checkpoint, and output paths.
+
+    Returns:
+        ExportResponse with status and output path.
+    """
+    try:
+        path = export_torchscript(request)
+        return ExportResponse(status="success", output_path=path)
+    except Exception as e:
+        logger.exception("TorchScript export failed.")
+        return ExportResponse(status="error", output_path="", message=str(e))
+
+
+@app.post("/inference/predict", response_model=InferenceResponse)
+def predict_endpoint(request: InferenceRequest):
+    """Evaluates input samples using a compiled model loaded from a checkpoint.
+
+    Args:
+        request: InferenceRequest with graph, checkpoint_path, and input list.
+
+    Returns:
+        InferenceResponse with prediction values and predicted_class index.
+    """
+    import torch
+    from compiler.exporter import load_checkpoint_model
+
+    try:
+        # Load the compiled model and place it on CPU first
+        model = load_checkpoint_model(request.graph, request.checkpoint_path)
+
+        # Handle device selection with fallback
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
+
+        # Convert input array to PyTorch tensor
+        input_tensor = torch.tensor(request.input, dtype=torch.float32).to(device)
+
+        # Run forward pass under inference mode
+        with torch.inference_mode():
+            output = model(input_tensor)
+
+        # Move outputs back to CPU for serialization
+        output = output.cpu()
+
+        # Handle batch dimension of size 1 if present
+        if output.ndim > 1 and output.shape[0] == 1:
+            output = output.squeeze(0)
+
+        if output.ndim == 1:
+            prediction = output.tolist()
+            if len(prediction) > 1:
+                predicted_class = int(output.argmax(dim=-1).item())
+            else:
+                predicted_class = None
+        elif output.ndim == 0:
+            prediction = [float(output.item())]
+            predicted_class = None
+        else:
+            # Flatten multi-dimensional output batch
+            prediction = output.flatten().tolist()
+            predicted_class = int(output.argmax(dim=-1).flatten()[0].item())
+
+        return InferenceResponse(prediction=prediction, predicted_class=predicted_class)
+
+    except Exception as e:
+        logger.exception("Inference prediction failed.")
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 # ---------------------------------------------------------------------------
