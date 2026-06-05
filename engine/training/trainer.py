@@ -88,6 +88,7 @@ class Trainer:
 
         # Experiment tracking
         from datetime import datetime
+
         self.created_at = datetime.now()
         self.start_time: float | None = None
         self.metrics_history: list[dict[str, Any]] = []
@@ -133,9 +134,7 @@ class Trainer:
 
         # 2. Mixed Precision Setup
         scaler = torch.amp.GradScaler(
-            "cuda",
-            enabled=self.settings.mixed_precision
-            and self.device.type == "cuda"
+            "cuda", enabled=self.settings.mixed_precision and self.device.type == "cuda"
         )
 
         global_step = 0
@@ -162,9 +161,7 @@ class Trainer:
                 self.model.train()
                 train_tracker = EpochMetricsTracker(task_type)
 
-                for batch_idx, (inputs, targets) in enumerate(
-                    self.train_loader
-                ):
+                for batch_idx, (inputs, targets) in enumerate(self.train_loader):
                     if self.is_stopped:
                         break
 
@@ -181,7 +178,7 @@ class Trainer:
                     with torch.amp.autocast(
                         "cuda",
                         enabled=self.settings.mixed_precision
-                        and self.device.type == "cuda"
+                        and self.device.type == "cuda",
                     ):
                         outputs = self.model(inputs)
                         loss = self.loss_fn(outputs, targets)
@@ -194,11 +191,10 @@ class Trainer:
 
                     # Gradient step under accumulation
                     if (
-                        (batch_idx + 1)
-                        % self.settings.gradient_accumulation_steps
-                        == 0
-                        or (batch_idx + 1) == len(self.train_loader)
-                    ):
+                        batch_idx + 1
+                    ) % self.settings.gradient_accumulation_steps == 0 or (
+                        batch_idx + 1
+                    ) == len(self.train_loader):
                         if self.settings.gradient_clip_norm > 0:
                             scaler.unscale_(self.optimizer)
                             nn.utils.clip_grad_norm_(
@@ -214,11 +210,10 @@ class Trainer:
                         if self.scheduler is not None and not isinstance(
                             self.scheduler, optim.lr_scheduler.ReduceLROnPlateau
                         ):
-                            if (
-                                self.config.scheduler
-                                and self.config.scheduler.type
-                                in ["OneCycleLR", "CosineAnnealingLR"]
-                            ):
+                            if self.config.scheduler and self.config.scheduler.type in [
+                                "OneCycleLR",
+                                "CosineAnnealingLR",
+                            ]:
                                 self.scheduler.step()
 
                     global_step += 1
@@ -289,30 +284,22 @@ class Trainer:
 
                 # Epoch-based scheduler step
                 if self.scheduler is not None:
-                    if isinstance(
-                        self.scheduler, optim.lr_scheduler.ReduceLROnPlateau
-                    ):
+                    if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                         monitor_val = epoch_val_metrics.get(
                             self.scheduler.mode or "loss",
-                            epoch_val_metrics.get(
-                                "loss", epoch_train_metrics["loss"]
-                            ),
+                            epoch_val_metrics.get("loss", epoch_train_metrics["loss"]),
                         )
                         self.scheduler.step(monitor_val)
                     else:
-                        if (
-                            self.config.scheduler
-                            and self.config.scheduler.type
-                            in ["StepLR", "ExponentialLR"]
-                        ):
+                        if self.config.scheduler and self.config.scheduler.type in [
+                            "StepLR",
+                            "ExponentialLR",
+                        ]:
                             self.scheduler.step()
 
                 # Combine epoch metrics
                 epoch_combined_metrics = {
-                    **{
-                        f"train_{k}": v
-                        for k, v in epoch_train_metrics.items()
-                    },
+                    **{f"train_{k}": v for k, v in epoch_train_metrics.items()},
                     **{f"val_{k}": v for k, v in epoch_val_metrics.items()},
                 }
 
@@ -339,9 +326,7 @@ class Trainer:
 
                 # Track best
                 val_loss_key = (
-                    "val_loss"
-                    if "val_loss" in epoch_combined_metrics
-                    else "train_loss"
+                    "val_loss" if "val_loss" in epoch_combined_metrics else "train_loss"
                 )
                 val_loss_val = epoch_combined_metrics.get(val_loss_key, 0.0)
                 if val_loss_val < best_val_loss:
@@ -403,7 +388,9 @@ class Trainer:
             float("inf"),
             float("-inf"),
         ]:
-            best_metrics = {self.early_stopping.monitor: self.early_stopping.best_metric}
+            best_metrics = {
+                self.early_stopping.monitor: self.early_stopping.best_metric
+            }
 
         status = self.status
         if status not in ["running", "completed", "failed", "stopped"]:

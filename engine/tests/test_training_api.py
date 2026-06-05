@@ -66,7 +66,9 @@ def test_start_training_api_success(client):
 
 def test_control_training_api_success(client):
     with patch.object(runner, "pause_run", return_value=True) as mock_pause:
-        response = client.post("/training/control/test-run-123", json={"action": "pause"})
+        response = client.post(
+            "/training/control/test-run-123", json={"action": "pause"}
+        )
         assert response.status_code == 200
         assert response.json() == {"status": "success", "action": "pause"}
         mock_pause.assert_called_once_with("test-run-123")
@@ -100,13 +102,18 @@ async def test_stream_training_api_success():
     # Create a mock queue
     queue = asyncio.Queue()
     queue.put_nowait({"type": "step_metrics", "step": 1, "metrics": {"loss": 0.5}})
-    queue.put_nowait({"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5})
+    queue.put_nowait(
+        {"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5}
+    )
 
-    with patch.object(runner, "get_queue", return_value=queue), \
-         patch.object(runner, "get_trainer", return_value=None), \
-         patch.object(runner, "cleanup_run"):
-
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    with (
+        patch.object(runner, "get_queue", return_value=queue),
+        patch.object(runner, "get_trainer", return_value=None),
+        patch.object(runner, "cleanup_run"),
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
             response = await ac.get("/training/stream/test-run-123")
             assert response.status_code == 200
 

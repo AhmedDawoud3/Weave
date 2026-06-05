@@ -38,6 +38,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Engine__BaseUrl=http://172.17.0.1:8000
+      - Engine__ApiKey=${WEAVE_ENGINE_API_KEY}
       # Azure SQL Database / Managed DB Connection String (Replace placeholders)
       - ConnectionStrings__DefaultConnection=Server=tcp:YOUR-AZURE-DB-SERVER.database.windows.net,1433;Initial Catalog=WeaveDb;Persist Security Info=False;User ID=YOUR-USERNAME;Password=YOUR-PASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
     networks:

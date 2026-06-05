@@ -78,18 +78,12 @@ class TrainingRunner:
         ):
             batch_size = int(config.dataset_config.loader_config.batch_size)  # type: ignore
 
-        train_loader = create_dataloader(
-            train_ds, batch_size=batch_size, shuffle=True
-        )
-        val_loader = create_dataloader(
-            val_ds, batch_size=batch_size, shuffle=False
-        )
+        train_loader = create_dataloader(train_ds, batch_size=batch_size, shuffle=True)
+        val_loader = create_dataloader(val_ds, batch_size=batch_size, shuffle=False)
 
         # 4. Loss and Optimizer
         loss_fn = get_loss_function(config.loss.model_dump())
-        optimizer = get_optimizer(
-            model.parameters(), config.optimizer.model_dump()
-        )
+        optimizer = get_optimizer(model.parameters(), config.optimizer.model_dump())
 
         # 5. Step calculations and Scheduler instantiation
         steps_per_epoch = len(train_loader)

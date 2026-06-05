@@ -190,3 +190,85 @@ Since the backend is running inside a Docker bridge network, it cannot use `loca
 - `172.17.0.1` represents the default Docker bridge gateway IP.
 - This routes HTTP requests from the containerized C# backend to the natively listening Uvicorn engine process on the host.
 
+---
+
+## 6. Environment and Security Configuration
+
+To secure communication between the .NET backend and the Python Engine, the engine requires requests to contain a valid `X-API-Key` header (except for public endpoints like `/health` and `/api/docs`).
+
+### A. Local Development Configuration
+For local development, you can control these settings using a `.env` file in the `engine/` directory.
+
+1. **Creating the .env file:**
+   Copy the example file:
+   ```bash
+   cp engine/.env.example engine/.env
+   ```
+2. **Configuration options:**
+   - `WEAVE_ENGINE_API_KEY`: The secret key required to validate incoming requests.
+   - `WEAVE_ENGINE_DISABLE_AUTH`: Set to `true` to disable auth checks in development, allowing you to test the endpoints directly without supplying header keys. Set to `false` to enforce checks.
+
+### B. Systemd Service Configuration (Azure VM host)
+When running the Python Engine natively on your Azure VM, you can secure it as follows:
+
+1. **Using .env file (Recommended):**
+   Place your `.env` file inside `/home/azureuser/weave/engine/`. Because the systemd service starts with `WorkingDirectory=/home/azureuser/weave/engine`, the python-dotenv package will automatically load these variables at startup.
+2. **Alternative: Environment directive in systemd:**
+   You can also specify the environment variables directly in the `/etc/systemd/system/weave-engine.service` file:
+   ```ini
+   [Service]
+   ...
+   Environment=PYTHONUNBUFFERED=1
+   Environment=WEAVE_ENGINE_API_KEY=your-secure-production-api-key
+   Environment=WEAVE_ENGINE_DISABLE_AUTH=false
+   ```
+   *Remember to reload and restart the service if you modify the service file:*
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl restart weave-engine
+   ```
+
+### C. Docker-compose Backend configuration
+In production, the backend container passes the API key to its internal client through the `Engine__ApiKey` setting. This is configured in `docker-compose.prod.yml`:
+```yaml
+environment:
+  - Engine__ApiKey=${WEAVE_ENGINE_API_KEY}
+```
+Ensure that `WEAVE_ENGINE_API_KEY` is exported on the host system or specified in a `.env` file in the root workspace directory before spinning up the containers:
+```bash
+# Create a .env file in the root workspace folder:
+echo "WEAVE_ENGINE_API_KEY=your-secure-production-api-key" > .env
+```
+
+### D. GitHub Actions and Azure Web App Deployment
+If you are deploying the Python Engine or backend via a GitHub workflow:
+
+1. **GitHub Secret**:
+   Create a new GitHub Repository Secret named `WEAVE_ENGINE_API_KEY` under **Settings > Secrets and variables > Actions**.
+2. **Azure App Service Configuration**:
+   When hosting on Azure App Service (Azure Web App), environment variables are managed via **Configuration** under the Azure portal. 
+   - Add a new application setting named `WEAVE_ENGINE_API_KEY` and set its value to your secret key.
+   - Add `WEAVE_ENGINE_DISABLE_AUTH` and set it to `false`.
+3. **Injecting Secrets in Workflows**:
+   You can configure/update Azure App Service app settings directly within your GitHub Deployment workflow step (e.g. `main_weave-python-engine.yml`) using the `azure/appservice-settings` action:
+   ```yaml
+   - name: Set Web App Settings
+     uses: azure/appservice-settings@v1
+     with:
+       app-name: 'weave-python-engine'
+       app-settings-json: |
+         [
+           {
+             "name": "WEAVE_ENGINE_API_KEY",
+             "value": "${{ secrets.WEAVE_ENGINE_API_KEY }}",
+             "slotSetting": false
+           },
+           {
+             "name": "WEAVE_ENGINE_DISABLE_AUTH",
+             "value": "false",
+             "slotSetting": false
+           }
+         ]
+   ```
+
+

@@ -149,9 +149,10 @@ def test_device_fallback(training_config, dummy_dataset):
     # Request cuda when cuda is not available
     training_config.training.device = "cuda"
 
-    with patch("training.runner.get_dataset_from_config") as mock_get_ds, patch(
-        "torch.cuda.is_available"
-    ) as mock_cuda:
+    with (
+        patch("training.runner.get_dataset_from_config") as mock_get_ds,
+        patch("torch.cuda.is_available") as mock_cuda,
+    ):
         mock_get_ds.return_value = dummy_dataset
         mock_cuda.return_value = False  # mock CUDA unavailable
 

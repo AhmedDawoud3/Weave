@@ -150,10 +150,7 @@ class Checkpointing:
             saved_path = path
 
         # Save periodic checkpoint
-        if (
-            self.save_every_n_epochs > 0
-            and epoch % self.save_every_n_epochs == 0
-        ):
+        if self.save_every_n_epochs > 0 and epoch % self.save_every_n_epochs == 0:
             path = os.path.join(self.directory, f"epoch_{epoch}.pt")
             temp_path = path + ".tmp"
             torch.save(state, temp_path)

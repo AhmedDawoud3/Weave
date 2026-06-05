@@ -6,6 +6,7 @@ from importlib.metadata import metadata
 
 import torch.nn as nn
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -61,6 +62,8 @@ from schemas import (
 from training.runner import TrainingRunner
 from training.scheduler_factory import create_scheduler
 
+load_dotenv()
+
 # Retrieve project metadata
 pkg_meta = metadata("engine")
 
@@ -106,9 +109,14 @@ tags_metadata = [
     },
 ]
 
+
 def verify_api_key(request: Request):
     """Dependency to check for valid X-API-Key header, ignoring public health/docs paths."""
     if request.url.path in ["/health", "/api/docs", "/api/openapi.json", "/api/redoc"]:
+        return
+
+    # Check if authentication is disabled (useful for local development)
+    if os.environ.get("WEAVE_ENGINE_DISABLE_AUTH", "false").lower() == "true":
         return
 
     expected_key = os.environ.get("WEAVE_ENGINE_API_KEY", "weave-default-key-12345")
@@ -136,11 +144,13 @@ app = FastAPI(
 def health_check():
     """Returns the engine service health status, server time, and package version."""
     from datetime import datetime
+
     return {
         "status": "healthy",
         "version": version,
         "timestamp": datetime.now().isoformat(),
     }
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -169,7 +179,11 @@ if os.path.isdir(_site_dir):
 # ---------------------------------------------------------------------------
 
 
-@app.post("/validate_pipeline", response_model=PipelineValidationResponse, tags=["Pipeline Validation"])
+@app.post(
+    "/validate_pipeline",
+    response_model=PipelineValidationResponse,
+    tags=["Pipeline Validation"],
+)
 def validate_pipeline(request: PipelineValidationRequest):
     """Simulates dummy tensor passing through the graph to evaluate shapes block-by-block.
 
@@ -190,7 +204,9 @@ def validate_pipeline(request: PipelineValidationRequest):
         )
 
 
-@app.post("/infer/layer", response_model=ShapeInferenceResponse, tags=["Shape Inference"])
+@app.post(
+    "/infer/layer", response_model=ShapeInferenceResponse, tags=["Shape Inference"]
+)
 def infer_layer_shape(request: ShapeInferenceRequest):
     """Compute the output shape of a single layer or block given its input shape.
 
@@ -217,7 +233,11 @@ def infer_layer_shape(request: ShapeInferenceRequest):
         )
 
 
-@app.post("/infer/dataset", response_model=DatasetShapeInferenceResponse, tags=["Shape Inference"])
+@app.post(
+    "/infer/dataset",
+    response_model=DatasetShapeInferenceResponse,
+    tags=["Shape Inference"],
+)
 def infer_dataset_shape_endpoint(request: DatasetShapeInferenceRequest):
     """Compute the per-sample and batch tensor shapes for a dataset configuration.
 
@@ -243,7 +263,9 @@ def infer_dataset_shape_endpoint(request: DatasetShapeInferenceRequest):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/datasets/catalog", response_model=DatasetCatalogResponse, tags=["Dataset Catalog"])
+@app.get(
+    "/datasets/catalog", response_model=DatasetCatalogResponse, tags=["Dataset Catalog"]
+)
 def datasets_catalog():
     """List all predefined datasets with metadata for the visual editor picker.
 
@@ -267,7 +289,11 @@ def datasets_catalog():
     return DatasetCatalogResponse(datasets=entries)
 
 
-@app.get("/transforms/catalog", response_model=TransformCatalogResponse, tags=["Dataset Catalog"])
+@app.get(
+    "/transforms/catalog",
+    response_model=TransformCatalogResponse,
+    tags=["Dataset Catalog"],
+)
 def transforms_catalog():
     """List all available transforms with parameter schemas for the visual editor.
 
@@ -288,7 +314,9 @@ def transforms_catalog():
     return TransformCatalogResponse(transforms=entries)
 
 
-@app.post("/datasets/scan", response_model=DatasetScanResponse, tags=["Dataset Catalog"])
+@app.post(
+    "/datasets/scan", response_model=DatasetScanResponse, tags=["Dataset Catalog"]
+)
 def datasets_scan(request: DatasetScanRequest):
     """Scan a local path for data and return structure info.
 
@@ -308,7 +336,9 @@ def datasets_scan(request: DatasetScanRequest):
         return DatasetScanResponse(status="error", message=str(e))
 
 
-@app.post("/datasets/preview", response_model=DatasetPreviewResponse, tags=["Dataset Catalog"])
+@app.post(
+    "/datasets/preview", response_model=DatasetPreviewResponse, tags=["Dataset Catalog"]
+)
 def datasets_preview(request: DatasetPreviewRequest):
     """Preview a few samples from a dataset configuration.
 
@@ -331,7 +361,11 @@ def datasets_preview(request: DatasetPreviewRequest):
         )
 
 
-@app.post("/datasets/validate", response_model=DatasetValidateResponse, tags=["Dataset Catalog"])
+@app.post(
+    "/datasets/validate",
+    response_model=DatasetValidateResponse,
+    tags=["Dataset Catalog"],
+)
 def datasets_validate(request: DatasetValidateRequest):
     """Validate a dataset configuration and return errors/warnings.
 
@@ -348,7 +382,9 @@ def datasets_validate(request: DatasetValidateRequest):
     return DatasetValidateResponse(**result)
 
 
-@app.post("/loss/suggest", response_model=LossSuggestionResponse, tags=["Design Intelligence"])
+@app.post(
+    "/loss/suggest", response_model=LossSuggestionResponse, tags=["Design Intelligence"]
+)
 def suggest_loss(request: LossSuggestionRequest):
     """Suggests a loss function based on task type and final activation.
 
@@ -387,7 +423,11 @@ def suggest_loss(request: LossSuggestionRequest):
     return LossSuggestionResponse(suggested=suggested, alternatives=alternatives)
 
 
-@app.post("/optimizer/preview_lr_schedule", response_model=LRSchedulePreviewResponse, tags=["Design Intelligence"])
+@app.post(
+    "/optimizer/preview_lr_schedule",
+    response_model=LRSchedulePreviewResponse,
+    tags=["Design Intelligence"],
+)
 def preview_lr_schedule(request: LRSchedulePreviewRequest):
     """Simulates learning rate updates step-by-step for visualization.
 
@@ -418,7 +458,9 @@ def preview_lr_schedule(request: LRSchedulePreviewRequest):
         if not scheduler:
             # If scheduler is None, return constant learning rate
             initial_lr = optimizer.param_groups[0]["lr"]
-            schedule = [[float(step), float(initial_lr)] for step in range(request.total_steps)]
+            schedule = [
+                [float(step), float(initial_lr)] for step in range(request.total_steps)
+            ]
             return LRSchedulePreviewResponse(schedule=schedule)
 
         # 4. Simulate step-by-step learning rate values
@@ -451,7 +493,11 @@ def preview_lr_schedule(request: LRSchedulePreviewRequest):
         ) from e
 
 
-@app.post("/metrics/suggest", response_model=MetricsSuggestionResponse, tags=["Design Intelligence"])
+@app.post(
+    "/metrics/suggest",
+    response_model=MetricsSuggestionResponse,
+    tags=["Design Intelligence"],
+)
 def suggest_metrics(request: MetricsSuggestionRequest):
     """Suggests validation metrics based on task type.
 
@@ -510,7 +556,9 @@ def export_pytorch_endpoint(request: ExportRequest):
         return ExportResponse(status="error", output_path="", message=str(e))
 
 
-@app.post("/export/torchscript", response_model=ExportResponse, tags=["Model Exporters"])
+@app.post(
+    "/export/torchscript", response_model=ExportResponse, tags=["Model Exporters"]
+)
 def export_torchscript_endpoint(request: ExportRequest):
     """Exports a trained model graph to platform-independent TorchScript format.
 
@@ -528,7 +576,11 @@ def export_torchscript_endpoint(request: ExportRequest):
         return ExportResponse(status="error", output_path="", message=str(e))
 
 
-@app.post("/inference/predict", response_model=InferenceResponse, tags=["Predictive Inference"])
+@app.post(
+    "/inference/predict",
+    response_model=InferenceResponse,
+    tags=["Predictive Inference"],
+)
 def predict_endpoint(request: InferenceRequest):
     """Evaluates input samples using a compiled model loaded from a checkpoint.
 
@@ -585,7 +637,11 @@ def predict_endpoint(request: InferenceRequest):
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@app.post("/experiments/compare", response_model=ExperimentCompareResponse, tags=["Experiment Comparison"])
+@app.post(
+    "/experiments/compare",
+    response_model=ExperimentCompareResponse,
+    tags=["Experiment Comparison"],
+)
 def compare_experiments(request: ExperimentCompareRequest):
     """Retrieves logs for multiple run IDs to compare their training progress.
 
@@ -668,11 +724,17 @@ async def stream_training(run_id: str):
             while True:
                 msg = await queue.get()
                 yield {
-                    "event": msg["event"] if "event" in msg else msg.get("type", "step_metrics"),
-                    "data": json.dumps(msg)
+                    "event": msg["event"]
+                    if "event" in msg
+                    else msg.get("type", "step_metrics"),
+                    "data": json.dumps(msg),
                 }
 
-                if msg.get("type") in ["training_complete", "training_failed", "stopped"]:
+                if msg.get("type") in [
+                    "training_complete",
+                    "training_failed",
+                    "stopped",
+                ]:
                     break
         except asyncio.CancelledError:
             logger.info(f"SSE stream cancelled for run_id: {run_id}")
@@ -707,13 +769,18 @@ def control_training(run_id: str, message: TrainingControlMessage):
 
     if not success:
         raise HTTPException(
-            status_code=404, detail=f"Run ID {run_id} not found or action {action} failed."
+            status_code=404,
+            detail=f"Run ID {run_id} not found or action {action} failed.",
         )
 
     return {"status": "success", "action": action}
 
 
-@app.get("/training/status/{run_id}", response_model=TrainingStatusResponse, tags=["Training Engine"])
+@app.get(
+    "/training/status/{run_id}",
+    response_model=TrainingStatusResponse,
+    tags=["Training Engine"],
+)
 def get_training_status(run_id: str):
     """Gets the current status and latest metrics for a training run.
 

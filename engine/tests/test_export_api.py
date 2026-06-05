@@ -16,6 +16,7 @@ def client():
 def dummy_checkpoint(tmp_path):
     # Create a compiled dummy model and save state_dict
     from compiler.compiler import GraphCompiler
+
     graph_data = {
         "nodes": [
             {

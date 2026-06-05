@@ -13,6 +13,7 @@ def client():
 @pytest.fixture
 def classification_checkpoint(tmp_path):
     from compiler.compiler import GraphCompiler
+
     graph_data = {
         "nodes": [
             {
@@ -50,6 +51,7 @@ def classification_checkpoint(tmp_path):
 @pytest.fixture
 def regression_checkpoint(tmp_path):
     from compiler.compiler import GraphCompiler
+
     graph_data = {
         "nodes": [
             {
@@ -99,7 +101,7 @@ def test_predict_classification_success(client, classification_checkpoint):
     payload = {
         "graph": graph_data,
         "checkpoint_path": classification_checkpoint,
-        "input": [[1.0] * 10]
+        "input": [[1.0] * 10],
     }
     response = client.post("/inference/predict", json=payload)
     assert response.status_code == 200
@@ -129,7 +131,7 @@ def test_predict_regression_success(client, regression_checkpoint):
     payload = {
         "graph": graph_data,
         "checkpoint_path": regression_checkpoint,
-        "input": [[1.0] * 5]
+        "input": [[1.0] * 5],
     }
     response = client.post("/inference/predict", json=payload)
     assert response.status_code == 200
@@ -158,7 +160,7 @@ def test_predict_invalid_checkpoint(client):
     payload = {
         "graph": graph_data,
         "checkpoint_path": "nonexistent_checkpoint.pt",
-        "input": [[1.0] * 10]
+        "input": [[1.0] * 10],
     }
     response = client.post("/inference/predict", json=payload)
     assert response.status_code == 400

@@ -100,6 +100,12 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(engineUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
+
+            var apiKey = configuration["Engine:ApiKey"];
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+            }
         });
 
         return services;

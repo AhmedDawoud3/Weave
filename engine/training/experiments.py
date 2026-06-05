@@ -7,7 +7,9 @@ from schemas import RunRecord
 logger = logging.getLogger(__name__)
 
 # Base runs directory inside the workspace (Weave/data/runs)
-RUNS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "runs"))
+RUNS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "data", "runs")
+)
 
 
 def get_runs_dir() -> str:

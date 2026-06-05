@@ -24,6 +24,7 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=WeaveDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
       # Point to the external python engine
       - Engine__BaseUrl=https://engine.weave-ai.dev
+      - Engine__ApiKey=${WEAVE_ENGINE_API_KEY}
     depends_on:
       - db
 

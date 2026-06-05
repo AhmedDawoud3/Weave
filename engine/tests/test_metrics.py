@@ -13,9 +13,7 @@ def test_compute_batch_metrics_classification():
     assert isinstance(metrics["accuracy"], float)
 
     targets_wrong = torch.tensor([1, 1])  # 50% correct
-    metrics_wrong = compute_batch_metrics(
-        outputs, targets_wrong, 1.2, "classification"
-    )
+    metrics_wrong = compute_batch_metrics(outputs, targets_wrong, 1.2, "classification")
     assert metrics_wrong["accuracy"] == 50.0
 
 
@@ -28,9 +26,7 @@ def test_compute_batch_metrics_multi_label():
     assert metrics["accuracy"] == 100.0
 
     targets_mixed = torch.tensor([[1.0, 1.0], [0.0, 1.0]])  # 3/4 correct = 75%
-    metrics_mixed = compute_batch_metrics(
-        outputs, targets_mixed, 0.5, "multi_label"
-    )
+    metrics_mixed = compute_batch_metrics(outputs, targets_mixed, 0.5, "multi_label")
     assert metrics_mixed["accuracy"] == 75.0
 
 

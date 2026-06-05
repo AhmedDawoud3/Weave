@@ -51,9 +51,7 @@ def test_create_reduce_lr_on_plateau(dummy_optimizer):
 def test_create_one_cycle_lr_computed_steps(dummy_optimizer):
     # Tests that total_steps is computed from epochs and steps_per_epoch
     config = SchedulerConfig(type="OneCycleLR", params={"max_lr": 0.2})
-    scheduler = create_scheduler(
-        dummy_optimizer, config, epochs=5, steps_per_epoch=20
-    )
+    scheduler = create_scheduler(dummy_optimizer, config, epochs=5, steps_per_epoch=20)
     assert scheduler is not None
     # OneCycleLR calculates total_steps inside, which equals epochs * steps_per_epoch = 100
     assert scheduler.total_steps == 100
