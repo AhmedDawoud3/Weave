@@ -4,6 +4,7 @@ metrics.py — Metrics computation and aggregation.
 Calculates step and epoch-level loss, accuracy, and learning rates.
 """
 
+from typing import Any, Dict
 import torch
 
 
@@ -12,7 +13,7 @@ def compute_batch_metrics(
     targets: torch.Tensor,
     loss_val: float,
     task_type: str,
-) -> dict[str, float]:
+) -> Dict[str, float]:
     """Computes batch-level metrics based on task type.
 
     Args:
@@ -70,9 +71,9 @@ class EpochMetricsTracker:
     def reset(self) -> None:
         """Resets the internal accumulators."""
         self.total_samples = 0
-        self.metric_sums: dict[str, float] = {}
+        self.metric_sums: Dict[str, float] = {}
 
-    def update(self, batch_metrics: dict[str, float], batch_size: int) -> None:
+    def update(self, batch_metrics: Dict[str, float], batch_size: int) -> None:
         """Updates internal accumulators with batch-level metrics.
 
         Args:
@@ -83,7 +84,7 @@ class EpochMetricsTracker:
         for k, v in batch_metrics.items():
             self.metric_sums[k] = self.metric_sums.get(k, 0.0) + v * batch_size
 
-    def get_epoch_metrics(self) -> dict[str, float]:
+    def get_epoch_metrics(self) -> Dict[str, float]:
         """Computes the weighted average of accumulated metrics.
 
         Returns:

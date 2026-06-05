@@ -1,7 +1,6 @@
 import pytest
 import torch
-
-from training.metrics import EpochMetricsTracker, compute_batch_metrics
+from training.metrics import compute_batch_metrics, EpochMetricsTracker
 
 
 def test_compute_batch_metrics_classification():
