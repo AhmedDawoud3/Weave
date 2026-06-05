@@ -10,7 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
+import torch.nn as nn
 from compiler.compiler import GraphCompiler
+from compiler.factory import get_optimizer
+from training.scheduler_factory import create_scheduler
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
 from dataset.scanner import smart_scan
@@ -40,6 +43,9 @@ from schemas import (
     TrainingStatusResponse,
     LossSuggestionRequest,
     LossSuggestionResponse,
+    SchedulerConfig,
+    LRSchedulePreviewRequest,
+    LRSchedulePreviewResponse,
 )
 
 # Retrieve project metadata
@@ -299,6 +305,70 @@ def suggest_loss(request: LossSuggestionRequest):
         alternatives = []
 
     return LossSuggestionResponse(suggested=suggested, alternatives=alternatives)
+
+
+@app.post("/optimizer/preview_lr_schedule", response_model=LRSchedulePreviewResponse)
+def preview_lr_schedule(request: LRSchedulePreviewRequest):
+    """Simulates learning rate updates step-by-step for visualization.
+
+    Args:
+        request: LRSchedulePreviewRequest containing optimizer, scheduler, and total steps.
+
+    Returns:
+        LRSchedulePreviewResponse with step-by-step [step, lr] pairs.
+    """
+    try:
+        # 1. Instantiate minimal dummy model (single parameter tensor) to speed up creation
+        dummy_model = nn.Linear(1, 1)
+
+        # 2. Instantiate optimizer using the factory
+        optimizer = get_optimizer(
+            dummy_model.parameters(),
+            {"type": request.optimizer, "params": request.optimizer_params},
+        )
+
+        # 3. Instantiate scheduler config and scheduler
+        sched_config = SchedulerConfig(
+            type=request.scheduler, params=request.scheduler_params
+        )
+        scheduler = create_scheduler(
+            optimizer, sched_config, epochs=1, steps_per_epoch=request.total_steps
+        )
+
+        if not scheduler:
+            # If scheduler is None, return constant learning rate
+            initial_lr = optimizer.param_groups[0]["lr"]
+            schedule = [[float(step), float(initial_lr)] for step in range(request.total_steps)]
+            return LRSchedulePreviewResponse(schedule=schedule)
+
+        # 4. Simulate step-by-step learning rate values
+        schedule = []
+        for step in range(request.total_steps):
+            current_lr = optimizer.param_groups[0]["lr"]
+            schedule.append([float(step), float(current_lr)])
+
+            # Dummy step to satisfy PyTorch's step warning
+            optimizer.step()
+
+            # Update scheduler
+            try:
+                if scheduler.__class__.__name__ == "ReduceLROnPlateau":
+                    # Pass a constant loss to trigger plateau decay
+                    scheduler.step(1.0)
+                else:
+                    scheduler.step()
+            except Exception as e:
+                logger.warning(f"Error stepping scheduler in simulation: {e}")
+                pass
+
+        return LRSchedulePreviewResponse(schedule=schedule)
+
+    except Exception as e:
+        logger.exception("Failed to preview learning rate schedule.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to simulate learning rate schedule: {str(e)}",
+        )
 
 
 # ---------------------------------------------------------------------------
