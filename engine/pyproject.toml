@@ -1,6 +1,6 @@
 [project]
 name = "engine"
-version = "0.2.0"
+version = "0.2.1"
 description = "Weave Neural Network Engine"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -36,7 +36,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["compiler", "dataset", "schemas.py", "main.py", "custom_loaders"]
+include = ["compiler", "dataset", "training", "schemas.py", "main.py", "custom_loaders"]
 
 # ── Black ──────────────────────────────────────────────────────────────────
 [tool.black]
