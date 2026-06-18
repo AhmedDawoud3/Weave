@@ -8,16 +8,27 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'engine/**'
   workflow_dispatch:
 
 jobs:
   build:
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://engine.weave-ai.dev # Link appears in GitHub UI
     permissions:
       contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -25,21 +36,37 @@ jobs:
           python-version: '3.13'
 
       # 🛠️ Local Build Section (Optional)
-      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies
+      # We use `uv` to instantly generate a standard requirements.txt from pyproject.toml. 
+      # This allows Azure's build engine (Oryx) to install dependencies natively on the server.
+      - name: Generate requirements.txt using uv
+        working-directory: ./engine
         run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt
-                
-      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
+          uv export --no-hashes --format requirements.txt > requirements.txt
+
+      # 📖 Build MkDocs documentation so /docs endpoint works on the deployed app
+      - name: Sync project and docs dependencies
+        working-directory: ./engine
+        run: uv sync --group docs
+
+      - name: Build MkDocs site
+        working-directory: ./engine
+        run: uv run mkdocs build
+
+      - name: Create .env file for deployment
+        working-directory: ./engine
+        run: |
+          echo "WEAVE_ENGINE_API_KEY=${{ secrets.WEAVE_ENGINE_API_KEY }}" > .env
+          echo "WEAVE_ENGINE_DISABLE_AUTH=false" >> .env
+
+      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
-            .
-            !antenv/
+            ./engine
+            !./engine/antenv/
+            !./engine/.venv/
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:
@@ -50,17 +77,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
       
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0CE1FFF3F97F4036B411E2D9FA15C49E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5E44147736554042BBCE9C0411350732 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C271FE427DBB4778B9F3FC74F4FDDD77 }}
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'weave-python-engine'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_21D5E8F12BED4A78A25AEA94128FB6E7 }}
+          
