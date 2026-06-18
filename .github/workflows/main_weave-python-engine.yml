@@ -10,6 +10,7 @@ on:
       - main
     paths:
       - 'engine/**'
+      - '.github/workflows/main_weave-python-engine.yml'
   workflow_dispatch:
 
 jobs:

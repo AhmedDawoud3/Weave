@@ -7,6 +7,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - '.github/workflows/main_weave-combined-app.yml'
   workflow_dispatch:
 
 jobs:
