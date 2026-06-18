@@ -4,6 +4,8 @@ export interface NodeData {
   type: LayerType;
   label?: string;
   params: LayerParams;
+  outputShape?: number[];
+  error?: string | null;
 }
 
 export interface EdgeData {

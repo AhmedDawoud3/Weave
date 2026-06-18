@@ -1,52 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { SplashPage } from './pages/SplashPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StudioPage } from './pages/StudioPage';
-import type { AppStage, Project } from './types';
+import { useWeaveStore } from './store/useWeaveStore';
+import type { AppStage } from './types';
 
 export default function App() {
+  const { isAuthenticated, fetchProjects } = useWeaveStore();
+  
+  // Custom navigation stage hook
   const [stage, setStage] = useState<AppStage>('splash');
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 1, name: "MNIST Digit Classifier", date: "2026-05-10", accuracy: "98.2%", layers: 5 },
-    { id: 2, name: "CNN Image Recognition", date: "2026-05-12", accuracy: "91.5%", layers: 8 },
-  ]);
+
+  // Load projects if already authenticated on boot
+  useEffect(() => {
+    if (isAuthenticated && stage === 'dashboard') {
+      fetchProjects();
+    }
+  }, [isAuthenticated, stage, fetchProjects]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setStage('login'), 3500);
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        setStage('dashboard');
+      } else {
+        setStage('login');
+      }
+    }, 2000); // 2s splash
     return () => clearTimeout(timer);
-  }, []);
-
-  const addNewProject = () => {
-    const newProj: Project = {
-      id: Date.now(),
-      name: `New Model ${projects.length + 1}`,
-      date: new Date().toISOString().split('T')[0],
-      accuracy: "0.0%",
-      layers: 0,
-    };
-    setProjects([newProj, ...projects]);
-    setStage('main');
-  };
-
-  const deleteProject = (id: number) => {
-    setProjects(projects.filter(p => p.id !== id));
-  };
+  }, [isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="min-h-screen bg-[#070709] text-white overflow-hidden font-sans">
       <AnimatePresence mode="wait">
         {stage === 'splash' && <SplashPage />}
-        {stage === 'login' && <LoginPage onLogin={() => setStage('dashboard')} />}
+        
+        {stage === 'login' && (
+          <LoginPage onLogin={() => setStage('dashboard')} />
+        )}
+        
         {stage === 'dashboard' && (
           <DashboardPage
-            projects={projects}
-            onAddProject={addNewProject}
             onOpenProject={() => setStage('main')}
-            onDeleteProject={deleteProject}
           />
         )}
+        
         {stage === 'main' && (
           <StudioPage onNavigateDashboard={() => setStage('dashboard')} />
         )}
@@ -54,3 +53,6 @@ export default function App() {
     </div>
   );
 }
+
+// A simple local useState helper inside App.tsx (since we imported types but need standard React)
+import { useState } from 'react';

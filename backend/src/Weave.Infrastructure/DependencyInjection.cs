@@ -24,9 +24,14 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration)
     {
         // ---- Database ----
+        var connectionString = Environment.GetEnvironmentVariable("SQLAZURECONNSTR_DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("SQLCONNSTR_DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? configuration.GetConnectionString("DefaultConnection");
+
         services.AddDbContext<WeaveDbContext>(options =>
             options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
+                connectionString,
                 b => b.MigrationsAssembly(typeof(WeaveDbContext).Assembly.FullName)));
 
         // ---- Identity ----

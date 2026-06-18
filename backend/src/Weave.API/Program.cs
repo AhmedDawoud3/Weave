@@ -89,10 +89,9 @@ app.MapHub<TrainingHub>("/hubs/training");
 // SPA fallback: serve index.html for any unmatched routes
 app.MapFallbackToFile("index.html");
 
-// Apply pending database migrations on startup in Production
-if (app.Environment.IsProduction())
+// Apply pending database migrations on startup
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     try
     {
