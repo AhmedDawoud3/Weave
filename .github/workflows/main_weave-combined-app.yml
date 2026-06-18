@@ -33,7 +33,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:latest:${{ github.sha }}
+          tags: |
+            weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:latest
+            weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:${{ github.sha }}
           file: ./Dockerfile
 
   deploy:
@@ -45,7 +47,6 @@ jobs:
     needs: build
     
     steps:
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -59,5 +60,4 @@ jobs:
         with:
           app-name: 'weave-combined-app'
           slot-name: 'Production'
-          images: 'weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:latest:${{ github.sha }}'
-          
+          images: 'weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:${{ github.sha }}'
