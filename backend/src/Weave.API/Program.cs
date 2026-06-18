@@ -89,4 +89,22 @@ app.MapHub<TrainingHub>("/hubs/training");
 // SPA fallback: serve index.html for any unmatched routes
 app.MapFallbackToFile("index.html");
 
+// Apply pending database migrations on startup in Production
+if (app.Environment.IsProduction())
+{
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<Weave.Infrastructure.Persistence.WeaveDbContext>();
+        Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.Migrate(context.Database);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database.");
+    }
+}
+
 app.Run();
+
