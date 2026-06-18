@@ -1,23 +1,40 @@
-import { useState, useCallback, DragEvent } from 'react';
+import { useState, useCallback, useEffect, DragEvent } from 'react';
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   ReactFlowInstance,
   Connection,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Code2, RefreshCw, Plus } from 'lucide-react';
+import { Terminal, Code2, RefreshCw, Plus, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sidebar } from '../components/Sidebar';
-import { PropertiesPanel } from '../components/PropertiesPanel';
+import { LayerPalette } from '../components/LayerPalette';
+
+
 import { LayerNode } from '../components/LayerNode';
+import { WeaveEdge } from '../components/WeaveEdge';
 import { TrainingConsole } from '../components/TrainingConsole';
 import { ExportModal } from '../components/ExportModal';
 import { useWeaveStore } from '../store/useWeaveStore';
 import { LayerType } from '../types';
 
 const nodeTypes = { layer: LayerNode };
+const edgeTypes = { weave: WeaveEdge };
+
+const ALL_LAYER_TYPES: LayerType[] = [
+  'InputNode', 'OutputNode',
+  'Conv2d', 'ConvTranspose2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d',
+  'Linear', 'Embedding',
+  'BatchNorm2d', 'LayerNorm', 'GroupNorm',
+  'ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax',
+  'Flatten', 'Reshape', 'Permute', 'Dropout', 'Dropout2d',
+  'Add', 'Concat', 'Multiply',
+  'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'
+];
 
 interface StudioPageProps {
   onNavigateDashboard: () => void;
@@ -29,11 +46,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     edges,
     onNodesChange,
     onEdgesChange,
-    selectedNodeId,
     setSelectedNodeId,
     addNode,
-    removeNode,
-    updateNodeParams,
     connectEdges,
     validationStatus,
     validationMessage,
@@ -43,7 +57,12 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     activeSubGraphs,
     activeSubGraph,
     selectSubGraph,
-    createSubGraph
+    createSubGraph,
+    navigationStack,
+    enterSubGraph,
+    exitSubGraph,
+    isKernelConnected,
+    checkKernelConnection
   } = useWeaveStore();
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
@@ -52,7 +71,68 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
   const [newSubGraphName, setNewSubGraphName] = useState('');
   const [showSubGraphPrompt, setShowSubGraphPrompt] = useState(false);
 
-  const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  const [showSearchPalette, setShowSearchPalette] = useState(false);
+  const [searchPalettePosition, setSearchPalettePosition] = useState<{ x: number; y: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+
+
+  // Handle adding node from the command palette
+  const handleAddNodeFromPalette = useCallback((type: LayerType) => {
+    if (searchPalettePosition) {
+      addNode(type, searchPalettePosition);
+    }
+    setShowSearchPalette(false);
+  }, [addNode, searchPalettePosition]);
+
+  // Open command palette with Space/Tab keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isEditing = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.getAttribute('contenteditable') === 'true'
+      );
+      if (isEditing) return;
+
+      if (e.key === ' ' || e.key === 'Tab') {
+        e.preventDefault();
+        if (reactFlowInstance) {
+          const position = reactFlowInstance.screenToFlowPosition({
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+          });
+          setSearchPalettePosition(position);
+          setSearchQuery('');
+          setShowSearchPalette(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [reactFlowInstance]);
+
+  // Poll kernel online status every 5 seconds
+  useEffect(() => {
+    checkKernelConnection();
+    const interval = setInterval(() => {
+      checkKernelConnection();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [checkKernelConnection]);
+
+  // Handle double-clicking nested blocks to enter viewport
+  const handleNodeDoubleClick = useCallback((_: any, node: any) => {
+    const doubleClickableTypes = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'];
+    if (doubleClickableTypes.includes(node.data?.type)) {
+      const subGraphId = node.data?.params?.subgraph_id;
+      if (subGraphId) {
+        enterSubGraph(subGraphId);
+      }
+    }
+  }, [enterSubGraph]);
+
 
   const onConnect = useCallback((connection: Connection) => {
     connectEdges(connection);
@@ -66,13 +146,16 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     addNode(type, position);
   }, [reactFlowInstance, addNode]);
 
-  const handleUpdateNodeParams = useCallback((nodeId: string, params: Record<string, any>) => {
-    updateNodeParams(nodeId, params);
-  }, [updateNodeParams]);
 
-  const handleRemoveNode = useCallback((nodeId: string) => {
-    removeNode(nodeId);
-  }, [removeNode]);
+  const handleAddInputNode = useCallback(() => {
+    const inCount = nodes.filter(n => n.data?.type === 'InputNode').length;
+    addNode('InputNode', { x: 150 + inCount * 120, y: 50 });
+  }, [addNode, nodes]);
+
+  const handleAddOutputNode = useCallback(() => {
+    const outCount = nodes.filter(n => n.data?.type === 'OutputNode').length;
+    addNode('OutputNode', { x: 150 + outCount * 120, y: 450 });
+  }, [addNode, nodes]);
 
   const handleCreateSubGraph = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,40 +182,81 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
           <div className="h-8 w-px bg-primary/10" />
 
-          {/* SubGraph Selector & Revision Control */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground uppercase font-bold">SubGraph:</span>
-            {activeSubGraphs.length > 0 ? (
-              <select
-                value={activeSubGraph?.id || ''}
-                onChange={(e) => {
-                  const sub = activeSubGraphs.find(s => s.id === e.target.value);
-                  if (sub) selectSubGraph(sub);
-                }}
-                className="bg-primary/5 border border-primary/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-primary transition-all uppercase font-bold"
-              >
-                {activeSubGraphs.map(s => (
-                  <option key={s.id} value={s.id} className="bg-[#0e0e11]">{s.name}</option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-xs italic text-muted-foreground">None</span>
-            )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSubGraphPrompt(true)}
-              className="hover:bg-primary/15 hover:text-[#40d3b6] text-muted-foreground rounded-xl"
-              title="Create New SubGraph"
-            >
-              <Plus size={16} />
-            </Button>
-          </div>
+          {/* SubGraph Selector or Breadcrumbs Navigation */}
+          {navigationStack.length > 0 ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <button
+                onClick={() => exitSubGraph(-1)}
+                className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold"
+              >
+                Root
+              </button>
+              {navigationStack.map((sub, index) => {
+                if (index === 0) return null;
+                return (
+                  <div key={sub.id} className="flex items-center gap-2">
+                    <span>/</span>
+                    <button
+                      onClick={() => exitSubGraph(index)}
+                      className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold max-w-[100px] truncate"
+                      title={sub.name}
+                    >
+                      {sub.name}
+                    </button>
+                  </div>
+                );
+              })}
+              <span>/</span>
+              <span className="text-white uppercase tracking-wide max-w-[120px] truncate font-black" title={activeSubGraph?.name}>
+                {activeSubGraph?.name}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold">SubGraph:</span>
+              {activeSubGraphs.length > 0 ? (
+                <select
+                  value={activeSubGraph?.id || ''}
+                  onChange={(e) => {
+                    const sub = activeSubGraphs.find(s => s.id === e.target.value);
+                    if (sub) selectSubGraph(sub);
+                  }}
+                  className="bg-primary/5 border border-primary/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-primary transition-all uppercase font-bold"
+                >
+                  {activeSubGraphs.map(s => (
+                    <option key={s.id} value={s.id} className="bg-[#0e0e11]">{s.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-xs italic text-muted-foreground">None</span>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSubGraphPrompt(true)}
+                className="hover:bg-primary/15 hover:text-[#40d3b6] text-muted-foreground rounded-xl"
+                title="Create New SubGraph"
+              >
+                <Plus size={16} />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Compile Status and Exporter menu actions */}
         <div className="flex items-center gap-4">
+          {/* Kernel status indicator */}
+          <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider select-none">
+            <span className={`w-2 h-2 rounded-full ${isKernelConnected ? 'bg-[#40d3b6] animate-pulse shadow-[0_0_8px_#40d3b6]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+            <span className={isKernelConnected ? 'text-[#40d3b6]' : 'text-red-400'}>
+              {isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
+            </span>
+          </div>
+
+          <div className="h-6 w-px bg-primary/10" />
+
           {/* Autosave status indicator */}
           <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground select-none">
             <span className={`w-2 h-2 rounded-full ${isSavingGraph ? 'bg-yellow-400 animate-pulse' : 'bg-primary'}`} />
@@ -188,7 +312,37 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
         <Sidebar onNavigateDashboard={onNavigateDashboard} />
 
         {/* Canvas Area */}
-        <div className="flex-1 relative bg-[#070709]">
+        <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">
+          <LayerPalette />
+
+          <div className="flex-1 relative min-h-0 min-w-0">
+          {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
+          {navigationStack.length > 0 && (
+            <>
+              {/* Top floating button: + ADD INPUT */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                <Button
+                  onClick={handleAddInputNode}
+                  className="bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg border border-emerald-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                >
+                  <Plus size={14} strokeWidth={3} />
+                  ADD INPUT NODE
+                </Button>
+              </div>
+
+              {/* Bottom floating button: + ADD OUTPUT */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+                <Button
+                  onClick={handleAddOutputNode}
+                  className="bg-amber-600/90 hover:bg-amber-500 text-white rounded-full font-bold shadow-lg border border-amber-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                >
+                  <Plus size={14} strokeWidth={3} />
+                  ADD OUTPUT NODE
+                </Button>
+              </div>
+            </>
+          )}
+
           {/* validation Warning float */}
           {validationStatus === 'error' && validationMessage && (
             <div className="absolute left-6 top-6 max-w-sm bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-xl z-20 flex items-start gap-2.5 text-xs text-red-400 select-text">
@@ -208,21 +362,34 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             onDragOver={(e) => e.preventDefault()}
             onNodeClick={(_, n) => setSelectedNodeId(n.id)}
             onPaneClick={() => setSelectedNodeId(null)}
+            onNodeDoubleClick={handleNodeDoubleClick}
+
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            defaultEdgeOptions={{ 
+              type: 'weave',
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: '#40d3b6',
+              }
+            }}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
             fitView
           >
             <Background color="#1a1a1f" gap={20} />
             <Controls className="bg-[#0e0e11]/80 border border-primary/10 rounded-xl overflow-hidden [&>button]:border-primary/5 [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-primary/20 [&>svg]:fill-white" />
+            <MiniMap 
+              className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]" 
+              nodeColor="#1a1a24"
+              maskColor="rgba(0, 0, 0, 0.4)"
+              nodeStrokeColor="#40d3b6"
+              nodeBorderRadius={4}
+            />
           </ReactFlow>
         </div>
-
-        <PropertiesPanel
-          selectedNode={selectedNode}
-          selectedNodeId={selectedNodeId}
-          onUpdateNodeParams={handleUpdateNodeParams}
-          onRemoveNode={handleRemoveNode}
-        />
       </div>
+    </div>
 
       {/* Collapsible bottom training console drawer */}
       <AnimatePresence>
@@ -286,6 +453,77 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING COMMAND PALETTE */}
+      <AnimatePresence>
+        {showSearchPalette && (
+          <div 
+            className="fixed inset-0 bg-black/45 backdrop-blur-xs flex items-center justify-center z-50 select-none"
+            onClick={() => setShowSearchPalette(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[480px] bg-[#0c0c0e]/95 backdrop-blur-2xl border border-primary/20 rounded-2xl shadow-[0_0_50px_rgba(64,211,182,0.08)] overflow-hidden flex flex-col max-h-[380px]"
+            >
+              {/* Search input header */}
+              <div className="p-4 border-b border-primary/10 flex items-center gap-3">
+                <Search className="text-primary/60 shrink-0 animate-pulse" size={18} />
+                <input
+                  type="text"
+                  placeholder="Type to search and add layer... (or Space/Tab)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-muted-foreground/50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setShowSearchPalette(false);
+                    } else if (e.key === 'Enter') {
+                      const filtered = ALL_LAYER_TYPES.filter(type => 
+                        type.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+                      if (filtered.length > 0) {
+                        handleAddNodeFromPalette(filtered[0]);
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Filtered list of layers */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {ALL_LAYER_TYPES.filter(type => 
+                  type.toLowerCase().includes(searchQuery.toLowerCase())
+                ).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => handleAddNodeFromPalette(type)}
+                    className="w-full p-2.5 hover:bg-primary/10 rounded-xl transition-all text-left text-xs font-bold text-white/85 hover:text-white uppercase flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                      <span>{type}</span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground/60 group-hover:text-primary transition-all font-black tracking-widest">
+                      INSERT LAYER
+                    </span>
+                  </button>
+                ))}
+                {ALL_LAYER_TYPES.filter(type => 
+                  type.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="p-6 text-center text-xs text-muted-foreground italic">
+                    No matching layers found.
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

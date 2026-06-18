@@ -143,6 +143,29 @@ export const api = {
       return raw.data ? raw.data : raw;
     },
 
+    getDatasetsCatalog: async () => {
+      const url = `${engineBaseUrl}/datasets/catalog`;
+      const res = await fetch(url, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+
+    getTransformsCatalog: async () => {
+      const url = `${engineBaseUrl}/transforms/catalog`;
+      const res = await fetch(url, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+
+    validateDataset: async (dto: any) => {
+      const url = `${engineBaseUrl}/datasets/validate`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res);
+    },
+
+
     suggestLoss: async (dto: any) => {
       // Direct only for now
       const url = `${engineBaseUrl}/loss/suggest`;

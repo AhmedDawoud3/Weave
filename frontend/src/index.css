@@ -149,3 +149,17 @@ html, body, #root {
   border-radius: 10px;
   opacity: 0.5;
 }
+
+@keyframes flow-animation {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-flow-path {
+  stroke-dasharray: 8, 4;
+  animation: flow-animation var(--flow-speed, 1.5s) linear infinite;
+}

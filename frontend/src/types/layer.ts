@@ -1,4 +1,6 @@
 export type LayerType =
+  | 'InputNode'
+  | 'OutputNode'
   | 'Conv2d'
   | 'ConvTranspose2d'
   | 'MaxPool2d'
@@ -27,7 +29,8 @@ export type LayerType =
   | 'TransformerEncoder'
   | 'MultiHeadAttention'
   | 'ConvBNReLU'
-  | 'BottleneckBlock';
+  | 'BottleneckBlock'
+  | 'Block';
 
 export interface LayerParams {
   [key: string]: any;
