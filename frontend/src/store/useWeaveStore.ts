@@ -140,6 +140,67 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   Block: {}
 };
 
+export function getInducedParam(nodeType: string, incomingShape?: number[]): { key: string; value: number } | null {
+  if (!incomingShape || incomingShape.length === 0) return null;
+
+  switch (nodeType) {
+    case 'Linear':
+      return {
+        key: 'in_features',
+        value: incomingShape[incomingShape.length - 1]
+      };
+    case 'Conv2d':
+    case 'ConvTranspose2d':
+      return {
+        key: 'in_channels',
+        value: incomingShape.length >= 2 ? incomingShape[1] : incomingShape[0]
+      };
+    case 'BatchNorm2d':
+      return {
+        key: 'num_features',
+        value: incomingShape.length >= 2 ? incomingShape[1] : incomingShape[0]
+      };
+    case 'GroupNorm':
+      return {
+        key: 'num_channels',
+        value: incomingShape.length >= 2 ? incomingShape[1] : incomingShape[0]
+      };
+    case 'ChannelScaleBias':
+      return {
+        key: 'num_features',
+        value: incomingShape.length >= 2 ? incomingShape[1] : incomingShape[0]
+      };
+    default:
+      return null;
+  }
+}
+
+export function applyParameterInduction(nodes: Node<NodeData>[], edges: Edge[]): Node<NodeData>[] {
+  return nodes.map((n) => {
+    const incomingEdges = edges.filter(e => e.target === n.id);
+    if (incomingEdges.length !== 1) return n;
+    const incomingNode = nodes.find(src => src.id === incomingEdges[0].source);
+    const incomingShape = incomingNode?.data?.outputShape;
+    const induced = getInducedParam(n.data.type, incomingShape);
+    if (induced) {
+      const currentValue = n.data.params?.[induced.key];
+      if (currentValue !== induced.value) {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            params: {
+              ...n.data.params,
+              [induced.key]: induced.value
+            }
+          }
+        };
+      }
+    }
+    return n;
+  });
+}
+
 const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubGraphs: SubGraph[]): { nodes: any[]; edges: any[] } => {
   // Find all InputNode and OutputNode elements on this canvas
   const inputNodeIds = nodes.filter(n => n.data.type === 'InputNode').map(n => n.id);
@@ -971,6 +1032,21 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         return;
       }
 
+      // Automatically induce parameter values from incoming node shapes
+      const inducedNodes = applyParameterInduction(nodes, edges);
+      let hasChange = false;
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].data.params !== inducedNodes[i].data.params) {
+          hasChange = true;
+          break;
+        }
+      }
+      if (hasChange) {
+        set({ nodes: inducedNodes });
+        get().saveActiveSubGraph();
+      }
+
+      const currentNodes = get().nodes;
       const batchSize = datasetConfig?.dataloader?.batch_size || 32;
       let activeInputShape = inputShape || get().activeInputShape;
       if (!activeInputShape || (activeInputShape[1] === 3 && activeInputShape[2] === 224 && activeInputShape[3] === 224 && inferredDatasetShape)) {
@@ -984,7 +1060,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       set({ activeInputShape });
 
       // Construct GraphConfig schema recursively
-      const formattedGraph = formatGraphForEngine(nodes, edges, get().activeSubGraphs);
+      const formattedGraph = formatGraphForEngine(currentNodes, edges, get().activeSubGraphs);
       const formattedNodes = formattedGraph.nodes;
       const formattedEdges = formattedGraph.edges;
 
@@ -1005,8 +1081,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
             validationStatus: 'success',
             validationMessage: 'Pipeline compiled successfully! Output tensor matches requirements.',
             nodeShapes: shapes,
-            // Annotate nodes with shape data
-            nodes: nodes.map((n) => ({
+            // Annotate nodes with shape data using live state nodes
+            nodes: get().nodes.map((n) => ({
               ...n,
               data: {
                 ...n.data,
@@ -1021,14 +1097,13 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
             validationStatus: 'error',
             validationMessage: res.message || 'Compilation failed.',
             nodeShapes: {},
-            // Trace back failed node if possible and label it in UI
-            nodes: nodes.map((n) => {
+            // Trace back failed node if possible and label it in UI (keeping previous shapes)
+            nodes: get().nodes.map((n) => {
               const nodeFailed = res.message?.includes(`'${n.id}'`) || res.message?.includes(`Evaluating '${n.id}'`);
               return {
                 ...n,
                 data: {
                   ...n.data,
-                  outputShape: undefined,
                   error: nodeFailed ? res.message : null
                 }
               };
@@ -1239,6 +1314,11 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     },
 
     setDatasetConfig: (config) => {
+      if (config === null) {
+        set({ datasetConfig: null, inferredDatasetShape: null, activeInputShape: null });
+        if (inferTimeout) clearTimeout(inferTimeout);
+        return;
+      }
       set({ datasetConfig: config });
       
       if (inferTimeout) clearTimeout(inferTimeout);

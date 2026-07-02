@@ -53,6 +53,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     validationStatus,
     validationMessage,
     validatePipeline,
+    activeInputShape,
     isSavingGraph,
     activeProject,
     activeSubGraphs,
@@ -74,7 +75,28 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
   const [showSearchPalette, setShowSearchPalette] = useState(false);
   const [searchPalettePosition, setSearchPalettePosition] = useState<{ x: number; y: number } | null>(null);
+  const [shapeInput, setShapeInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Synchronize dynamic shape updates from store (templates, dataset inference, etc.)
+  useEffect(() => {
+    if (activeInputShape) {
+      setShapeInput(activeInputShape.join(', '));
+    } else {
+      setShapeInput('32, 3, 224, 224');
+    }
+  }, [activeInputShape]);
+
+  const handleShapeSubmit = () => {
+    // Parse format like "32, 3, 224, 224" or "[32, 3, 224, 224]"
+    const clean = shapeInput.replace(/[\[\]]/g, '').trim();
+    const parts = clean.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    if (parts.length > 0) {
+      validatePipeline(parts);
+    } else if (activeInputShape) {
+      setShapeInput(activeInputShape.join(', '));
+    }
+  };
 
 
 
@@ -266,11 +288,27 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
           <div className="h-6 w-px bg-primary/10" />
 
+          {/* Input Shape Editor */}
+          <div className="flex items-center gap-2 bg-primary/5 border border-primary/10 rounded-xl px-2.5 py-1.5 h-10 select-none">
+            <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider">Shape:</span>
+            <input
+              type="text"
+              value={shapeInput}
+              onChange={(e) => setShapeInput(e.target.value)}
+              onBlur={handleShapeSubmit}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleShapeSubmit(); }}
+              className="bg-transparent text-xs font-mono font-bold text-[#40d3b6] focus:outline-none w-28 text-center"
+              placeholder="e.g. 32, 3, 224, 224"
+            />
+          </div>
+
+          <div className="h-6 w-px bg-primary/10" />
+
           {/* Compile check manually triggers pipeline shape checker */}
           <Button
             variant="ghost"
-            onClick={() => validatePipeline([32, 3, 224, 224])}
-            className={`rounded-xl border hover:text-white transition-all text-xs font-bold ${
+            onClick={() => validatePipeline()}
+            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 ${
               validationStatus === 'success' 
                 ? 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10' 
                 : validationStatus === 'error'

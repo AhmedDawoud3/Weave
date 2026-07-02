@@ -334,22 +334,56 @@ export function DatasetPanel() {
   // Pre-initialize datasetConfig if it is null
   if (!datasetConfig) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
-        <Database className="w-12 h-12 text-[#40d3b6]/40 mb-4" />
-        <h3 className="text-sm font-bold text-white mb-2">Configure Input Pipeline</h3>
-        <p className="text-xs text-muted-foreground max-w-[240px] mb-6 leading-relaxed">
-          Set up a predefined dataset, load a folder of images, or configure custom modalities to seed your model canvas.
-        </p>
-        <div className="flex flex-col gap-2.5 w-full">
-          <Button onClick={() => setDatasetSource('predefined')} className="w-full bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] hover:text-white rounded-xl">
-            Predefined Dataset (MNIST, CIFAR)
-          </Button>
-          <Button onClick={() => setDatasetSource('image_folder')} className="w-full bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] hover:text-white rounded-xl">
-            Image Folder Path
-          </Button>
-          <Button onClick={() => setDatasetSource('custom')} className="w-full bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] hover:text-white rounded-xl">
-            Custom Tabular / Text / Audio
-          </Button>
+      <div className="flex-1 flex flex-col justify-center px-6 py-10 select-none bg-[#07070a]/90 overflow-y-auto no-scrollbar">
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center border border-primary/15 mb-4 shadow-[0_0_15px_rgba(64,211,182,0.05)]">
+            <Database className="w-6 h-6 text-[#40d3b6]" />
+          </div>
+          <h3 className="text-sm font-black text-white uppercase tracking-wider">Configure Dataset Pipeline</h3>
+          <p className="text-[10px] text-muted-foreground mt-2 max-w-[240px] leading-relaxed">
+            Choose a data ingestion source to feed your visual model canvas and compute batch shape propagation.
+          </p>
+        </div>
+
+        <div className="space-y-3.5">
+          <button
+            onClick={() => setDatasetSource('predefined')}
+            className="w-full text-left p-4 rounded-xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-[#40d3b6]/40 transition-all flex items-start gap-4 cursor-pointer group"
+          >
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-[#40d3b6] shrink-0 border border-primary/15 group-hover:scale-105 transition-transform">
+              <Database size={16} />
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-0.5">Predefined Catalogs</h4>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">MNIST, FashionMNIST, CIFAR-10, and CIFAR-100 built-in benchmarks.</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setDatasetSource('image_folder')}
+            className="w-full text-left p-4 rounded-xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-[#40d3b6]/40 transition-all flex items-start gap-4 cursor-pointer group"
+          >
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-[#40d3b6] shrink-0 border border-primary/15 group-hover:scale-105 transition-transform">
+              <Settings size={16} />
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-0.5">Local Image Folder</h4>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">Scan any local filesystem directory of structured raw image classes.</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setDatasetSource('custom')}
+            className="w-full text-left p-4 rounded-xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-[#40d3b6]/40 transition-all flex items-start gap-4 cursor-pointer group"
+          >
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-[#40d3b6] shrink-0 border border-primary/15 group-hover:scale-105 transition-transform">
+              <Plus size={16} />
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-0.5">Custom Ingestion</h4>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">Configure tabular CSV files, audio samples, or text data streams.</p>
+            </div>
+          </button>
         </div>
       </div>
     );
@@ -370,18 +404,30 @@ export function DatasetPanel() {
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {isInferringDatasetShape ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#40d3b6]" />
-            ) : inferredDatasetShape ? (
-              <span className="px-2 py-0.5 rounded-full bg-[#40d3b6]/10 border border-[#40d3b6]/30 text-[#40d3b6] text-[9px] font-black font-mono">
-                {datasetConfig.dataloader?.batch_size || 32} × {inferredDatasetShape.join(' × ')}
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] font-black">
-                SHAPE UNKNOWN
-              </span>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {isInferringDatasetShape ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#40d3b6]" />
+              ) : inferredDatasetShape ? (
+                <span className="px-2 py-0.5 rounded-full bg-[#40d3b6]/10 border border-[#40d3b6]/30 text-[#40d3b6] text-[9px] font-black font-mono">
+                  {datasetConfig.dataloader?.batch_size || 32} × {inferredDatasetShape.join(' × ')}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] font-black">
+                  SHAPE UNKNOWN
+                </span>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDatasetConfig(null)}
+              className="h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer transition-colors"
+              title="Reset dataset configuration"
+            >
+              <Trash2 size={12} />
+            </Button>
           </div>
         </div>
 

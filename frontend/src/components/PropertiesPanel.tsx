@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Node } from 'reactflow';
 import type { NodeData, LayerParams } from '../types';
+import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
 
 interface PropertiesPanelProps {
   selectedNode: Node<NodeData> | undefined;
@@ -26,6 +27,49 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
 
   const { type, params, label } = selectedNode.data;
 
+  const edges = useWeaveStore((state) => state.edges);
+  const allNodes = useWeaveStore((state) => state.nodes);
+
+  const getInducedValue = (paramKey: string): number | null => {
+    const incomingEdges = edges.filter(e => e.target === selectedNodeId);
+    if (incomingEdges.length !== 1) return null;
+    const incomingNode = allNodes.find(n => n.id === incomingEdges[0].source);
+    const incomingShape = incomingNode?.data?.outputShape;
+    const induced = getInducedParam(type, incomingShape);
+    if (induced && induced.key === paramKey) {
+      return induced.value;
+    }
+    return null;
+  };
+
+  const renderFieldWithInduction = (labelStr: string, key: string, defaultValue: number) => {
+    const inducedVal = getInducedValue(key);
+    const isInduced = inducedVal !== null;
+    const value = isInduced ? inducedVal : (params as any)[key] ?? defaultValue;
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{labelStr}</Label>
+          {isInduced && (
+            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-[#40d3b6] bg-[#40d3b6]/10 px-1.5 py-0.5 rounded border border-[#40d3b6]/20">
+              🔒 Induced
+            </span>
+          )}
+        </div>
+        <Input
+          type="number"
+          value={value}
+          disabled={isInduced}
+          onChange={(e) => handleParamChange(key, Number(e.target.value))}
+          className={`bg-background/40 border-primary/10 rounded-xl transition-all ${
+            isInduced ? 'opacity-65 cursor-not-allowed border-[#40d3b6]/30 text-[#40d3b6] font-extrabold font-mono' : ''
+          }`}
+        />
+      </div>
+    );
+  };
+
   const handleParamChange = (key: keyof LayerParams | string, value: any) => {
     onUpdateNodeParams(selectedNodeId, { [key]: value });
   };
@@ -36,15 +80,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
       case 'ConvTranspose2d':
         return (
           <>
-            <div className="space-y-2">
-              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Input Channels</Label>
-              <Input
-                type="number"
-                value={params.in_channels || 3}
-                onChange={(e) => handleParamChange('in_channels', Number(e.target.value))}
-                className="bg-background/40 border-primary/10 rounded-xl"
-              />
-            </div>
+            {renderFieldWithInduction('Input Channels', 'in_channels', 3)}
             <div className="space-y-2">
               <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Output Channels</Label>
               <Input
@@ -113,15 +149,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
       case 'Linear':
         return (
           <>
-            <div className="space-y-2">
-              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">In Features</Label>
-              <Input
-                type="number"
-                value={(params as any).in_features || 128}
-                onChange={(e) => handleParamChange('in_features', Number(e.target.value))}
-                className="bg-background/40 border-primary/10 rounded-xl"
-              />
-            </div>
+            {renderFieldWithInduction('In Features', 'in_features', 128)}
             <div className="space-y-2">
               <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Out Features</Label>
               <Input
@@ -228,17 +256,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
         );
 
       case 'BatchNorm2d':
-        return (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Num Features (Channels)</Label>
-            <Input
-              type="number"
-              value={(params as any).num_features || 16}
-              onChange={(e) => handleParamChange('num_features', Number(e.target.value))}
-              className="bg-background/40 border-primary/10 rounded-xl"
-            />
-          </div>
-        );
+        return renderFieldWithInduction('Num Features (Channels)', 'num_features', 16);
 
       case 'LayerNorm':
         return (
@@ -281,15 +299,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
                 className="bg-background/40 border-primary/10 rounded-xl"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Num Channels</Label>
-              <Input
-                type="number"
-                value={(params as any).num_channels || 16}
-                onChange={(e) => handleParamChange('num_channels', Number(e.target.value))}
-                className="bg-background/40 border-primary/10 rounded-xl"
-              />
-            </div>
+            {renderFieldWithInduction('Num Channels', 'num_channels', 16)}
           </>
         );
 
@@ -478,17 +488,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
         );
 
       case 'ChannelScaleBias':
-        return (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Num Features</Label>
-            <Input
-              type="number"
-              value={(params as any).num_features || 3}
-              onChange={(e) => handleParamChange('num_features', Number(e.target.value))}
-              className="bg-background/40 border-primary/10 rounded-xl"
-            />
-          </div>
-        );
+        return renderFieldWithInduction('Num Features', 'num_features', 3);
 
       case 'Slice':
         return (
