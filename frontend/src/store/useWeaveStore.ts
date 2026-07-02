@@ -188,8 +188,19 @@ const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubG
     });
   }
 
+  // Sort edges by target node ID and targetHandle (e.g. input_0, input_1)
+  // to ensure that the compiler gets multi-input operands in the exact visual ordering of the handles
+  const sortedEdges = [...edges].sort((a, b) => {
+    if (a.target === b.target) {
+      const handleA = a.targetHandle || '';
+      const handleB = b.targetHandle || '';
+      return handleA.localeCompare(handleB, undefined, { numeric: true, sensitivity: 'base' });
+    }
+    return a.target.localeCompare(b.target);
+  });
+
   // Map edges: if source is in inputNodeIds -> "input", if target is in outputNodeIds -> auto-routed
-  const formattedEdges = edges.map((e) => {
+  const formattedEdges = sortedEdges.map((e) => {
     let source = e.source;
     let target = e.target;
     if (inputNodeIds.includes(source)) {
@@ -836,9 +847,15 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     },
 
     connectEdges: (connection) => {
-      set((state) => ({
-        edges: addEdge({ ...connection, type: 'weave', animated: true }, state.edges)
-      }));
+      set((state) => {
+        // Disallow multiple inputs on the same handle: remove any existing edge pointing to this target node & target handle
+        const filteredEdges = state.edges.filter(
+          (e) => !(e.target === connection.target && (e.targetHandle === connection.targetHandle || (!e.targetHandle && !connection.targetHandle)))
+        );
+        return {
+          edges: addEdge({ ...connection, type: 'weave', animated: true }, filteredEdges)
+        };
+      });
       get().saveActiveSubGraph();
       get().validatePipeline();
     },

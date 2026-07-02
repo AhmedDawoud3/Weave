@@ -79,9 +79,13 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const updateNodeParams = useWeaveStore(state => state.updateNodeParams);
   const updateNodeLabel  = useWeaveStore(state => state.updateNodeLabel);
   const removeNode       = useWeaveStore(state => state.removeNode);
+  const removeEdge       = useWeaveStore(state => state.removeEdge);
   const activeSubGraphs  = useWeaveStore(state => state.activeSubGraphs);
   const edges            = useWeaveStore(state => state.edges);
   const allNodes         = useWeaveStore(state => state.nodes);
+
+  const incomingEdges = edges.filter(e => e.target === id);
+  const incomingEdgesCount = incomingEdges.length;
 
   const isMultiInput = ['Add', 'Concat', 'Multiply'].includes(data.type);
   const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(data.type);
@@ -138,7 +142,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   let sourceCount = 1;
   if (isInputNode)  { targetCount = 0; sourceCount = 1; }
   else if (isOutputNode) { targetCount = 1; sourceCount = 0; }
-  else if (isMultiInput) { targetCount = data.params?.input_count || 2; sourceCount = 1; }
+  else if (isMultiInput) { targetCount = Math.max(2, incomingEdgesCount + 1); sourceCount = 1; }
   else if (isBlock) {
     const sub = activeSubGraphs.find(s => s.id === data.params?.subgraph_id);
     if (sub) {
@@ -150,11 +154,6 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
       } catch { /* keep defaults */ }
     }
   }
-
-  const handleAddInput = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isMultiInput) updateNodeParams(id, { input_count: (data.params?.input_count || 2) + 1 });
-  };
 
   // ── colour themes ──────────────────────────────────────────────────────────
   let typeColor  = 'text-purple-400/90';
@@ -259,9 +258,6 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const fullFields = FULL_FIELDS[data.type] || [];
 
   // ── Calculate dynamic visual sorting of input handles to prevent crossed lines ──
-  const incomingEdges = edges.filter(e => e.target === id);
-  const incomingEdgesCount = incomingEdges.length;
-
   const handleSourceX = Array.from({ length: targetCount }).map((_, i) => {
     const targetHandleId = `input_${i}`;
     const edge = incomingEdges.find(e => e.targetHandle === targetHandleId || (targetCount === 1 && !e.targetHandle));
@@ -313,15 +309,6 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
       >
         ✕
       </button>
-
-      {/* ── + button for multi-input layers ── */}
-      {isMultiInput && incomingEdgesCount > 0 && (
-        <button
-          onClick={handleAddInput}
-          className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0e0e11] hover:bg-primary text-white hover:text-black font-extrabold flex items-center justify-center border border-primary/20 shadow-lg scale-0 group-hover:scale-100 transition-all duration-200 z-[60] text-[10px] cursor-pointer"
-          title="Add Input"
-        >+</button>
-      )}
 
       {/* ── Card ── */}
       <div className={`${cardBase} ${cardW} transition-all duration-200 overflow-hidden`}>
@@ -397,6 +384,35 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
                 {fullFields.length === 0 && (
                   <p className="text-[8px] text-neutral-500 italic text-center">No configurable parameters</p>
+                )}
+
+                {/* Incoming Connections Section */}
+                {incomingEdges.length > 0 && (
+                  <div className="space-y-1 border-t border-white/[0.05] pt-2 mt-2 text-left">
+                    <span className="text-[7.5px] text-neutral-400 font-extrabold uppercase tracking-wider block mb-1">Incoming Connections</span>
+                    <div className="space-y-1">
+                      {incomingEdges.map((edge) => {
+                        const sourceNode = allNodes.find(n => n.id === edge.source);
+                        const handleNum = edge.targetHandle ? edge.targetHandle.split('_')[1] : '0';
+                        const handleLabel = targetCount > 1 ? `Input ${Number(handleNum) + 1}` : 'Input';
+                        return (
+                          <div key={edge.id} className="flex items-center justify-between bg-black/45 rounded px-2 py-1 text-[9px] border border-white/[0.03]">
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-primary/75 text-[6.5px] font-black uppercase font-mono leading-none mb-0.5">{handleLabel}</span>
+                              <span className="text-white font-bold truncate max-w-[110px] leading-tight">{sourceNode?.data?.label || edge.source}</span>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeEdge(edge.id); }}
+                              className="nodrag w-4 h-4 rounded bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-[8px] font-bold shrink-0 ml-1"
+                              title="Disconnect"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
