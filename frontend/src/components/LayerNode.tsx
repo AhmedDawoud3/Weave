@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps, useUpdateNodeInternals } from 'reactflow';
 import { Network, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import type { NodeData } from '../types';
 import { useWeaveStore } from '../store/useWeaveStore';
@@ -83,6 +83,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const activeSubGraphs  = useWeaveStore(state => state.activeSubGraphs);
   const edges            = useWeaveStore(state => state.edges);
   const allNodes         = useWeaveStore(state => state.nodes);
+
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const incomingEdges = edges.filter(e => e.target === id);
   const incomingEdgesCount = incomingEdges.length;
@@ -275,6 +277,16 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   sortedHandles.forEach((h, rank) => {
     visualPositionMap.set(h.index, rank);
   });
+
+  const rankKey = Array.from({ length: targetCount })
+    .map((_, i) => visualPositionMap.get(i) ?? i)
+    .join(',');
+
+  // Force React Flow to recalculate handle offsets and redraw edges when handles move or scale
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, targetCount, rankKey, updateNodeInternals]);
+
   const baseW = isBlock ? 'min-w-[152px] max-w-[178px]' : 'min-w-[110px] max-w-[135px]';
   const expandedW = 'min-w-[190px] max-w-[210px]';
   const cardW = isExpanded ? expandedW : baseW;

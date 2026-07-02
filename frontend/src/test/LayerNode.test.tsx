@@ -7,6 +7,7 @@ import { LayerNode } from "@/components/LayerNode";
 vi.mock("reactflow", () => ({
   Handle: () => null,
   Position: { Top: "top", Bottom: "bottom" },
+  useUpdateNodeInternals: () => vi.fn(),
 }));
 
 // Cast to bypass reactflow's NodeProps type requirements in unit tests
