@@ -24,13 +24,28 @@ export type LayerType =
   | 'Add'
   | 'Concat'
   | 'Multiply'
+  | 'Sub'
+  | 'Div'
+  | 'Sqrt'
+  | 'Mean'
+  | 'Var'
+  | 'MatMul'
+  | 'Scale'
+  | 'ChannelScaleBias'
+  | 'Slice'
+  | 'CustomAutograd'
   // Template blocks
   | 'ResidualBlock'
   | 'TransformerEncoder'
   | 'MultiHeadAttention'
   | 'ConvBNReLU'
   | 'BottleneckBlock'
+  | 'BatchNorm2dManualBlock'
+  | 'AttentionManualBlock'
+  | 'RNNManualBlock'
+  | 'CustomAutogradManualBlock'
   | 'Block';
+
 
 export interface LayerParams {
   [key: string]: any;
@@ -58,6 +73,6 @@ export interface LayerParams {
   // Dropout
   p?: number;
 
-  // Softmax & Concat
-  dim?: number;
+  // Softmax & Concat & Mean/Var
+  dim?: number | number[];
 }

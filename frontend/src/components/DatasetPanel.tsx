@@ -41,6 +41,107 @@ export function DatasetPanel() {
   } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
+  // Path Scanner state
+  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  const [scanResult, setScanResult] = useState<any | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  // Dataset Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{
+    samples: any[];
+    total_size: number;
+    modality: string;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const handleScanPath = async (path: string, modality?: string) => {
+    if (!path) return;
+    setScanStatus('scanning');
+    setScanError(null);
+    setScanResult(null);
+    try {
+      const res = await api.engine.scanDataset(path, modality);
+      if (res.status === 'success') {
+        setScanStatus('success');
+        setScanResult(res.result);
+      } else {
+        setScanStatus('error');
+        setScanError(res.message || 'Scanning failed.');
+      }
+    } catch (err: any) {
+      setScanStatus('error');
+      setScanError(err.message || 'Error occurred while scanning path.');
+    }
+  };
+
+  const handleFetchPreview = async () => {
+    if (!datasetConfig) return;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const res = await api.engine.previewDataset(datasetConfig, 6);
+      if (res.status === 'success') {
+        let detectedModality = 'image';
+        if (datasetConfig.source === 'custom') {
+          detectedModality = datasetConfig.modality || 'image';
+        }
+        setPreviewResult({
+          samples: res.samples || [],
+          total_size: res.total_size || 0,
+          modality: detectedModality
+        });
+      } else {
+        setPreviewError(res.message || 'Failed to preview dataset.');
+      }
+    } catch (err: any) {
+      setPreviewError(err.message || 'Error loading dataset preview.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPreview) {
+      handleFetchPreview();
+    }
+  }, [showPreview, datasetConfig]);
+
+  // Reset scan and preview result on config/modality changes
+  const resetScanAndPreview = () => {
+    setScanStatus('idle');
+    setScanResult(null);
+    setScanError(null);
+    setPreviewResult(null);
+    setPreviewError(null);
+  };
+
+  const renderScanResults = () => {
+    if (scanStatus === 'idle') return null;
+    return (
+      <div className="mt-2 text-[10px] select-none font-mono">
+        {scanResult && (
+          <div className="p-3 bg-[#40d3b6]/5 border border-[#40d3b6]/15 rounded-xl text-[#40d3b6] leading-relaxed">
+            <div className="font-extrabold uppercase tracking-widest text-[9px] mb-1.5 border-b border-[#40d3b6]/10 pb-0.5">Scan Complete</div>
+            {scanResult.num_classes !== undefined && (
+              <div>Classes ({scanResult.num_classes}): {scanResult.classes?.slice(0, 5).join(', ')}{scanResult.classes?.length > 5 ? '...' : ''}</div>
+            )}
+            {scanResult.total_images !== undefined && <div>Total Images: {scanResult.total_images}</div>}
+            {scanResult.total_files !== undefined && <div>Total Files: {scanResult.total_files}</div>}
+            {scanResult.num_rows !== undefined && <div>Total Rows: {scanResult.num_rows}</div>}
+            {scanResult.columns !== undefined && <div className="truncate">Cols: {scanResult.columns.join(', ')}</div>}
+          </div>
+        )}
+        {scanError && (
+          <div className="p-3 bg-red-500/5 border border-red-500/15 rounded-xl text-red-400">
+            ❌ Scan failed: {scanError}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     async function loadCatalogs() {
       try {
@@ -84,6 +185,8 @@ export function DatasetPanel() {
   const handlePredefinedDatasetSelect = (datasetName: string) => {
     if (!datasetConfig || datasetConfig.source !== 'predefined') return;
     
+    resetScanAndPreview();
+
     // Choose appropriate default transforms
     let defaultTransforms: any[] = [{ type: 'ToTensor' }];
     if (datasetName === 'MNIST' || datasetName === 'FashionMNIST') {
@@ -114,6 +217,8 @@ export function DatasetPanel() {
   // Switch custom modality fields
   const handleCustomModalityChange = (modality: 'image' | 'text' | 'tabular' | 'audio') => {
     if (!datasetConfig || datasetConfig.source !== 'custom') return;
+
+    resetScanAndPreview();
 
     setDatasetConfig({
       ...datasetConfig,
@@ -382,7 +487,15 @@ export function DatasetPanel() {
                   className="flex-1 text-xs bg-black/40 border border-primary/20 rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
                   placeholder="e.g. /home/datasets/my_images"
                 />
+                <Button 
+                  onClick={() => handleScanPath(datasetConfig.root || '', 'image')} 
+                  disabled={scanStatus === 'scanning'}
+                  className="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] rounded-xl text-xs px-3 font-bold shrink-0"
+                >
+                  {scanStatus === 'scanning' ? <Loader2 size={12} className="animate-spin" /> : 'Scan'}
+                </Button>
               </div>
+              {renderScanResults()}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -439,13 +552,23 @@ export function DatasetPanel() {
               <div className="space-y-3.5">
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-[#40d3b6] font-extrabold uppercase">Root Path</span>
-                  <input
-                    type="text"
-                    value={datasetConfig.root || ''}
-                    onChange={(e) => setDatasetConfig({ ...datasetConfig, root: e.target.value })}
-                    className="text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
-                    placeholder="Image folder path"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={datasetConfig.root || ''}
+                      onChange={(e) => setDatasetConfig({ ...datasetConfig, root: e.target.value })}
+                      className="flex-1 text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
+                      placeholder="Image folder path"
+                    />
+                    <Button 
+                      onClick={() => handleScanPath(datasetConfig.root || '', 'image')} 
+                      disabled={scanStatus === 'scanning'}
+                      className="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] rounded-xl text-xs px-3 h-8 font-bold shrink-0"
+                    >
+                      {scanStatus === 'scanning' ? <Loader2 size={12} className="animate-spin" /> : 'Scan'}
+                    </Button>
+                  </div>
+                  {renderScanResults()}
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -519,13 +642,23 @@ export function DatasetPanel() {
               <div className="space-y-3.5">
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-[#40d3b6] font-extrabold uppercase">CSV/Text File Path</span>
-                  <input
-                    type="text"
-                    value={datasetConfig.file_path || ''}
-                    onChange={(e) => setDatasetConfig({ ...datasetConfig, file_path: e.target.value })}
-                    className="text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
-                    placeholder="Path to dataset file"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={datasetConfig.file_path || ''}
+                      onChange={(e) => setDatasetConfig({ ...datasetConfig, file_path: e.target.value })}
+                      className="flex-1 text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
+                      placeholder="Path to dataset file"
+                    />
+                    <Button 
+                      onClick={() => handleScanPath(datasetConfig.file_path || '', 'text')} 
+                      disabled={scanStatus === 'scanning'}
+                      className="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] rounded-xl text-xs px-3 h-8 font-bold shrink-0"
+                    >
+                      {scanStatus === 'scanning' ? <Loader2 size={12} className="animate-spin" /> : 'Scan'}
+                    </Button>
+                  </div>
+                  {renderScanResults()}
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-muted-foreground uppercase">Text Column</span>
@@ -564,13 +697,23 @@ export function DatasetPanel() {
               <div className="space-y-3.5">
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-[#40d3b6] font-extrabold uppercase">CSV File Path</span>
-                  <input
-                    type="text"
-                    value={datasetConfig.file_path || ''}
-                    onChange={(e) => setDatasetConfig({ ...datasetConfig, file_path: e.target.value })}
-                    className="text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
-                    placeholder="Path to tabular file"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={datasetConfig.file_path || ''}
+                      onChange={(e) => setDatasetConfig({ ...datasetConfig, file_path: e.target.value })}
+                      className="flex-1 text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
+                      placeholder="Path to tabular file"
+                    />
+                    <Button 
+                      onClick={() => handleScanPath(datasetConfig.file_path || '', 'tabular')} 
+                      disabled={scanStatus === 'scanning'}
+                      className="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] rounded-xl text-xs px-3 h-8 font-bold shrink-0"
+                    >
+                      {scanStatus === 'scanning' ? <Loader2 size={12} className="animate-spin" /> : 'Scan'}
+                    </Button>
+                  </div>
+                  {renderScanResults()}
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-muted-foreground uppercase">Target Column</span>
@@ -602,13 +745,23 @@ export function DatasetPanel() {
               <div className="space-y-3.5">
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] text-[#40d3b6] font-extrabold uppercase">Audio Folder Path</span>
-                  <input
-                    type="text"
-                    value={datasetConfig.root || ''}
-                    onChange={(e) => setDatasetConfig({ ...datasetConfig, root: e.target.value })}
-                    className="text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
-                    placeholder="Root directory of audio files"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={datasetConfig.root || ''}
+                      onChange={(e) => setDatasetConfig({ ...datasetConfig, root: e.target.value })}
+                      className="flex-1 text-xs bg-black/40 border border-primary/20 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
+                      placeholder="Root directory of audio files"
+                    />
+                    <Button 
+                      onClick={() => handleScanPath(datasetConfig.root || '', 'audio')} 
+                      disabled={scanStatus === 'scanning'}
+                      className="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-[#40d3b6] rounded-xl text-xs px-3 h-8 font-bold shrink-0"
+                    >
+                      {scanStatus === 'scanning' ? <Loader2 size={12} className="animate-spin" /> : 'Scan'}
+                    </Button>
+                  </div>
+                  {renderScanResults()}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
@@ -984,6 +1137,116 @@ export function DatasetPanel() {
                   )}
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2h. Dataset Preview Drawer */}
+        <div className="border border-white/5 bg-white/[0.01] rounded-xl overflow-hidden mt-4">
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="w-full flex items-center justify-between p-4 text-xs font-black text-white hover:text-[#40d3b6] tracking-wider uppercase transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <Database size={14} className="text-primary/70" />
+              <span>Dataset Preview</span>
+            </div>
+            {showPreview ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {showPreview && (
+            <div className="p-4 border-t border-white/5 space-y-4 max-h-[300px] overflow-y-auto no-scrollbar select-none text-left">
+              {previewLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#40d3b6]" />
+                  Loading samples...
+                </div>
+              )}
+
+              {previewError && (
+                <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg leading-relaxed">
+                  ❌ {previewError}
+                </div>
+              )}
+
+              {!previewLoading && !previewError && previewResult && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground font-bold uppercase">
+                    <span>Total Size: {previewResult.total_size} samples</span>
+                    <span>Modality: {previewResult.modality}</span>
+                  </div>
+
+                  {previewResult.samples.length === 0 ? (
+                    <div className="text-[10px] text-muted-foreground italic text-center py-4">
+                      No sample records returned.
+                    </div>
+                  ) : previewResult.modality === 'image' ? (
+                    /* Image Grid Preview */
+                    <div className="grid grid-cols-3 gap-2">
+                      {previewResult.samples.map((sample, idx) => (
+                        <div key={idx} className="relative aspect-square bg-black/40 border border-primary/10 rounded-lg overflow-hidden flex flex-col justify-end">
+                          {sample.thumbnail ? (
+                            <img src={sample.thumbnail} className="absolute inset-0 w-full h-full object-cover" alt={`sample-${idx}`} />
+                          ) : (
+                            <span className="text-[8px] text-muted-foreground text-center mb-auto mt-auto">No Img</span>
+                          )}
+                          <span className="bg-black/80 px-1 py-0.5 text-[8px] font-mono text-[#40d3b6] z-10 truncate text-center">
+                            L: {sample.label !== undefined ? sample.label : 'N/A'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : previewResult.modality === 'tabular' ? (
+                    /* Tabular List Preview */
+                    <div className="space-y-1.5 font-mono text-[9px] max-h-48 overflow-y-auto">
+                      {previewResult.samples.map((sample, idx) => (
+                        <div key={idx} className="p-2 bg-black/30 border border-primary/10 rounded-lg flex flex-col gap-0.5">
+                          <div className="flex justify-between font-bold text-white border-b border-primary/5 pb-1">
+                            <span>Record #{idx + 1}</span>
+                            <span className="text-[#40d3b6]">Target: {sample.label}</span>
+                          </div>
+                          <div className="text-muted-foreground/90 pt-1 leading-normal">
+                            {Array.isArray(sample.features) ? (
+                              <div className="truncate">Features: [{sample.features.slice(0, 8).join(', ')}{sample.features.length > 8 ? '...' : ''}]</div>
+                            ) : (
+                              <div className="break-all">{JSON.stringify(sample.features || sample)}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : previewResult.modality === 'text' ? (
+                    /* Text Snippets Preview */
+                    <div className="space-y-1.5 font-mono text-[9px] max-h-48 overflow-y-auto font-sans">
+                      {previewResult.samples.map((sample, idx) => (
+                        <div key={idx} className="p-2 bg-black/30 border border-primary/10 rounded-lg flex flex-col gap-1">
+                          <div className="flex justify-between font-bold text-white border-b border-primary/5 pb-1">
+                            <span>Text sample #{idx + 1}</span>
+                            <span className="text-[#40d3b6]">Label: {sample.label}</span>
+                          </div>
+                          <div className="text-muted-foreground/90 whitespace-pre-wrap leading-relaxed select-text">
+                            {sample.text || JSON.stringify(sample)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* General/Audio waveform stats preview */
+                    <div className="space-y-1.5 font-mono text-[9px]">
+                      {previewResult.samples.map((sample, idx) => (
+                        <div key={idx} className="p-2 bg-black/30 border border-primary/10 rounded-lg">
+                          <div className="font-bold text-white mb-1">Sample #{idx + 1} (Label: {sample.label})</div>
+                          <div className="text-muted-foreground leading-normal pl-1 space-y-0.5">
+                            {Object.entries(sample).filter(([k]) => k !== 'label').map(([k, v]) => (
+                              <div key={k} className="truncate">{k}: {JSON.stringify(v)}</div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

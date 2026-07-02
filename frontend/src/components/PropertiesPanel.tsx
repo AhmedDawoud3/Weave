@@ -323,7 +323,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
             <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Dimension (dim)</Label>
             <Input
               type="number"
-              value={params.dim !== undefined ? params.dim : 1}
+              value={typeof params.dim === 'number' ? params.dim : (Array.isArray(params.dim) ? params.dim[0] : 1)}
               onChange={(e) => handleParamChange('dim', Number(e.target.value))}
               className="bg-background/40 border-primary/10 rounded-xl"
             />
@@ -336,7 +336,7 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
             <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Dimension (dim)</Label>
             <Input
               type="number"
-              value={params.dim !== undefined ? params.dim : -1}
+              value={typeof params.dim === 'number' ? params.dim : (Array.isArray(params.dim) ? params.dim[0] : -1)}
               onChange={(e) => handleParamChange('dim', Number(e.target.value))}
               className="bg-background/40 border-primary/10 rounded-xl"
             />
@@ -373,10 +373,10 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
             <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Target Shape (comma-separated)</Label>
             <Input
               type="text"
-              value={Array.isArray((params as any).shape) ? (params as any).shape.join(', ') : ''}
+              value={Array.isArray((params as any).target_shape) ? (params as any).target_shape.join(', ') : ''}
               onChange={(e) => {
                 const parts = e.target.value.split(',').map(v => v.trim()).filter(Boolean).map(Number);
-                handleParamChange('shape', parts);
+                handleParamChange('target_shape', parts);
               }}
               className="bg-background/40 border-primary/10 rounded-xl"
               placeholder="e.g. -1, 64"

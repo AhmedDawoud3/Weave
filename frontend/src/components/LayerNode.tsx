@@ -69,7 +69,7 @@ export function LayerNode({ id, data, selected }: NodeProps<NodeData> & { select
   const activeSubGraphs  = useWeaveStore(state => state.activeSubGraphs);
 
   const isMultiInput = ['Add', 'Concat', 'Multiply'].includes(data.type);
-  const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'].includes(data.type);
+  const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(data.type);
   const isInputNode  = data.type === 'InputNode';
   const isOutputNode = data.type === 'OutputNode';
 

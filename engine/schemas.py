@@ -1034,6 +1034,7 @@ class ExportResponse(BaseModel):
     status: str
     output_path: str
     message: str | None = None
+    code: str | None = None
 
 
 # --- Inference ---------------------------------------------------------------

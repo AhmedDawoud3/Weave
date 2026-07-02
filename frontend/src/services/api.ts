@@ -220,25 +220,120 @@ export const api = {
       return handleResponse(res);
     },
 
-    exportPyTorch: async (graphDto: any) => {
+    exportPyTorch: async (
+      graphDto: any,
+      inputShape: number[] = [1, 10],
+      checkpointPath: string = "data/checkpoints/best.pt",
+      outputPath: string = "data/exports/model.pt"
+    ) => {
       const url = `${engineBaseUrl}/export/pytorch`;
       const res = await fetch(url, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ graph: graphDto }),
+        body: JSON.stringify({
+          graph: graphDto,
+          input_shape: inputShape,
+          checkpoint_path: checkpointPath,
+          output_path: outputPath,
+        }),
       });
       return handleResponse(res);
     },
 
-    exportONNX: async (graphDto: any, inputShape: number[]) => {
+    exportONNX: async (
+      graphDto: any,
+      inputShape: number[],
+      checkpointPath: string = "data/checkpoints/best.pt",
+      outputPath: string = "data/exports/model.onnx"
+    ) => {
       const url = `${engineBaseUrl}/export/onnx`;
       const res = await fetch(url, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ graph: graphDto, input_shape: inputShape }),
+        body: JSON.stringify({
+          graph: graphDto,
+          input_shape: inputShape,
+          checkpoint_path: checkpointPath,
+          output_path: outputPath,
+        }),
       });
       return handleResponse(res);
     },
+
+    exportTorchScript: async (
+      graphDto: any,
+      inputShape: number[],
+      checkpointPath: string = "data/checkpoints/best.pt",
+      outputPath: string = "data/exports/model.ts"
+    ) => {
+      const url = `${engineBaseUrl}/export/torchscript`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          graph: graphDto,
+          input_shape: inputShape,
+          checkpoint_path: checkpointPath,
+          output_path: outputPath,
+        }),
+      });
+      return handleResponse(res);
+    },
+
+    scanDataset: async (path: string, modality?: string) => {
+      const url = `${engineBaseUrl}/datasets/scan`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ path, modality: modality || null }),
+      });
+      return handleResponse(res);
+    },
+
+    previewDataset: async (datasetConfig: any, numSamples: number = 5) => {
+      const url = `${engineBaseUrl}/datasets/preview`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ dataset_config: datasetConfig, num_samples: numSamples }),
+      });
+      return handleResponse(res);
+    },
+
+    predictInference: async (graphDto: any, inputData: number[][]) => {
+      const url = `${engineBaseUrl}/inference/predict`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          graph: graphDto,
+          checkpoint_path: "data/checkpoints/best.pt",
+          input: inputData
+        }),
+      });
+      return handleResponse(res);
+    },
+
+    compareExperiments: async (runIds: string[], metrics: string[]) => {
+      const url = `${engineBaseUrl}/experiments/compare`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ run_ids: runIds, metrics }),
+      });
+      return handleResponse(res);
+    },
+
+    suggestMetrics: async (taskType: string, numClasses: number) => {
+      const url = `${engineBaseUrl}/metrics/suggest`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ task_type: taskType, num_classes: numClasses }),
+      });
+      return handleResponse(res);
+    },
+
 
     streamTraining: (runId: string, onEvent: (data: any) => void, onError: (err: any) => void) => {
       const url = `${engineBaseUrl}/training/stream/${runId}`;

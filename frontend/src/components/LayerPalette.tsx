@@ -39,19 +39,19 @@ const CATEGORIES: LayerCategory[] = [
     name: "Activations",
     colorClass: "border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:border-emerald-400/40 hover:bg-emerald-500/10 hover:shadow-[0_0_8px_rgba(16,185,129,0.15)]",
     icon: Cpu,
-    types: ['ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax']
+    types: ['ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax', 'CustomAutograd']
   },
   {
     name: "Shape & Reg",
     colorClass: "border-blue-500/30 text-blue-400 bg-blue-500/5 hover:border-blue-400/40 hover:bg-blue-500/10 hover:shadow-[0_0_8px_rgba(59,130,246,0.15)]",
     icon: Maximize,
-    types: ['Flatten', 'Reshape', 'Permute', 'Dropout', 'Dropout2d']
+    types: ['Flatten', 'Reshape', 'Permute', 'Dropout', 'Dropout2d', 'Slice']
   },
   {
     name: "Ops",
     colorClass: "border-orange-500/30 text-orange-400 bg-orange-500/5 hover:border-orange-400/40 hover:bg-orange-500/10 hover:shadow-[0_0_8px_rgba(249,115,22,0.15)]",
     icon: Cpu,
-    types: ['Add', 'Concat', 'Multiply']
+    types: ['Add', 'Concat', 'Multiply', 'Sub', 'Div', 'Sqrt', 'Mean', 'Var', 'MatMul', 'Scale', 'ChannelScaleBias']
   }
 ];
 
@@ -59,7 +59,7 @@ const BLOCKS_CATEGORY: LayerCategory = {
   name: "Blocks",
   colorClass: "border-indigo-500/40 text-indigo-400 bg-indigo-500/5 hover:border-indigo-400/50 hover:bg-indigo-500/10 hover:shadow-[0_0_10px_rgba(99,102,241,0.2)] ring-1 ring-indigo-500/25",
   icon: Layers,
-  types: ['ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock']
+  types: ['ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock']
 };
 
 export function LayerPalette() {

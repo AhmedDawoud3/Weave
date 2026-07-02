@@ -30,6 +30,14 @@ from schemas import (
     SubNode,
     TanhNode,
     VarNode,
+    ConvTranspose2dNode,
+    AvgPool2dNode,
+    EmbeddingNode,
+    LayerNormNode,
+    GroupNormNode,
+    SigmoidNode,
+    DropoutNode,
+    Dropout2dNode,
 )
 
 from .modules import (
@@ -398,3 +406,76 @@ def _build_reshape(node: NodeConfig) -> nn.Module:
         raise ValueError("Expected Reshape")
     p = node.params
     return ReshapeModule(target_shape=p.target_shape)
+
+
+@ComponentFactory.register("ConvTranspose2d")
+def _build_convtranspose2d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, ConvTranspose2dNode):
+        raise ValueError("Expected ConvTranspose2d")
+    p = node.params
+    return nn.ConvTranspose2d(
+        p.in_channels,
+        p.out_channels,
+        p.kernel_size,
+        p.stride,
+        p.padding,
+        p.output_padding,
+        p.bias,
+    )
+
+
+@ComponentFactory.register("AvgPool2d")
+def _build_avgpool2d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, AvgPool2dNode):
+        raise ValueError("Expected AvgPool2d")
+    p = node.params
+    return nn.AvgPool2d(p.kernel_size, p.stride, p.padding)
+
+
+@ComponentFactory.register("Embedding")
+def _build_embedding(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, EmbeddingNode):
+        raise ValueError("Expected Embedding")
+    p = node.params
+    return nn.Embedding(p.num_embeddings, p.embedding_dim, p.padding_idx)
+
+
+@ComponentFactory.register("LayerNorm")
+def _build_layernorm(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, LayerNormNode):
+        raise ValueError("Expected LayerNorm")
+    p = node.params
+    norm_shape = tuple(p.normalized_shape) if isinstance(p.normalized_shape, list) else p.normalized_shape
+    return nn.LayerNorm(norm_shape, p.eps)
+
+
+@ComponentFactory.register("GroupNorm")
+def _build_groupnorm(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, GroupNormNode):
+        raise ValueError("Expected GroupNorm")
+    p = node.params
+    return nn.GroupNorm(p.num_groups, p.num_channels, p.eps)
+
+
+@ComponentFactory.register("Sigmoid")
+def _build_sigmoid(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SigmoidNode):
+        raise ValueError("Expected Sigmoid")
+    return nn.Sigmoid()
+
+
+@ComponentFactory.register("Dropout")
+def _build_dropout(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, DropoutNode):
+        raise ValueError("Expected Dropout")
+    p = node.params
+    return nn.Dropout(p.p, p.inplace)
+
+
+@ComponentFactory.register("Dropout2d")
+def _build_dropout2d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, Dropout2dNode):
+        raise ValueError("Expected Dropout2d")
+    p = node.params
+    return nn.Dropout2d(p.p, p.inplace)
+

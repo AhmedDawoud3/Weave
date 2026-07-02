@@ -56,6 +56,7 @@ interface WeaveState {
   addSubgraphOutput: (nodeId: string) => Promise<void>;
   validatePipeline: (inputShape?: number[]) => Promise<void>;
   saveActiveSubGraph: () => Promise<void>;
+  getFormattedGraph: () => { nodes: any[]; edges: any[] };
 
   // Training Runner
   isTraining: boolean;
@@ -105,13 +106,23 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   Tanh: {},
   Softmax: { dim: -1 },
   Flatten: { start_dim: 1, end_dim: -1 },
-  Reshape: { shape: [-1, 64] },
+  Reshape: { target_shape: [-1, 64] },
   Permute: { dims: [0, 2, 3, 1] },
   Dropout: { p: 0.5 },
   Dropout2d: { p: 0.5 },
   Add: {},
   Concat: { dim: 1 },
   Multiply: {},
+  Sub: {},
+  Div: {},
+  Sqrt: {},
+  Mean: { dim: [0, 2, 3], keepdim: true },
+  Var: { dim: [0, 2, 3], keepdim: true, unbiased: false },
+  MatMul: {},
+  Scale: { value: 1.0 },
+  ChannelScaleBias: { num_features: 3 },
+  Slice: { dim: 1, index: 0 },
+  CustomAutograd: { forward_code: 'def forward(x):\n    return x', backward_code: 'def backward(x, grad_output):\n    return grad_output' },
   InputNode: {},
   OutputNode: {},
   // Templates blocks default empty params
@@ -120,6 +131,10 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   MultiHeadAttention: {},
   ConvBNReLU: {},
   BottleneckBlock: {},
+  BatchNorm2dManualBlock: {},
+  AttentionManualBlock: {},
+  RNNManualBlock: {},
+  CustomAutogradManualBlock: {},
   Block: {}
 };
 
@@ -132,7 +147,7 @@ const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubG
   const formattedNodes = nodes
     .filter(n => n.data.type !== 'InputNode' && n.data.type !== 'OutputNode')
     .map((n) => {
-      if (['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'].includes(n.data.type)) {
+      if (['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(n.data.type)) {
         // Resolve child subgraph
         const subId = n.data.params?.subgraph_id;
         const sub = activeSubGraphs.find(s => s.id === subId);
@@ -539,7 +554,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
     addNode: async (type, position) => {
-      const isBlockType = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'].includes(type);
+      const isBlockType = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(type);
       let subgraphId: string | undefined = undefined;
 
       if (isBlockType) {
@@ -581,6 +596,108 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
                 { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
                 { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
                 { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: 'output_node', animated: true }
+              ];
+            } else if (type === 'BatchNorm2dManualBlock') {
+              initialNodes = [
+                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+                { id: `mean_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Mean', label: 'Mean', params: { dim: [0, 2, 3], keepdim: true } } },
+                { id: `x_sub_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Sub', label: 'Sub', params: {} } },
+                { id: `var_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Var', label: 'Var', params: { dim: [0, 2, 3], keepdim: true, unbiased: false } } },
+                { id: `std_${Date.now()}`, type: 'layer', position: { x: 400, y: 250 }, data: { type: 'Sqrt', label: 'Sqrt', params: { eps: 1e-5 } } },
+                { id: `x_norm_${Date.now()}`, type: 'layer', position: { x: 250, y: 350 }, data: { type: 'Div', label: 'Div', params: {} } },
+                { id: `scale_bias_${Date.now()}`, type: 'layer', position: { x: 250, y: 450 }, data: { type: 'ChannelScaleBias', label: 'Scale Bias', params: { num_features: 3 } } },
+                { id: 'output_node', type: 'layer', position: { x: 250, y: 550 }, data: { type: 'OutputNode', label: 'Output' } }
+              ];
+              initialEdges = [
+                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_3`, source: initialNodes[1].id, target: initialNodes[2].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_4`, source: 'input_node', target: initialNodes[3].id, animated: true },
+                { id: `e_${Date.now()}_5`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
+                { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_7`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_8`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
+                { id: `e_${Date.now()}_9`, source: initialNodes[6].id, target: 'output_node', animated: true }
+              ];
+            } else if (type === 'AttentionManualBlock') {
+              initialNodes = [
+                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+                { id: `q_proj_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Linear', label: 'Query Proj', params: { in_features: 8, out_features: 8 } } },
+                { id: `k_proj_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'Linear', label: 'Key Proj', params: { in_features: 8, out_features: 8 } } },
+                { id: `v_proj_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Linear', label: 'Value Proj', params: { in_features: 8, out_features: 8 } } },
+                { id: `k_trans_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Permute', label: 'Key Transpose', params: { dims: [0, 2, 1] } } },
+                { id: `scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 350 }, data: { type: 'MatMul', label: 'Scores MatMul', params: {} } },
+                { id: `scaled_scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 430 }, data: { type: 'Scale', label: 'Scale Scores', params: { value: 0.35355339 } } },
+                { id: `attn_weights_${Date.now()}`, type: 'layer', position: { x: 175, y: 510 }, data: { type: 'Softmax', label: 'Softmax', params: { dim: -1 } } },
+                { id: `context_${Date.now()}`, type: 'layer', position: { x: 300, y: 600 }, data: { type: 'MatMul', label: 'Context MatMul', params: {} } },
+                { id: `out_proj_${Date.now()}`, type: 'layer', position: { x: 300, y: 700 }, data: { type: 'Linear', label: 'Output Proj', params: { in_features: 8, out_features: 8 } } },
+                { id: 'output_node', type: 'layer', position: { x: 300, y: 800 }, data: { type: 'OutputNode', label: 'Output' } }
+              ];
+              initialEdges = [
+                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
+                { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
+                { id: `e_${Date.now()}_4`, source: initialNodes[2].id, target: initialNodes[4].id, animated: true },
+                { id: `e_${Date.now()}_5`, source: initialNodes[1].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_6`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
+                { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[7].id, animated: true },
+                { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_10`, source: initialNodes[3].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_11`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
+                { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: 'output_node', animated: true }
+              ];
+            } else if (type === 'RNNManualBlock') {
+              initialNodes = [
+                { id: 'input_node', type: 'layer', position: { x: 300, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+                { id: `slice_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Slice', label: 'Slice 0', params: { dim: 1, index: 0 } } },
+                { id: `slice_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 150 }, data: { type: 'Slice', label: 'Slice 1', params: { dim: 1, index: 1 } } },
+                { id: `slice_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 150 }, data: { type: 'Slice', label: 'Slice 2', params: { dim: 1, index: 2 } } },
+                { id: `i2h_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 0', params: { in_features: 4, out_features: 6 } } },
+                { id: `h0_${Date.now()}`, type: 'layer', position: { x: 100, y: 350 }, data: { type: 'Tanh', label: 'Hidden 0', params: {} } },
+                { id: `i2h_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 1', params: { in_features: 4, out_features: 6 } } },
+                { id: `h2h_1_${Date.now()}`, type: 'layer', position: { x: 200, y: 350 }, data: { type: 'Linear', label: 'Hidden to Hidden 1', params: { in_features: 6, out_features: 6 } } },
+                { id: `add_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 450 }, data: { type: 'Add', label: 'Add 1', params: {} } },
+                { id: `h1_${Date.now()}`, type: 'layer', position: { x: 300, y: 530 }, data: { type: 'Tanh', label: 'Hidden 1', params: {} } },
+                { id: `i2h_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 2', params: { in_features: 4, out_features: 6 } } },
+                { id: `h2h_2_${Date.now()}`, type: 'layer', position: { x: 400, y: 530 }, data: { type: 'Linear', label: 'Hidden to Hidden 2', params: { in_features: 6, out_features: 6 } } },
+                { id: `add_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 630 }, data: { type: 'Add', label: 'Add 2', params: {} } },
+                { id: `h2_${Date.now()}`, type: 'layer', position: { x: 500, y: 710 }, data: { type: 'Tanh', label: 'Hidden 2', params: {} } },
+                { id: `concat_h_${Date.now()}`, type: 'layer', position: { x: 300, y: 810 }, data: { type: 'Concat', label: 'Concat Hidden', params: { dim: 1 } } },
+                { id: `reshape_out_${Date.now()}`, type: 'layer', position: { x: 300, y: 900 }, data: { type: 'Reshape', label: 'Reshape Out', params: { target_shape: [-1, 3, 6] } } },
+                { id: 'output_node', type: 'layer', position: { x: 300, y: 990 }, data: { type: 'OutputNode', label: 'Output' } }
+              ];
+              initialEdges = [
+                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
+                { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
+                { id: `e_${Date.now()}_4`, source: initialNodes[1].id, target: initialNodes[4].id, animated: true },
+                { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: initialNodes[5].id, animated: true },
+                { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[6].id, animated: true },
+                { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[7].id, animated: true },
+                { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_10`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
+                { id: `e_${Date.now()}_11`, source: initialNodes[3].id, target: initialNodes[10].id, animated: true },
+                { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: initialNodes[11].id, animated: true },
+                { id: `e_${Date.now()}_13`, source: initialNodes[10].id, target: initialNodes[12].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_14`, source: initialNodes[11].id, target: initialNodes[12].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_15`, source: initialNodes[12].id, target: initialNodes[13].id, animated: true },
+                { id: `e_${Date.now()}_16`, source: initialNodes[5].id, target: initialNodes[14].id, targetHandle: 'input_0', animated: true },
+                { id: `e_${Date.now()}_17`, source: initialNodes[9].id, target: initialNodes[14].id, targetHandle: 'input_1', animated: true },
+                { id: `e_${Date.now()}_18`, source: initialNodes[13].id, target: initialNodes[14].id, targetHandle: 'input_2', animated: true },
+                { id: `e_${Date.now()}_19`, source: initialNodes[14].id, target: initialNodes[15].id, animated: true },
+                { id: `e_${Date.now()}_20`, source: initialNodes[15].id, target: 'output_node', animated: true }
+              ];
+            } else if (type === 'CustomAutogradManualBlock') {
+              initialNodes = [
+                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+                { id: `custom_act_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'CustomAutograd', label: 'Custom Activation', params: { forward_code: "def forward(x):\n    return x * x", backward_code: "def backward(x, y, grad_output):\n    return grad_output * 2.0 * x" } } },
+                { id: 'output_node', type: 'layer', position: { x: 250, y: 250 }, data: { type: 'OutputNode', label: 'Output' } }
+              ];
+              initialEdges = [
+                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+                { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: 'output_node', animated: true }
               ];
             } else {
               initialNodes = [
@@ -871,6 +988,11 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           set({ isSavingGraph: false });
         }
       }, 1500); // 1.5s debounce
+    },
+
+    getFormattedGraph: () => {
+      const { nodes, edges, activeSubGraphs } = get();
+      return formatGraphForEngine(nodes, edges, activeSubGraphs);
     },
 
     // Training Runner State

@@ -10,13 +10,24 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ onClose }: ExportModalProps) {
-  const { nodes, edges } = useWeaveStore();
-  const [activeTab, setActiveTab] = useState<'pytorch' | 'onnx'>('pytorch');
+  const { inferredDatasetShape, getFormattedGraph } = useWeaveStore();
+  const [activeTab, setActiveTab] = useState<'pytorch' | 'onnx' | 'torchscript'>('pytorch');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [compileShape, setCompileShape] = useState(() => {
+    if (inferredDatasetShape) {
+      return [1, ...inferredDatasetShape].join(', ');
+    }
+    return '1, 3, 224, 224';
+  });
+
   const [onnxStatus, setOnnxStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
   const [onnxError, setOnnxError] = useState<string | null>(null);
+
+  const [tsStatus, setTsStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
+  const [tsError, setTsError] = useState<string | null>(null);
 
   // Compile PyTorch on mount / tab swap
   useEffect(() => {
@@ -25,17 +36,10 @@ export function ExportModal({ onClose }: ExportModalProps) {
     }
   }, [activeTab]);
 
-  const getGraphDto = () => {
-    return {
-      nodes: nodes.map(n => ({ id: n.id, type: n.data.type, params: n.data.params })),
-      edges: edges.map(e => ({ source: e.source, target: e.target }))
-    };
-  };
-
   const fetchPyTorch = async () => {
     setLoading(true);
     try {
-      const res = await api.engine.exportPyTorch(getGraphDto());
+      const res = await api.engine.exportPyTorch(getFormattedGraph());
       setCode(res.code || '');
     } catch (err: any) {
       setCode(`# Failed to export compiled PyTorch model.\n# Error: ${err.message}`);
@@ -50,16 +54,20 @@ export function ExportModal({ onClose }: ExportModalProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const parseShape = (shapeStr: string): number[] => {
+    return shapeStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  };
+
   const handleDownloadONNX = async () => {
     setOnnxStatus('compiling');
     setOnnxError(null);
     try {
-      const res = await api.engine.exportONNX(getGraphDto(), [32, 3, 224, 224]);
+      const parsedShape = parseShape(compileShape);
+      const res = await api.engine.exportONNX(getFormattedGraph(), parsedShape);
       if (res.status === 'success') {
         setOnnxStatus('success');
-        // Trigger download of mock binary or point to path
-        if (res.filepath) {
-          const dlUrl = `${import.meta.env.VITE_ENGINE_URL || 'http://localhost:8000'}/download/onnx?path=${encodeURIComponent(res.filepath)}`;
+        if (res.output_path) {
+          const dlUrl = `${import.meta.env.VITE_ENGINE_URL || 'http://localhost:8000'}/download?path=${encodeURIComponent(res.output_path)}`;
           window.open(dlUrl, '_blank');
         }
       } else {
@@ -69,6 +77,28 @@ export function ExportModal({ onClose }: ExportModalProps) {
     } catch (err: any) {
       setOnnxStatus('error');
       setOnnxError(err.message || 'Unable to export ONNX model.');
+    }
+  };
+
+  const handleDownloadTorchScript = async () => {
+    setTsStatus('compiling');
+    setTsError(null);
+    try {
+      const parsedShape = parseShape(compileShape);
+      const res = await api.engine.exportTorchScript(getFormattedGraph(), parsedShape);
+      if (res.status === 'success') {
+        setTsStatus('success');
+        if (res.output_path) {
+          const dlUrl = `${import.meta.env.VITE_ENGINE_URL || 'http://localhost:8000'}/download?path=${encodeURIComponent(res.output_path)}`;
+          window.open(dlUrl, '_blank');
+        }
+      } else {
+        setTsStatus('error');
+        setTsError(res.message || 'TorchScript compilation failed.');
+      }
+    } catch (err: any) {
+      setTsStatus('error');
+      setTsError(err.message || 'Unable to export TorchScript model.');
     }
   };
 
@@ -116,7 +146,34 @@ export function ExportModal({ onClose }: ExportModalProps) {
           >
             <Terminal size={14} /> ONNX Graph binary
           </button>
+          <button
+            onClick={() => setActiveTab('torchscript')}
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all ${
+              activeTab === 'torchscript' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+            }`}
+          >
+            <Terminal size={14} /> TorchScript binary
+          </button>
         </div>
+
+        {/* Compilation Input Shape Configuration */}
+        {activeTab !== 'pytorch' && (
+          <div className="flex items-center gap-3 bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl mb-4 shrink-0 text-xs select-none">
+            <span className="font-extrabold uppercase text-[#40d3b6] tracking-wider text-[10px] shrink-0">
+              Compilation Shape:
+            </span>
+            <input
+              type="text"
+              value={compileShape}
+              onChange={(e) => setCompileShape(e.target.value)}
+              className="flex-1 bg-black/40 border border-primary/20 rounded-lg px-2.5 py-1 text-white font-mono focus:outline-none focus:border-[#40d3b6] nodrag"
+              placeholder="e.g. 1, 3, 224, 224"
+            />
+            <span className="text-[10px] text-muted-foreground italic">
+              (Batch, Channels, Height, Width)
+            </span>
+          </div>
+        )}
 
         {/* Content Box */}
         <div className="flex-1 min-h-0 bg-[#09090b] rounded-xl border border-primary/10 p-4 font-mono text-xs overflow-y-auto mb-6 relative">
@@ -129,7 +186,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
             ) : (
               <pre className="text-foreground/90 leading-relaxed whitespace-pre-wrap select-text">{code}</pre>
             )
-          ) : (
+          ) : activeTab === 'onnx' ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto">
               <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center border border-primary/10">
                 <Terminal size={24} className="text-primary/70" />
@@ -163,6 +220,42 @@ export function ExportModal({ onClose }: ExportModalProps) {
                 className="mt-2 bg-[#40d3b6] hover:bg-[#40d3b6]/80 text-black font-extrabold px-6 rounded-xl flex items-center gap-2"
               >
                 <Download size={14} /> GENERATE & DOWNLOAD ONNX
+              </Button>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto">
+              <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center border border-primary/10">
+                <Terminal size={24} className="text-primary/70" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-2">Export TorchScript Binary</h3>
+                <p className="text-xs text-muted-foreground leading-normal">TorchScript serializes your visual model graph into a compiled TorchScript tracing configuration, ready for high-performance deployment without any Python runtime dependency.</p>
+              </div>
+
+              {tsStatus === 'compiling' && (
+                <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-primary animate-pulse">
+                  <Loader2 size={12} className="animate-spin" /> Tracing TorchScript structure...
+                </div>
+              )}
+
+              {tsStatus === 'success' && (
+                <div className="text-[10px] uppercase font-bold text-emerald-400">
+                  🎉 Model successfully traced & download initiated!
+                </div>
+              )}
+
+              {tsStatus === 'error' && (
+                <div className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
+                  ❌ Compilation Failed: {tsError}
+                </div>
+              )}
+
+              <Button
+                onClick={handleDownloadTorchScript}
+                disabled={tsStatus === 'compiling'}
+                className="mt-2 bg-[#40d3b6] hover:bg-[#40d3b6]/80 text-black font-extrabold px-6 rounded-xl flex items-center gap-2"
+              >
+                <Download size={14} /> GENERATE & DOWNLOAD TORCHSCRIPT
               </Button>
             </div>
           )}

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
 from compiler import (
@@ -160,6 +161,16 @@ def health_check():
         "version": version,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@app.get("/download", tags=["Model Exporters"])
+def download_file(path: str):
+    """Serve a file for download by absolute/relative filepath."""
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    filename = os.path.basename(path)
+    return FileResponse(path, filename=filename, media_type="application/octet-stream")
+
 
 
 app.add_middleware(
@@ -587,7 +598,9 @@ def export_pytorch_endpoint(request: ExportRequest):
     """
     try:
         path = export_pytorch(request)
-        return ExportResponse(status="success", output_path=path)
+        from compiler.exporter import generate_pytorch_code
+        code_str = generate_pytorch_code(request.graph)
+        return ExportResponse(status="success", output_path=path, code=code_str)
     except Exception as e:
         logger.exception("PyTorch weights export failed.")
         return ExportResponse(status="error", output_path="", message=str(e))

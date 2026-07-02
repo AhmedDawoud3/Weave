@@ -33,7 +33,8 @@ const ALL_LAYER_TYPES: LayerType[] = [
   'ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax',
   'Flatten', 'Reshape', 'Permute', 'Dropout', 'Dropout2d',
   'Add', 'Concat', 'Multiply',
-  'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'
+  'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock',
+  'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'
 ];
 
 interface StudioPageProps {
@@ -124,7 +125,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
   // Handle double-clicking nested blocks to enter viewport
   const handleNodeDoubleClick = useCallback((_: any, node: any) => {
-    const doubleClickableTypes = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock'];
+    const doubleClickableTypes = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'];
     if (doubleClickableTypes.includes(node.data?.type)) {
       const subGraphId = node.data?.params?.subgraph_id;
       if (subGraphId) {
