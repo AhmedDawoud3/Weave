@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { Network, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import type { NodeData } from '../types';
@@ -25,8 +25,14 @@ const KEY_PARAMS: Partial<Record<string, KeyParam[]>> = {
   Softmax:          [{ label: 'dim', key: 'dim' }],
   Concat:           [{ label: 'dim', key: 'dim' }],
   Flatten:          [{ label: 'start', key: 'start_dim' }, { label: 'end', key: 'end_dim' }],
-  Reshape:          [{ label: 'shape', key: 'shape', format: (p) => (p.shape || []).join(',') }],
+  Reshape:          [{ label: 'shape', key: 'target_shape', format: (p) => (p.target_shape || []).join(',') }],
   Permute:          [{ label: 'dims', key: 'dims', format: (p) => (p.dims || []).join(',') }],
+  Mean:             [{ label: 'dim', key: 'dim', format: (p) => (p.dim || []).join(',') }],
+  Var:              [{ label: 'dim', key: 'dim', format: (p) => (p.dim || []).join(',') }],
+  Sqrt:             [{ label: 'eps', key: 'eps' }],
+  Scale:            [{ label: 'value', key: 'value' }],
+  ChannelScaleBias: [{ label: 'features', key: 'num_features' }],
+  Slice:            [{ label: 'dim', key: 'dim' }, { label: 'index', key: 'index' }],
 };
 
 // ─── full editable field config ───────────────────────────────────────────────
@@ -54,12 +60,19 @@ const FULL_FIELDS: Partial<Record<string, FieldDef[]>> = {
   Softmax:          [{ label: 'Dim', key: 'dim', type: 'number' }],
   Concat:           [{ label: 'Dim', key: 'dim', type: 'number' }],
   Flatten:          [{ label: 'Start Dim', key: 'start_dim', type: 'number' }, { label: 'End Dim', key: 'end_dim', type: 'number' }],
-  Reshape:          [{ label: 'Shape', key: 'shape', type: 'json', placeholder: '-1, 64' }],
+  Reshape:          [{ label: 'Shape', key: 'target_shape', type: 'json', placeholder: '-1, 64' }],
   Permute:          [{ label: 'Dims', key: 'dims', type: 'json', placeholder: '0, 2, 3, 1' }],
+  Mean:             [{ label: 'Dim', key: 'dim', type: 'json', placeholder: '0, 2, 3' }, { label: 'Keepdim', key: 'keepdim', type: 'boolean' }],
+  Var:              [{ label: 'Dim', key: 'dim', type: 'json', placeholder: '0, 2, 3' }, { label: 'Keepdim', key: 'keepdim', type: 'boolean' }, { label: 'Unbiased', key: 'unbiased', type: 'boolean' }],
+  Sqrt:             [{ label: 'Eps', key: 'eps', type: 'number' }],
+  Scale:            [{ label: 'Value', key: 'value', type: 'number' }],
+  ChannelScaleBias: [{ label: 'Num Features', key: 'num_features', type: 'number' }],
+  Slice:            [{ label: 'Dim', key: 'dim', type: 'number' }, { label: 'Index', key: 'index', type: 'number' }],
+  CustomAutograd:   [{ label: 'Forward Code', key: 'forward_code', type: 'text' }, { label: 'Backward Code', key: 'backward_code', type: 'text' }],
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function LayerNode({ id, data, selected }: NodeProps<NodeData> & { selected?: boolean }) {
+export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> & { selected?: boolean }) {
   const shape = data.outputShape;
   const isError = !!data.error;
 
@@ -81,13 +94,24 @@ export function LayerNode({ id, data, selected }: NodeProps<NodeData> & { select
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Collapse and cancel timers immediately when dragging starts
+  useEffect(() => {
+    if (dragging) {
+      if (enterTimer.current) clearTimeout(enterTimer.current);
+      if (leaveTimer.current) clearTimeout(leaveTimer.current);
+      setIsHovered(false);
+      setIsExpanded(false);
+    }
+  }, [dragging]);
+
   const onMouseEnter = useCallback(() => {
+    if (dragging) return;
     // Cancel any pending collapse
     if (leaveTimer.current) clearTimeout(leaveTimer.current);
     // Only expand after the user deliberately pauses — 400ms delay prevents
     // accidental expansion when quickly moving across the node to grab a handle
     enterTimer.current = setTimeout(() => setIsHovered(true), 400);
-  }, []);
+  }, [dragging]);
 
   const onMouseLeave = useCallback(() => {
     // Cancel pending expand immediately on leave

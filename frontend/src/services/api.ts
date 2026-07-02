@@ -10,6 +10,11 @@ const getHeaders = () => {
 
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('weave_token');
+      window.location.href = '/';
+      throw new Error('Session expired. Please log in again.');
+    }
     const errorText = await res.text();
     let errorJson;
     try {

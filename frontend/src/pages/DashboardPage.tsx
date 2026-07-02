@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useWeaveStore } from '../store/useWeaveStore';
 import { Project } from '../types';
+import { TEMPLATES } from '../config/templates';
 
 interface DashboardPageProps {
   onOpenProject: () => void;
@@ -19,6 +20,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
     createProject,
     deleteProject,
     selectProject,
+    importTemplate,
     logout
   } = useWeaveStore();
 
@@ -26,6 +28,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [importingTemplate, setImportingTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -42,8 +45,9 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
       setNewProjectDesc('');
       setShowCreateModal(false);
       onOpenProject();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || "Failed to create project. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -52,6 +56,19 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
   const handleOpenProject = async (project: Project) => {
     await selectProject(project);
     onOpenProject();
+  };
+
+  const handleImportTemplate = async (template: any) => {
+    setImportingTemplate(template.name);
+    try {
+      await importTemplate(template);
+      onOpenProject();
+    } catch (err: any) {
+      console.error("Failed to import template:", err);
+      alert(err.message || "Failed to import template. Please try again.");
+    } finally {
+      setImportingTemplate(null);
+    }
   };
 
   return (
@@ -173,6 +190,48 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
             ))}
           </div>
         )}
+
+        {/* Examples Gallery */}
+        <div className="h-px bg-primary/10 my-16" />
+        
+        <div className="mb-12">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-indigo-400" />
+            <p className="text-indigo-400 font-extrabold tracking-widest text-[10px] uppercase">Interactive Neural Templates</p>
+          </div>
+          <h2 className="text-2xl font-black tracking-tight mt-2 uppercase text-white mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+            Import Example Architectures
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {TEMPLATES.map((tpl) => (
+              <Card key={tpl.name} className="bg-card/25 border border-indigo-500/10 p-6 rounded-2xl flex flex-col justify-between h-full hover:border-indigo-500/35 hover:shadow-[0_4px_30px_rgba(99,102,241,0.05)] transition-all">
+                <div>
+                  <div className="w-10 h-10 bg-indigo-500/5 rounded-xl flex items-center justify-center border border-indigo-500/15 mb-4 text-indigo-400">
+                    <Sparkles size={18} />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 uppercase text-indigo-300 leading-tight">
+                    {tpl.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground/80 mb-4 line-clamp-3 min-h-[48px]">
+                    {tpl.description}
+                  </p>
+                  <div className="inline-block bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-0.5 text-[9px] font-black text-indigo-400 font-mono mb-6">
+                    INPUT: [{tpl.inputShape.join(', ')}]
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={() => handleImportTemplate(tpl)}
+                  disabled={importingTemplate !== null}
+                  className="w-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-xl text-xs font-extrabold h-11 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {importingTemplate === tpl.name ? 'IMPORTING...' : 'IMPORT & OPEN'}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* CREATE PROJECT DIALOG MODAL */}

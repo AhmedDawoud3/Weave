@@ -401,6 +401,143 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
           </div>
         );
 
+      case 'Mean':
+      case 'Var':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Dimension (dim, comma-separated)</Label>
+              <Input
+                type="text"
+                value={Array.isArray((params as any).dim) ? (params as any).dim.join(', ') : ''}
+                onChange={(e) => {
+                  const parts = e.target.value.split(',').map(v => v.trim()).filter(Boolean).map(Number);
+                  handleParamChange('dim', parts);
+                }}
+                className="bg-background/40 border-primary/10 rounded-xl"
+                placeholder="e.g. 0, 2, 3"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Keepdim</Label>
+              <Select
+                value={params.keepdim !== false ? 'true' : 'false'}
+                onValueChange={(v) => handleParamChange('keepdim', v === 'true')}
+              >
+                <SelectTrigger className="bg-background/40 border-primary/10 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#0e0e11] border-primary/10 text-white">
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {type === 'Var' && (
+              <div className="space-y-2">
+                <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Unbiased</Label>
+                <Select
+                  value={params.unbiased === true ? 'true' : 'false'}
+                  onValueChange={(v) => handleParamChange('unbiased', v === 'true')}
+                >
+                  <SelectTrigger className="bg-background/40 border-primary/10 rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0e0e11] border-primary/10 text-white">
+                    <SelectItem value="true">True</SelectItem>
+                    <SelectItem value="false">False</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
+        );
+
+      case 'Sqrt':
+        return (
+          <div className="space-y-2">
+            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Epsilon (eps)</Label>
+            <Input
+              type="number"
+              step="1e-6"
+              value={(params as any).eps !== undefined ? (params as any).eps : 0.0}
+              onChange={(e) => handleParamChange('eps', Number(e.target.value))}
+              className="bg-background/40 border-primary/10 rounded-xl"
+            />
+          </div>
+        );
+
+      case 'Scale':
+        return (
+          <div className="space-y-2">
+            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Scale Value</Label>
+            <Input
+              type="number"
+              step="any"
+              value={(params as any).value !== undefined ? (params as any).value : 1.0}
+              onChange={(e) => handleParamChange('value', Number(e.target.value))}
+              className="bg-background/40 border-primary/10 rounded-xl"
+            />
+          </div>
+        );
+
+      case 'ChannelScaleBias':
+        return (
+          <div className="space-y-2">
+            <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Num Features</Label>
+            <Input
+              type="number"
+              value={(params as any).num_features || 3}
+              onChange={(e) => handleParamChange('num_features', Number(e.target.value))}
+              className="bg-background/40 border-primary/10 rounded-xl"
+            />
+          </div>
+        );
+
+      case 'Slice':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Dimension (dim)</Label>
+              <Input
+                type="number"
+                value={(params as any).dim !== undefined ? (params as any).dim : 1}
+                onChange={(e) => handleParamChange('dim', Number(e.target.value))}
+                className="bg-background/40 border-primary/10 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Index</Label>
+              <Input
+                type="number"
+                value={(params as any).index !== undefined ? (params as any).index : 0}
+                onChange={(e) => handleParamChange('index', Number(e.target.value))}
+                className="bg-background/40 border-primary/10 rounded-xl"
+              />
+            </div>
+          </>
+        );
+
+      case 'CustomAutograd':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Forward Code (Python)</Label>
+              <textarea
+                value={(params as any).forward_code || ''}
+                onChange={(e) => handleParamChange('forward_code', e.target.value)}
+                className="w-full h-24 bg-[#0c0c14]/50 border border-primary/10 rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:border-primary/50 text-white"
+                placeholder="def forward(x):..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Backward Code (Python)</Label>
+              <textarea
+                value={(params as any).backward_code || ''}
+                onChange={(e) => handleParamChange('backward_code', e.target.value)}
+                className="w-full h-24 bg-[#0c0c14]/50 border border-primary/10 rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:border-primary/50 text-white"
+                placeholder="def backward(x, grad_output):..."
+              />
+            </div>
+          </>
+        );
+
       default:
         return (
           <p className="text-[10px] text-muted-foreground uppercase italic tracking-wide">

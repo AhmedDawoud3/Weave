@@ -84,6 +84,7 @@ export function WeaveEdge({
         className={`reactflow__edge-path transition-colors duration-300 ${strokeColor} group-hover:stroke-[#40d3b6]`}
         d={edgePath}
         markerEnd={markerEnd}
+        fill="none"
         style={{
           ...style,
           strokeWidth: showDelete ? 3.5 : 2.5,

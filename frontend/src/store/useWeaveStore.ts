@@ -26,6 +26,7 @@ interface WeaveState {
   selectProject: (project: Project) => Promise<void>;
   createProject: (name: string, description?: string) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
+  importTemplate: (template: any) => Promise<void>;
 
   // SubGraphs
   selectSubGraph: (subgraph: SubGraph) => void;
@@ -77,6 +78,7 @@ interface WeaveState {
   // Dataset Config
   datasetConfig: DatasetConfig | null;
   inferredDatasetShape: number[] | null;
+  activeInputShape: number[] | null;
   isInferringDatasetShape: boolean;
   setDatasetConfig: (config: DatasetConfig | null) => void;
   setDatasetSource: (source: 'predefined' | 'image_folder' | 'custom') => void;
@@ -222,6 +224,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     // Dataset State
     datasetConfig: null,
     inferredDatasetShape: null,
+    activeInputShape: null,
     isInferringDatasetShape: false,
 
     // Auth State
@@ -361,6 +364,62 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       }
     },
 
+    importTemplate: async (template) => {
+      try {
+        const newProj = await api.projects.create({
+          name: template.name,
+          description: template.description
+        });
+        set((state) => ({ projects: [newProj, ...state.projects] }));
+
+        const projectId = newProj.id;
+        const initialNodes = template.nodes.map((node: any) => ({
+          id: node.id,
+          type: 'layer',
+          position: node.position,
+          data: {
+            type: node.type,
+            label: node.label,
+            params: node.params
+          }
+        }));
+
+        const initialEdges = template.edges.map((edge: any, index: number) => ({
+          id: `edge_${Date.now()}_${index}`,
+          source: edge.source,
+          target: edge.target,
+          ...(edge.targetHandle ? { targetHandle: edge.targetHandle } : {}),
+          animated: true
+        }));
+
+        const graphJson = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
+
+        const mainSub = await api.projects.createSubGraph(projectId, {
+          name: "Main",
+          graphJson
+        });
+
+        const detail = {
+          ...newProj,
+          subGraphs: [mainSub]
+        };
+
+        set({
+          activeProject: detail,
+          activeSubGraphs: [mainSub],
+          activeSubGraph: mainSub,
+          navigationStack: []
+        });
+
+        get().selectSubGraph(mainSub);
+
+        setTimeout(() => get().validatePipeline(template.inputShape), 300);
+      } catch (err) {
+        console.error("Failed to import template project:", err);
+        throw err;
+      }
+    },
+
     // SubGraphs State
     navigationStack: [],
 
@@ -403,7 +462,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         });
         
         // Trigger validate pipeline
-        setTimeout(() => get().validatePipeline([32, 3, 224, 224]), 200);
+        setTimeout(() => get().validatePipeline(), 200);
       } catch {
         set({ nodes: [], edges: [] });
       }
@@ -447,7 +506,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         });
 
         // Trigger validate pipeline
-        setTimeout(() => get().validatePipeline([32, 3, 224, 224]), 200);
+        setTimeout(() => get().validatePipeline(), 200);
       } catch {
         set({ nodes: [], edges: [] });
       }
@@ -466,7 +525,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         });
         
         // Trigger validate pipeline if input shape exists
-        setTimeout(() => get().validatePipeline([32, 3, 224, 224]), 200);
+        setTimeout(() => get().validatePipeline(), 200);
       } catch (e) {
         set({ nodes: [], edges: [] });
       }
@@ -742,7 +801,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         nodes: [...state.nodes, newNode]
       }));
       get().saveActiveSubGraph();
-      get().validatePipeline([32, 3, 224, 224]);
+      get().validatePipeline();
     },
 
     removeNode: (id) => {
@@ -752,7 +811,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId
       }));
       get().saveActiveSubGraph();
-      get().validatePipeline([32, 3, 224, 224]);
+      get().validatePipeline();
     },
 
     updateNodeParams: (id, params) => {
@@ -764,7 +823,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         )
       }));
       get().saveActiveSubGraph();
-      get().validatePipeline([32, 3, 224, 224]);
+      get().validatePipeline();
     },
 
     updateNodeLabel: (id, label) => {
@@ -781,7 +840,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         edges: addEdge({ ...connection, type: 'weave', animated: true }, state.edges)
       }));
       get().saveActiveSubGraph();
-      get().validatePipeline([32, 3, 224, 224]);
+      get().validatePipeline();
     },
 
     removeEdge: (id) => {
@@ -789,7 +848,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         edges: state.edges.filter((e) => e.id !== id)
       }));
       get().saveActiveSubGraph();
-      get().validatePipeline([32, 3, 224, 224]);
+      get().validatePipeline();
     },
 
     addSubgraphInput: async (nodeId) => {
@@ -834,7 +893,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         set({ activeSubGraphs: updatedSubGraphs });
 
         // Retrigger shape propagation
-        get().validatePipeline([32, 3, 224, 224]);
+        get().validatePipeline();
       } catch (e) {
         console.error("Failed to add subgraph input node:", e);
       }
@@ -882,7 +941,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         set({ activeSubGraphs: updatedSubGraphs });
 
         // Retrigger shape propagation
-        get().validatePipeline([32, 3, 224, 224]);
+        get().validatePipeline();
       } catch (e) {
         console.error("Failed to add subgraph output node:", e);
       }
@@ -896,7 +955,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       }
 
       const batchSize = datasetConfig?.dataloader?.batch_size || 32;
-      let activeInputShape = inputShape;
+      let activeInputShape = inputShape || get().activeInputShape;
       if (!activeInputShape || (activeInputShape[1] === 3 && activeInputShape[2] === 224 && activeInputShape[3] === 224 && inferredDatasetShape)) {
         if (inferredDatasetShape) {
           activeInputShape = [batchSize, ...inferredDatasetShape];
@@ -905,6 +964,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       if (!activeInputShape) {
         activeInputShape = [batchSize, 3, 224, 224];
       }
+      set({ activeInputShape });
 
       // Construct GraphConfig schema recursively
       const formattedGraph = formatGraphForEngine(nodes, edges, get().activeSubGraphs);
