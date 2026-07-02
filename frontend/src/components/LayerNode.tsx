@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps, useUpdateNodeInternals } from 'reactflow';
 import { Network, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import type { NodeData } from '../types';
-import { useWeaveStore } from '../store/useWeaveStore';
+import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
 
 // ─── per-layer key parameter config ───────────────────────────────────────────
 // Each entry defines what shows as the compact "key stat" on hover (before dropdown).
@@ -199,10 +199,28 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     kp.format ? kp.format(data.params) : `${kp.label}=${data.params?.[kp.key] ?? '–'}`
   ).join('  ');
 
+  // Helper to determine if a parameter field is induced
+  const getInducedValue = (paramKey: string): number | null => {
+    if (incomingEdges.length !== 1) return null;
+    const incomingNode = allNodes.find(n => n.id === incomingEdges[0].source);
+    const incomingShape = incomingNode?.data?.outputShape;
+    const induced = getInducedParam(data.type, incomingShape);
+    if (induced && induced.key === paramKey) {
+      return induced.value;
+    }
+    return null;
+  };
+
   // ── full field renderer (inside expanded dropdown) ─────────────────────────
   const renderField = (f: FieldDef) => {
-    const raw = data.params?.[f.key];
-    const inputCls = 'nodrag w-full bg-[#070709] border border-primary/15 rounded-md px-2 py-0.5 text-[10px] text-white focus:outline-none focus:border-primary/50 transition-colors';
+    const inducedVal = getInducedValue(f.key);
+    const isInduced = inducedVal !== null;
+    const raw = isInduced ? inducedVal : data.params?.[f.key];
+    const inputCls = `nodrag w-full bg-[#070709] border rounded-md px-2 py-0.5 text-[10px] focus:outline-none transition-colors ${
+      isInduced 
+        ? 'opacity-65 cursor-not-allowed border-[#40d3b6]/30 text-[#40d3b6] font-bold font-mono' 
+        : 'border-primary/15 text-white focus:border-primary/50'
+    }`;
 
     if (f.type === 'boolean') {
       return (
@@ -243,15 +261,25 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     }
     return (
       <div key={f.key} className="space-y-0.5">
-        <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
+          {isInduced && (
+            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-[#40d3b6] bg-[#40d3b6]/10 px-1 py-0.2 rounded border border-[#40d3b6]/20">
+              🔒 Induced
+            </span>
+          )}
+        </div>
         <input
           type="number"
           className={inputCls}
           step={f.step}
           min={f.min}
           max={f.max}
-          defaultValue={raw ?? 0}
-          onBlur={(e) => handleParamChange(f.key, Number(e.target.value))}
+          disabled={isInduced}
+          value={raw ?? 0}
+          onChange={(e) => {
+            if (!isInduced) handleParamChange(f.key, Number(e.target.value));
+          }}
         />
       </div>
     );

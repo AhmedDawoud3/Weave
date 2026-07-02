@@ -500,7 +500,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       if (!activeSubGraph) return;
 
       // 1. Save current graph immediately (sync)
-      const graphJson = JSON.stringify({ nodes, edges });
+      const graphJson = JSON.stringify({ nodes, edges, datasetConfig: get().datasetConfig });
       if (activeProject) {
         try {
           await api.projects.updateSubGraph(activeProject.id, activeSubGraph.id, {
@@ -525,16 +525,24 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       // 4. Load child graph nodes/edges
       try {
         const parsed = JSON.parse(targetSub.graphJson);
+        const restoredDatasetConfig = parsed.datasetConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
+          datasetConfig: restoredDatasetConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
         });
-        
-        // Trigger validate pipeline
-        setTimeout(() => get().validatePipeline(), 200);
+
+        // Trigger validate pipeline, and re-infer shape if a dataset config was restored
+        setTimeout(() => {
+          if (restoredDatasetConfig) {
+            get().inferDatasetShape();
+          } else {
+            get().validatePipeline();
+          }
+        }, 200);
       } catch {
         set({ nodes: [], edges: [] });
       }
@@ -545,7 +553,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       if (!activeSubGraph || navigationStack.length === 0) return;
 
       // 1. Save current nested subgraph
-      const graphJson = JSON.stringify({ nodes, edges });
+      const graphJson = JSON.stringify({ nodes, edges, datasetConfig: get().datasetConfig });
       if (activeProject) {
         try {
           await api.projects.updateSubGraph(activeProject.id, activeSubGraph.id, {
@@ -569,16 +577,24 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       // 3. Load target subgraph
       try {
         const parsed = JSON.parse(targetSub.graphJson);
+        const restoredDatasetConfig = parsed.datasetConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
+          datasetConfig: restoredDatasetConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
         });
 
-        // Trigger validate pipeline
-        setTimeout(() => get().validatePipeline(), 200);
+        // Trigger validate pipeline, and re-infer shape if a dataset config was restored
+        setTimeout(() => {
+          if (restoredDatasetConfig) {
+            get().inferDatasetShape();
+          } else {
+            get().validatePipeline();
+          }
+        }, 200);
       } catch {
         set({ nodes: [], edges: [] });
       }
@@ -588,16 +604,24 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       set({ activeSubGraph: subgraph });
       try {
         const parsed = JSON.parse(subgraph.graphJson);
+        const restoredDatasetConfig = parsed.datasetConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
+          datasetConfig: restoredDatasetConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
         });
-        
-        // Trigger validate pipeline if input shape exists
-        setTimeout(() => get().validatePipeline(), 200);
+
+        // Trigger validate pipeline, and re-infer shape if a dataset config was restored
+        setTimeout(() => {
+          if (restoredDatasetConfig) {
+            get().inferDatasetShape();
+          } else {
+            get().validatePipeline();
+          }
+        }, 200);
       } catch (e) {
         set({ nodes: [], edges: [] });
       }
@@ -1043,7 +1067,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       }
       if (hasChange) {
         set({ nodes: inducedNodes });
-        get().saveActiveSubGraph();
+        // Note: do NOT call saveActiveSubGraph here — the save is triggered by the
+        // user action that caused the param change (edge connect, dataset change, etc.)
       }
 
       const currentNodes = get().nodes;
@@ -1081,12 +1106,15 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
             validationStatus: 'success',
             validationMessage: 'Pipeline compiled successfully! Output tensor matches requirements.',
             nodeShapes: shapes,
-            // Annotate nodes with shape data using live state nodes
+            // Annotate nodes with shape data using live state nodes.
+            // If the engine doesn't return a shape for a node (e.g. InputNode / OutputNode
+            // are virtual and absent from node_shapes), keep whatever shape is already
+            // stored on the node rather than overwriting it with undefined.
             nodes: get().nodes.map((n) => ({
               ...n,
               data: {
                 ...n.data,
-                outputShape: shapes[n.id],
+                outputShape: shapes[n.id] ?? n.data.outputShape,
                 error: null
               }
             }))
@@ -1120,16 +1148,18 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     },
 
     saveActiveSubGraph: async () => {
-      const { activeProject, activeSubGraph, nodes, edges } = get();
-      if (!activeProject || !activeSubGraph) return;
+      if (!get().activeProject || !get().activeSubGraph) return;
 
-      // Debounce saving operation
+      // Debounce saving operation — read state INSIDE timeout so we always
+      // save the latest snapshot, not a stale closure captured at call time.
       if (saveTimeout) clearTimeout(saveTimeout);
 
       saveTimeout = setTimeout(async () => {
+        const { activeProject, activeSubGraph, nodes, edges, datasetConfig } = get();
+        if (!activeProject || !activeSubGraph) return;
         try {
           set({ isSavingGraph: true });
-          const graphJson = JSON.stringify({ nodes, edges });
+          const graphJson = JSON.stringify({ nodes, edges, datasetConfig });
           await api.projects.updateSubGraph(activeProject.id, activeSubGraph.id, {
             name: activeSubGraph.name,
             graphJson
@@ -1316,20 +1346,43 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     setDatasetConfig: (config) => {
       if (config === null) {
         set({ datasetConfig: null, inferredDatasetShape: null, activeInputShape: null });
+        get().saveActiveSubGraph();
         if (inferTimeout) clearTimeout(inferTimeout);
         return;
       }
-      set({ datasetConfig: config });
-      
+
+      const prev = get().datasetConfig;
+      // If the dataset identity changed (different source, name, or modality), clear the
+      // cached shape immediately so UI shows "SHAPE UNKNOWN" and validatePipeline cannot
+      // reuse stale dimensions while the new inference is pending.
+      const datasetIdentityChanged =
+        !prev ||
+        prev.source !== config.source ||
+        (config.source === 'predefined' && (prev as any).name !== (config as any).name) ||
+        (config.source === 'custom' && (prev as any).modality !== (config as any).modality);
+
+      if (datasetIdentityChanged) {
+        set({ datasetConfig: config, inferredDatasetShape: null, activeInputShape: null, isInferringDatasetShape: true });
+      } else {
+        set({ datasetConfig: config });
+      }
+
+      get().saveActiveSubGraph();
+
       if (inferTimeout) clearTimeout(inferTimeout);
       inferTimeout = setTimeout(() => {
         get().inferDatasetShape();
-      }, 800);
+      }, 500); // tightened from 800ms so shape updates feel snappier
     },
 
     setDatasetSource: (source) => {
-      let config: DatasetConfig | null = null;
-      const dataloader: DataLoaderConfig = {
+      const current = get().datasetConfig;
+
+      // If already on this source type, do nothing — prevents resetting the user's
+      // current dataset selection when they click the same tab again.
+      if (current && current.source === source) return;
+
+      const dataloader: DataLoaderConfig = current?.dataloader || {
         batch_size: 32,
         shuffle: true,
         num_workers: 4,
@@ -1337,6 +1390,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         drop_last: false,
       };
 
+      let config: DatasetConfig | null = null;
       if (source === 'predefined') {
         config = {
           source: 'predefined',
@@ -1365,7 +1419,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           file_pattern: '*.jpg'
         };
       }
-      
+
       get().setDatasetConfig(config);
     },
 
