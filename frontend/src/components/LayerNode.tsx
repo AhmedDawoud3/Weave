@@ -80,6 +80,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const updateNodeLabel  = useWeaveStore(state => state.updateNodeLabel);
   const removeNode       = useWeaveStore(state => state.removeNode);
   const activeSubGraphs  = useWeaveStore(state => state.activeSubGraphs);
+  const edges            = useWeaveStore(state => state.edges);
+  const allNodes         = useWeaveStore(state => state.nodes);
 
   const isMultiInput = ['Add', 'Concat', 'Multiply'].includes(data.type);
   const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(data.type);
@@ -256,7 +258,27 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
   const fullFields = FULL_FIELDS[data.type] || [];
 
-  // ── widths ─────────────────────────────────────────────────────────────────
+  // ── Calculate dynamic visual sorting of input handles to prevent crossed lines ──
+  const incomingEdges = edges.filter(e => e.target === id);
+  const incomingEdgesCount = incomingEdges.length;
+
+  const handleSourceX = Array.from({ length: targetCount }).map((_, i) => {
+    const targetHandleId = `input_${i}`;
+    const edge = incomingEdges.find(e => e.targetHandle === targetHandleId || (targetCount === 1 && !e.targetHandle));
+    if (edge) {
+      const sourceNode = allNodes.find(n => n.id === edge.source);
+      if (sourceNode) {
+        return { index: i, x: sourceNode.position.x };
+      }
+    }
+    return { index: i, x: i * 10000 }; // Default to index order if not connected
+  });
+
+  const sortedHandles = [...handleSourceX].sort((a, b) => a.x - b.x);
+  const visualPositionMap = new Map<number, number>();
+  sortedHandles.forEach((h, rank) => {
+    visualPositionMap.set(h.index, rank);
+  });
   const baseW = isBlock ? 'min-w-[152px] max-w-[178px]' : 'min-w-[110px] max-w-[135px]';
   const expandedW = 'min-w-[190px] max-w-[210px]';
   const cardW = isExpanded ? expandedW : baseW;
@@ -268,16 +290,20 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
       onMouseLeave={onMouseLeave}
     >
       {/* ── Target handles top ── */}
-      {Array.from({ length: targetCount }).map((_, i) => (
-        <Handle
-          key={`target-${i}`}
-          type="target"
-          position={Position.Top}
-          id={`input_${i}`}
-          style={targetCount > 1 ? { left: `${((i + 1) * 100) / (targetCount + 1)}%` } : undefined}
-          className={`w-2.5 h-2.5 ${handleCls} border border-[#070709] !z-50 rounded-full`}
-        />
-      ))}
+      {Array.from({ length: targetCount }).map((_, i) => {
+        const rank = visualPositionMap.get(i) ?? i;
+        const leftPercent = ((rank + 1) * 100) / (targetCount + 1);
+        return (
+          <Handle
+            key={`target-${i}`}
+            type="target"
+            position={Position.Top}
+            id={`input_${i}`}
+            style={targetCount > 1 ? { left: `${leftPercent}%` } : undefined}
+            className={`w-2.5 h-2.5 ${handleCls} border border-[#070709] !z-50 rounded-full`}
+          />
+        );
+      })}
 
       {/* ── Delete × badge (top-right, appears on hover) ── */}
       <button
@@ -289,7 +315,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
       </button>
 
       {/* ── + button for multi-input layers ── */}
-      {isMultiInput && (
+      {isMultiInput && incomingEdgesCount > 0 && (
         <button
           onClick={handleAddInput}
           className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#0e0e11] hover:bg-primary text-white hover:text-black font-extrabold flex items-center justify-center border border-primary/20 shadow-lg scale-0 group-hover:scale-100 transition-all duration-200 z-[60] text-[10px] cursor-pointer"
