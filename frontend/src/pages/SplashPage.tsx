@@ -1,6 +1,23 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useWeaveStore } from '../store/useWeaveStore';
 
 export function SplashPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useWeaveStore();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/login', { replace: true });
+      }
+    }, 2000); // 2s splash
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, navigate]);
+
   return (
     <motion.div
       key="splash"
@@ -25,3 +42,4 @@ export function SplashPage() {
     </motion.div>
   );
 }
+

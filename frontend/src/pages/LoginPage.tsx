@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, User, ShieldAlert } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { useWeaveStore } from '../store/useWeaveStore';
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onLogin?: () => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   
@@ -51,7 +53,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     if (success) {
-      onLogin();
+      onLogin?.();
+      navigate('/dashboard');
     }
   };
 

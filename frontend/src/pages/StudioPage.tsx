@@ -9,7 +9,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Code2, RefreshCw, Plus, Search } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Terminal, Code2, RefreshCw, Plus, Search, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sidebar } from '../components/Sidebar';
 import { LayerPalette } from '../components/LayerPalette';
@@ -39,10 +40,14 @@ const ALL_LAYER_TYPES: LayerType[] = [
 ];
 
 interface StudioPageProps {
-  onNavigateDashboard: () => void;
+  onNavigateDashboard?: () => void;
 }
 
 export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+
   const {
     nodes,
     edges,
@@ -67,8 +72,42 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     isKernelConnected,
     checkKernelConnection,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    selectProjectById
   } = useWeaveStore();
+
+  useEffect(() => {
+    async function loadProject() {
+      if (id && activeProject?.id !== id) {
+        setIsInitialLoading(true);
+        try {
+          await selectProjectById(id);
+        } catch (err: any) {
+          console.error("Failed to load project:", err);
+          alert(err.message || "Project not found or you don't have access. Redirecting to dashboard.");
+          navigate('/dashboard');
+        } finally {
+          setIsInitialLoading(false);
+        }
+      }
+    }
+    loadProject();
+  }, [id, activeProject?.id, selectProjectById, navigate]);
+
+  const handleNavigateDashboard = onNavigateDashboard || (() => navigate('/dashboard'));
+
+  if (isInitialLoading) {
+    return (
+      <div className="h-screen w-full bg-[#070709] flex flex-col items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,143,211,0.05),transparent_60%)]" />
+        <div className="flex flex-col items-center relative z-10">
+          <Loader2 className="animate-spin text-[#40d3b6] mb-4" size={48} />
+          <h3 className="text-lg font-black uppercase tracking-widest text-white">Loading Workspace</h3>
+          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Synchronizing graph and dependencies...</p>
+        </div>
+      </div>
+    );
+  }
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showTrainingConsole, setShowTrainingConsole] = useState(false);
@@ -366,7 +405,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
           <Button
             variant="ghost"
-            onClick={onNavigateDashboard}
+            onClick={handleNavigateDashboard}
             className="border border-primary/5 hover:bg-primary/15 text-muted-foreground hover:text-white rounded-xl h-10 px-4 transition-all"
           >
             EXIT STUDIO
@@ -378,7 +417,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
         {activeTab === 'canvas' ? (
           <>
-            <Sidebar onNavigateDashboard={onNavigateDashboard} />
+            <Sidebar onNavigateDashboard={handleNavigateDashboard} />
 
             {/* Canvas Area */}
             <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">

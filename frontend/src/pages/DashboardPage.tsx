@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Loader2, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,11 @@ import { Project } from '../types';
 import { TEMPLATES } from '../config/templates';
 
 interface DashboardPageProps {
-  onOpenProject: () => void;
+  onOpenProject?: () => void;
 }
 
 export function DashboardPage({ onOpenProject }: DashboardPageProps) {
+  const navigate = useNavigate();
   const {
     projects,
     isLoadingProjects,
@@ -44,7 +46,11 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
       setNewProjectName('');
       setNewProjectDesc('');
       setShowCreateModal(false);
-      onOpenProject();
+      onOpenProject?.();
+      const createdProj = useWeaveStore.getState().activeProject;
+      if (createdProj) {
+        navigate(`/project/${createdProj.id}`);
+      }
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Failed to create project. Please try again.");
@@ -55,14 +61,19 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
 
   const handleOpenProject = async (project: Project) => {
     await selectProject(project);
-    onOpenProject();
+    onOpenProject?.();
+    navigate(`/project/${project.id}`);
   };
 
   const handleImportTemplate = async (template: any) => {
     setImportingTemplate(template.name);
     try {
       await importTemplate(template);
-      onOpenProject();
+      onOpenProject?.();
+      const importedProj = useWeaveStore.getState().activeProject;
+      if (importedProj) {
+        navigate(`/project/${importedProj.id}`);
+      }
     } catch (err: any) {
       console.error("Failed to import template:", err);
       alert(err.message || "Failed to import template. Please try again.");

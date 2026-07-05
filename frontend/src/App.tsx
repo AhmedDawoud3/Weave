@@ -1,58 +1,53 @@
-import { useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SplashPage } from './pages/SplashPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StudioPage } from './pages/StudioPage';
-import { useWeaveStore } from './store/useWeaveStore';
-import type { AppStage } from './types';
+import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 
 export default function App() {
-  const { isAuthenticated, fetchProjects } = useWeaveStore();
-  
-  // Custom navigation stage hook
-  const [stage, setStage] = useState<AppStage>('splash');
-
-  // Load projects if already authenticated on boot
-  useEffect(() => {
-    if (isAuthenticated && stage === 'dashboard') {
-      fetchProjects();
-    }
-  }, [isAuthenticated, stage, fetchProjects]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isAuthenticated) {
-        setStage('dashboard');
-      } else {
-        setStage('login');
-      }
-    }, 2000); // 2s splash
-    return () => clearTimeout(timer);
-  }, [isAuthenticated]);
-
   return (
     <div className="min-h-screen bg-[#070709] text-white overflow-hidden font-sans">
-      <AnimatePresence mode="wait">
-        {stage === 'splash' && <SplashPage />}
-        
-        {stage === 'login' && (
-          <LoginPage onLogin={() => setStage('dashboard')} />
-        )}
-        
-        {stage === 'dashboard' && (
-          <DashboardPage
-            onOpenProject={() => setStage('main')}
+      <BrowserRouter>
+        <Routes>
+          {/* Splash Screen */}
+          <Route path="/" element={<SplashPage />} />
+          
+          {/* Login Screen (Unauthenticated Only) */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
           />
-        )}
-        
-        {stage === 'main' && (
-          <StudioPage onNavigateDashboard={() => setStage('dashboard')} />
-        )}
-      </AnimatePresence>
+          
+          {/* Dashboard (Protected) */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Studio (Protected) */}
+          <Route
+            path="/project/:id"
+            element={
+              <ProtectedRoute>
+                <StudioPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Catch-all Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }
 
-// A simple local useState helper inside App.tsx (since we imported types but need standard React)
-import { useState } from 'react';

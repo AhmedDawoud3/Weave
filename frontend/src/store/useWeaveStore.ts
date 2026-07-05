@@ -24,6 +24,7 @@ interface WeaveState {
   isLoadingProjects: boolean;
   fetchProjects: () => Promise<void>;
   selectProject: (project: Project) => Promise<void>;
+  selectProjectById: (id: string) => Promise<void>;
   createProject: (name: string, description?: string) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   importTemplate: (template: any) => Promise<void>;
@@ -410,6 +411,29 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         }
       } catch (err) {
         console.error("Failed to load project details:", err);
+      }
+    },
+
+    selectProjectById: async (id) => {
+      try {
+        const detail = await api.projects.get(id);
+        const subgraphs = detail.subGraphs || [];
+        set({
+          activeProject: detail,
+          activeSubGraphs: subgraphs,
+          activeSubGraph: subgraphs.length > 0 ? subgraphs[0] : null,
+          navigationStack: []
+        });
+
+        if (subgraphs.length > 0) {
+          get().selectSubGraph(subgraphs[0]);
+        } else {
+          // Auto-create a default "Main" subgraph with connected input/output nodes
+          await get().createSubGraph("Main");
+        }
+      } catch (err) {
+        console.error("Failed to load project details by ID:", err);
+        throw err;
       }
     },
 
