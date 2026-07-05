@@ -46,7 +46,9 @@ class TrainingRunner:
         if config.training and config.training.checkpointing:
             directory = config.training.checkpointing.directory
             if directory.startswith("data"):
-                config.training.checkpointing.directory = directory.replace("data", "../data", 1)
+                config.training.checkpointing.directory = directory.replace(
+                    "data", "../data", 1
+                )
 
         # 1. Event loop registration
         try:

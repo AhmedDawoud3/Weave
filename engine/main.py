@@ -2,8 +2,8 @@ import asyncio
 import json
 import logging
 import os
-import time
 import threading
+import time
 from importlib.metadata import metadata
 
 import torch.nn as nn
@@ -11,8 +11,8 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
 from compiler import (
@@ -172,7 +172,6 @@ def download_file(path: str):
         raise HTTPException(status_code=404, detail="File not found")
     filename = os.path.basename(path)
     return FileResponse(path, filename=filename, media_type="application/octet-stream")
-
 
 
 app.add_middleware(
@@ -445,9 +444,9 @@ downloads_lock = threading.Lock()
 
 def background_download_task(name: str):
     from dataset.dataset_factory import get_dataset
-    
+
     root_dir = os.path.join("..", "data")
-    
+
     # Expected total sizes for progress calculation (in bytes)
     sizes = {
         "MNIST": 11.5 * 1024 * 1024,
@@ -462,15 +461,15 @@ def background_download_task(name: str):
         "Semeion": 0.2 * 1024 * 1024,
     }
     expected_size = sizes.get(name, 50 * 1024 * 1024)
-    
+
     with downloads_lock:
         if name in downloads_state:
             downloads_state[name]["status"] = "downloading"
             downloads_state[name]["total_bytes"] = int(expected_size)
-        
+
     try:
         get_dataset(name=name, root_dir=root_dir, split="train", download=True)
-        
+
         with downloads_lock:
             if name in downloads_state:
                 downloads_state[name]["status"] = "completed"
@@ -488,10 +487,10 @@ def estimate_downloaded_bytes(name: str) -> int:
     root_dir = os.path.join("..", "data")
     if not os.path.isdir(root_dir):
         return 0
-        
+
     total_size = 0
     name_lower = name.lower()
-    
+
     # 1. Sum files in the specific subfolder if it exists
     folder_mapping = {
         "MNIST": "MNIST",
@@ -504,7 +503,7 @@ def estimate_downloaded_bytes(name: str) -> int:
         "USPS": "usps",
         "Semeion": "semeion",
     }
-    
+
     if name in folder_mapping:
         folder_path = os.path.join(root_dir, folder_mapping[name])
         if os.path.isdir(folder_path):
@@ -515,7 +514,7 @@ def estimate_downloaded_bytes(name: str) -> int:
                         total_size += os.path.getsize(fp)
                     except OSError:
                         pass
-                        
+
     # 2. Check files directly in root_dir containing the dataset name
     # e.g., cifar-10-python.tar.gz, cifar-10-python.tar.gz.download, svhn mat files, etc.
     try:
@@ -524,14 +523,18 @@ def estimate_downloaded_bytes(name: str) -> int:
             if os.path.isfile(fp):
                 f_lower = f.lower()
                 normalized_name = name_lower.replace("10", "-10")
-                if (name_lower in f_lower) or (normalized_name in f_lower) or (f_lower.startswith(name_lower)):
+                if (
+                    (name_lower in f_lower)
+                    or (normalized_name in f_lower)
+                    or (f_lower.startswith(name_lower))
+                ):
                     try:
                         total_size += os.path.getsize(fp)
                     except OSError:
                         pass
     except OSError:
         pass
-        
+
     return total_size
 
 
@@ -541,25 +544,25 @@ def get_dataset_status(name: str):
     try:
         downloaded = check_dataset_downloaded(name)
         size_mb = get_dataset_size(name)
-        
+
         # Check active downloads too
         with downloads_lock:
             state = downloads_state.get(name)
-            
+
         status_str = "not_downloaded"
         if downloaded:
             status_str = "downloaded"
         elif state:
             status_str = state["status"]
-            
+
         return {
             "name": name,
             "downloaded": downloaded,
             "size_mb": size_mb,
-            "status": status_str
+            "status": status_str,
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @app.get("/datasets/download/{name}", tags=["Dataset Catalog"])
@@ -575,26 +578,28 @@ async def start_dataset_download(name: str):
                 "bytes_downloaded": 0,
                 "total_bytes": 0,
                 "error": None,
-                "thread": None
+                "thread": None,
             }
-            thread = threading.Thread(target=background_download_task, args=(name,), daemon=True)
+            thread = threading.Thread(
+                target=background_download_task, args=(name,), daemon=True
+            )
             downloads_state[name]["thread"] = thread
             thread.start()
-    
+
     # Stream progress over SSE
     async def event_generator():
         try:
             while True:
                 with downloads_lock:
                     state = downloads_state.get(name)
-                
+
                 if not state:
                     break
-                    
+
                 status_val = state["status"]
                 error_val = state["error"]
                 total = state["total_bytes"]
-                
+
                 if status_val == "downloading":
                     downloaded = estimate_downloaded_bytes(name)
                     if total > 0:
@@ -610,26 +615,28 @@ async def start_dataset_download(name: str):
                 else:
                     percent = 0.0
                     downloaded = 0
-                    
+
                 yield {
                     "event": "download_progress",
-                    "data": json.dumps({
-                        "name": name,
-                        "status": status_val,
-                        "percent": percent,
-                        "bytes_downloaded": downloaded,
-                        "total_bytes": total,
-                        "error": error_val
-                    })
+                    "data": json.dumps(
+                        {
+                            "name": name,
+                            "status": status_val,
+                            "percent": percent,
+                            "bytes_downloaded": downloaded,
+                            "total_bytes": total,
+                            "error": error_val,
+                        }
+                    ),
                 }
-                
+
                 if status_val in ["completed", "failed"]:
                     break
-                    
+
                 await asyncio.sleep(0.5)
         except asyncio.CancelledError:
             pass
-            
+
     return EventSourceResponse(event_generator())
 
 
@@ -810,6 +817,7 @@ def export_pytorch_endpoint(request: ExportRequest):
     try:
         path = export_pytorch(request)
         from compiler.exporter import generate_pytorch_code
+
         code_str = generate_pytorch_code(request.graph)
         return ExportResponse(status="success", output_path=path, code=code_str)
     except Exception as e:
@@ -1009,12 +1017,14 @@ def get_active_runs():
     active = []
     for run_id, trainer in runner.active_runs.items():
         if trainer.status in ["running", "paused"]:
-            active.append({
-                "run_id": run_id,
-                "status": trainer.status,
-                "current_epoch": trainer.current_epoch,
-                "total_epochs": trainer.total_epochs,
-            })
+            active.append(
+                {
+                    "run_id": run_id,
+                    "status": trainer.status,
+                    "current_epoch": trainer.current_epoch,
+                    "total_epochs": trainer.total_epochs,
+                }
+            )
     return {"active_runs": active}
 
 

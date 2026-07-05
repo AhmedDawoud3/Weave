@@ -54,7 +54,9 @@ def _infer_predefined(config: PredefinedDatasetConfig) -> dict:
     entry = registry[config.name]
     base_shape = entry.get("shape")
     if entry.get("modality") == "text":
-        max_length = getattr(config, "max_length", None) or entry.get("default_params", {}).get("max_length", 128)
+        max_length = getattr(config, "max_length", None) or entry.get(
+            "default_params", {}
+        ).get("max_length", 128)
         base_shape = [max_length]
     num_classes = entry.get("num_classes")
 

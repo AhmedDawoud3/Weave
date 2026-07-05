@@ -7,15 +7,15 @@ requiring a full training run.
 from __future__ import annotations
 
 import base64
-import io
 import copy
+import io
 from collections.abc import Sized
 from typing import Any, cast
 
 from PIL import Image
-from torch.utils.data import Dataset
 
 from schemas import DatasetConfig
+
 from .dataset_factory import get_dataset_from_config
 
 
@@ -45,15 +45,16 @@ def preview_dataset(
     """
     try:
         # Load the transformed dataset (with all user transforms)
-        transformed_dataset = get_dataset_from_config(config)
+        transformed_dataset = cast(Any, get_dataset_from_config(config))
         total_size = len(cast(Sized, transformed_dataset))
         indices = list(range(min(num_samples, total_size)))
 
         # Try to load the raw dataset (by deep-copying and clearing transforms)
+        raw_dataset: Any = None
         try:
             raw_config = copy.deepcopy(config)
             raw_config.transforms = []
-            raw_dataset = get_dataset_from_config(raw_config)
+            raw_dataset = cast(Any, get_dataset_from_config(raw_config))
         except Exception:
             raw_dataset = None
 
@@ -81,13 +82,29 @@ def preview_dataset(
             transformed_sample = _format_sample(transformed_data, label, modality)
 
             # For text modality, enrich with actual token list if the loader supports it
-            if modality == "text" and hasattr(transformed_dataset, "_tokenize") and hasattr(transformed_dataset, "_preprocess"):
+            if (
+                modality == "text"
+                and hasattr(transformed_dataset, "_tokenize")
+                and hasattr(transformed_dataset, "_preprocess")
+            ):
                 try:
                     # Retrieve the raw text first to re-tokenize for tokens display
-                    if raw_dataset is not None and hasattr(raw_dataset, "df") and hasattr(raw_dataset, "text_column"):
-                        raw_text_str = str(raw_dataset.df.iloc[idx][raw_dataset.text_column])
-                    elif hasattr(transformed_dataset, "df") and hasattr(transformed_dataset, "text_column"):
-                        raw_text_str = str(transformed_dataset.df.iloc[idx][transformed_dataset.text_column])
+                    if (
+                        raw_dataset is not None
+                        and hasattr(raw_dataset, "df")
+                        and hasattr(raw_dataset, "text_column")
+                    ):
+                        raw_text_str = str(
+                            raw_dataset.df.iloc[idx][raw_dataset.text_column]
+                        )
+                    elif hasattr(transformed_dataset, "df") and hasattr(
+                        transformed_dataset, "text_column"
+                    ):
+                        raw_text_str = str(
+                            transformed_dataset.df.iloc[idx][
+                                transformed_dataset.text_column
+                            ]
+                        )
                     else:
                         raw_text_str = ""
 
@@ -104,14 +121,34 @@ def preview_dataset(
                     raw_item = raw_dataset[idx]
                     raw_data = raw_item[0]
 
-                    if modality == "text" and hasattr(raw_dataset, "df") and hasattr(raw_dataset, "text_column"):
+                    if (
+                        modality == "text"
+                        and hasattr(raw_dataset, "df")
+                        and hasattr(raw_dataset, "text_column")
+                    ):
                         # For raw text, we want the raw string, not the tokenized ID tensor
-                        raw_text_val = str(raw_dataset.df.iloc[idx][raw_dataset.text_column])
-                        raw_sample = {"label": label, "data_type": "text", "text": raw_text_val}
-                    elif modality == "tabular" and hasattr(raw_dataset, "df") and hasattr(raw_dataset, "feature_columns"):
+                        raw_text_val = str(
+                            raw_dataset.df.iloc[idx][raw_dataset.text_column]
+                        )
+                        raw_sample = {
+                            "label": label,
+                            "data_type": "text",
+                            "text": raw_text_val,
+                        }
+                    elif (
+                        modality == "tabular"
+                        and hasattr(raw_dataset, "df")
+                        and hasattr(raw_dataset, "feature_columns")
+                    ):
                         # For raw tabular, we want the raw values row dictionary
-                        raw_row = raw_dataset.df.iloc[idx][raw_dataset.feature_columns].to_dict()
-                        raw_sample = {"label": label, "data_type": "tabular", "features": raw_row}
+                        raw_row = raw_dataset.df.iloc[idx][
+                            raw_dataset.feature_columns
+                        ].to_dict()
+                        raw_sample = {
+                            "label": label,
+                            "data_type": "tabular",
+                            "features": raw_row,
+                        }
                     else:
                         raw_sample = _format_sample(raw_data, label, modality)
                 except Exception:
@@ -119,11 +156,9 @@ def preview_dataset(
             else:
                 raw_sample = transformed_sample
 
-            samples.append({
-                "label": label,
-                "raw": raw_sample,
-                "transformed": transformed_sample
-            })
+            samples.append(
+                {"label": label, "raw": raw_sample, "transformed": transformed_sample}
+            )
 
         return {
             "status": "success",

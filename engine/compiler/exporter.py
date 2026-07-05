@@ -129,6 +129,7 @@ def export_torchscript(request: ExportRequest) -> str:
 def generate_pytorch_code(graph: GraphConfig) -> str:
     """Generates standalone, human-readable PyTorch source code for the model graph."""
     from compiler.compiler import GraphCompiler
+
     compiler = GraphCompiler()
     block = compiler.compile(graph)
 
@@ -199,7 +200,9 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
             init_lines.append(f"        self.{node_id} = ScaleModule({params_str})")
             has_scale = True
         elif t == "ChannelScaleBias":
-            init_lines.append(f"        self.{node_id} = ChannelScaleBias({params_str})")
+            init_lines.append(
+                f"        self.{node_id} = ChannelScaleBias({params_str})"
+            )
             has_scale_bias = True
         else:
             # Standard nn.Module
@@ -209,21 +212,33 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
         inputs = block.incoming_edges.get(node_id, [])
         if t in ("Add", "Concat", "Multiply", "Sub", "Div", "MatMul"):
             inputs_str = ", ".join(f"tensors['{src}']" for src in inputs)
-            forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}([{inputs_str}])")
+            forward_lines.append(
+                f"        tensors['{node_id}'] = self.{node_id}([{inputs_str}])"
+            )
         else:
             if len(inputs) == 1:
                 src = inputs[0]
                 if t == "Linear":
                     # add auto-flatten support
-                    forward_lines.append(f"        # Auto-flatten if input is multi-dimensional")
+                    forward_lines.append(
+                        "        # Auto-flatten if input is multi-dimensional"
+                    )
                     forward_lines.append(f"        inp_{node_id} = tensors['{src}']")
                     forward_lines.append(f"        if inp_{node_id}.dim() > 2:")
-                    forward_lines.append(f"            inp_{node_id} = inp_{node_id}.flatten(1)")
-                    forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}(inp_{node_id})")
+                    forward_lines.append(
+                        f"            inp_{node_id} = inp_{node_id}.flatten(1)"
+                    )
+                    forward_lines.append(
+                        f"        tensors['{node_id}'] = self.{node_id}(inp_{node_id})"
+                    )
                 else:
-                    forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}(tensors['{src}'])")
+                    forward_lines.append(
+                        f"        tensors['{node_id}'] = self.{node_id}(tensors['{src}'])"
+                    )
             elif len(inputs) > 1:
-                forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}(tensors['{inputs[0]}'])")
+                forward_lines.append(
+                    f"        tensors['{node_id}'] = self.{node_id}(tensors['{inputs[0]}'])"
+                )
 
     # Add custom modules code at the top
     if has_add:

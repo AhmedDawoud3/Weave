@@ -7,14 +7,21 @@ from torch.nn.parameter import Parameter
 
 from schemas import (
     AdaptiveAvgPool2dNode,
+    AvgPool2dNode,
     BatchNorm2dNode,
     ChannelScaleBiasNode,
     ConcatNode,
     Conv2dNode,
+    ConvTranspose2dNode,
     CustomAutogradNode,
     DivNode,
+    Dropout2dNode,
+    DropoutNode,
+    EmbeddingNode,
     FlattenNode,
     GELUNode,
+    GroupNormNode,
+    LayerNormNode,
     LinearNode,
     MatMulNode,
     MaxPool2dNode,
@@ -24,20 +31,13 @@ from schemas import (
     ReLUNode,
     ReshapeNode,
     ScaleNode,
+    SigmoidNode,
     SliceNode,
     SoftmaxNode,
     SqrtNode,
     SubNode,
     TanhNode,
     VarNode,
-    ConvTranspose2dNode,
-    AvgPool2dNode,
-    EmbeddingNode,
-    LayerNormNode,
-    GroupNormNode,
-    SigmoidNode,
-    DropoutNode,
-    Dropout2dNode,
 )
 
 from .modules import (
@@ -445,7 +445,7 @@ def _build_layernorm(node: NodeConfig) -> nn.Module:
     if not isinstance(node, LayerNormNode):
         raise ValueError("Expected LayerNorm")
     p = node.params
-    norm_shape = tuple(p.normalized_shape) if isinstance(p.normalized_shape, list) else p.normalized_shape
+    norm_shape = p.normalized_shape
     return nn.LayerNorm(norm_shape, p.eps)
 
 
@@ -478,4 +478,3 @@ def _build_dropout2d(node: NodeConfig) -> nn.Module:
         raise ValueError("Expected Dropout2d")
     p = node.params
     return nn.Dropout2d(p.p, p.inplace)
-

@@ -96,19 +96,6 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
   const handleNavigateDashboard = onNavigateDashboard || (() => navigate('/dashboard'));
 
-  if (isInitialLoading) {
-    return (
-      <div className="h-screen w-full bg-[#070709] flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,143,211,0.05),transparent_60%)]" />
-        <div className="flex flex-col items-center relative z-10">
-          <Loader2 className="animate-spin text-[#40d3b6] mb-4" size={48} />
-          <h3 className="text-lg font-black uppercase tracking-widest text-white">Loading Workspace</h3>
-          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Synchronizing graph and dependencies...</p>
-        </div>
-      </div>
-    );
-  }
-
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showTrainingConsole, setShowTrainingConsole] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -240,6 +227,19 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     setNewSubGraphName('');
     setShowSubGraphPrompt(false);
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="h-screen w-full bg-[#070709] flex flex-col items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,143,211,0.05),transparent_60%)]" />
+        <div className="flex flex-col items-center relative z-10">
+          <Loader2 className="animate-spin text-[#40d3b6] mb-4" size={48} />
+          <h3 className="text-lg font-black uppercase tracking-widest text-white">Loading Workspace</h3>
+          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Synchronizing graph and dependencies...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

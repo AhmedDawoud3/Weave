@@ -89,31 +89,89 @@ class TextDataset(Dataset):
     def _generate_synthetic_ag_news(self, path: str) -> None:
         """Generate a synthetic text dataset of news articles for predefined usage."""
         import csv
+
         data = [
             ("text", "label"),
-            ("New space telescope captures stunning images of distant spiral galaxies.", "Sci/Tech"),
-            ("Artificial intelligence model outperforms humans on medical diagnostic exams.", "Sci/Tech"),
-            ("Breakthrough in quantum computing promises exponential speedup for cryptography.", "Sci/Tech"),
-            ("Scientists engineer synthetic microbes capable of breaking down plastics in oceans.", "Sci/Tech"),
-            ("New smartphone release features holographic display and solar charging panels.", "Sci/Tech"),
-            
-            ("Tech index surges to record high as software giant reports blowout earnings.", "Business"),
-            ("Central bank raises interest rates by twenty-five basis points to curb inflation.", "Business"),
-            ("Automotive corporation announces shift to 100 percent electric vehicle production.", "Business"),
-            ("Global trade volume declines due to supply chain disruptions and tariffs.", "Business"),
-            ("Real estate prices stabilize as mortgage rates reach ten year average.", "Business"),
-            
-            ("Championship finals end in historic victory for the underdog franchise.", "Sports"),
-            ("Superstar quarterback signs record breaking three hundred million dollar contract.", "Sports"),
-            ("Olympic runner breaks world record in the one hundred meter sprint.", "Sports"),
-            ("World cup matches draw record breaking television viewership worldwide.", "Sports"),
-            ("Grand slam tournament ends with spectacular five set thriller in tennis.", "Sports"),
-            
-            ("Global leaders convene at the United Nations summit to draft climate treaty.", "World"),
-            ("Peace treaty signed ending decade long conflict in the border region.", "World"),
-            ("Prime minister announces major infrastructure spending package for regions.", "World"),
-            ("Elections in neighboring country see record voter turnout amid high security.", "World"),
-            ("Disaster relief teams arrive at earthquake zone to distribute emergency supplies.", "World"),
+            (
+                "New space telescope captures stunning images of distant spiral galaxies.",
+                "Sci/Tech",
+            ),
+            (
+                "Artificial intelligence model outperforms humans on medical diagnostic exams.",
+                "Sci/Tech",
+            ),
+            (
+                "Breakthrough in quantum computing promises exponential speedup for cryptography.",
+                "Sci/Tech",
+            ),
+            (
+                "Scientists engineer synthetic microbes capable of breaking down plastics in oceans.",
+                "Sci/Tech",
+            ),
+            (
+                "New smartphone release features holographic display and solar charging panels.",
+                "Sci/Tech",
+            ),
+            (
+                "Tech index surges to record high as software giant reports blowout earnings.",
+                "Business",
+            ),
+            (
+                "Central bank raises interest rates by twenty-five basis points to curb inflation.",
+                "Business",
+            ),
+            (
+                "Automotive corporation announces shift to 100 percent electric vehicle production.",
+                "Business",
+            ),
+            (
+                "Global trade volume declines due to supply chain disruptions and tariffs.",
+                "Business",
+            ),
+            (
+                "Real estate prices stabilize as mortgage rates reach ten year average.",
+                "Business",
+            ),
+            (
+                "Championship finals end in historic victory for the underdog franchise.",
+                "Sports",
+            ),
+            (
+                "Superstar quarterback signs record breaking three hundred million dollar contract.",
+                "Sports",
+            ),
+            (
+                "Olympic runner breaks world record in the one hundred meter sprint.",
+                "Sports",
+            ),
+            (
+                "World cup matches draw record breaking television viewership worldwide.",
+                "Sports",
+            ),
+            (
+                "Grand slam tournament ends with spectacular five set thriller in tennis.",
+                "Sports",
+            ),
+            (
+                "Global leaders convene at the United Nations summit to draft climate treaty.",
+                "World",
+            ),
+            (
+                "Peace treaty signed ending decade long conflict in the border region.",
+                "World",
+            ),
+            (
+                "Prime minister announces major infrastructure spending package for regions.",
+                "World",
+            ),
+            (
+                "Elections in neighboring country see record voter turnout amid high security.",
+                "World",
+            ),
+            (
+                "Disaster relief teams arrive at earthquake zone to distribute emergency supplies.",
+                "World",
+            ),
         ]
         # Expand dataset to have 200 samples
         expanded_data = [data[0]] + (data[1:] * 10)
@@ -128,6 +186,7 @@ class TextDataset(Dataset):
             text = text.lower()
         if self.remove_punctuation:
             import string
+
             text = text.translate(str.maketrans("", "", string.punctuation))
         return text
 
@@ -151,33 +210,35 @@ class TextDataset(Dataset):
 
         return vocab
 
-    def _train_bpe(self, texts: list[str]) -> tuple[dict[str, int], list[tuple[str, str]]]:
+    def _train_bpe(
+        self, texts: list[str]
+    ) -> tuple[dict[str, int], list[tuple[str, str]]]:
         """Train a lightweight Byte-Pair Encoding subword vocabulary."""
         from collections import defaultdict
-        
+
         # Limit training sample rows to keep startup fast
         texts = texts[:2000]
-        
+
         word_freqs = defaultdict(int)
         for text in texts:
             for word in text.split():
                 word_freqs[word] += 1
-                
+
         # Split words into characters + end-of-word tag
-        splits = {word: [c for c in word] + ["</w>"] for word in word_freqs}
-        
+        splits = {word: list(word) + ["</w>"] for word in word_freqs}
+
         vocab = {self.PAD_TOKEN: 0, self.UNK_TOKEN: 1}
         chars = set()
         for word in word_freqs:
             for char in splits[word]:
                 chars.add(char)
-                
+
         for idx, char in enumerate(sorted(chars), start=2):
             vocab[char] = idx
-            
+
         merges = []
         target_merges = self.vocab_size - len(vocab)
-        
+
         for _ in range(max(0, target_merges)):
             pair_freqs = defaultdict(int)
             for word, freq in word_freqs.items():
@@ -185,21 +246,25 @@ class TextDataset(Dataset):
                 if len(split) < 2:
                     continue
                 for i in range(len(split) - 1):
-                    pair_freqs[(split[i], split[i+1])] += freq
-            
+                    pair_freqs[(split[i], split[i + 1])] += freq
+
             if not pair_freqs:
                 break
-                
-            best_pair = max(pair_freqs, key=pair_freqs.get)
+
+            best_pair = max(pair_freqs, key=lambda p: pair_freqs[p])
             best_pair_str = best_pair[0] + best_pair[1]
             merges.append(best_pair)
-            
+
             new_splits = {}
             for word, split in splits.items():
                 new_split = []
                 i = 0
                 while i < len(split):
-                    if i < len(split) - 1 and split[i] == best_pair[0] and split[i+1] == best_pair[1]:
+                    if (
+                        i < len(split) - 1
+                        and split[i] == best_pair[0]
+                        and split[i + 1] == best_pair[1]
+                    ):
                         new_split.append(best_pair_str)
                         i += 2
                     else:
@@ -207,9 +272,9 @@ class TextDataset(Dataset):
                         i += 1
                 new_splits[word] = new_split
             splits = new_splits
-            
+
             vocab[best_pair_str] = len(vocab)
-            
+
         return vocab, merges
 
     def _tokenize_bpe(self, text: str) -> list[str]:
@@ -217,12 +282,16 @@ class TextDataset(Dataset):
         words = text.split()
         tokens = []
         for word in words:
-            w_tokens = [c for c in word] + ["</w>"]
+            w_tokens = list(word) + ["</w>"]
             for parent, child in self.merges:
                 new_tokens = []
                 i = 0
                 while i < len(w_tokens):
-                    if i < len(w_tokens) - 1 and w_tokens[i] == parent and w_tokens[i+1] == child:
+                    if (
+                        i < len(w_tokens) - 1
+                        and w_tokens[i] == parent
+                        and w_tokens[i + 1] == child
+                    ):
                         new_tokens.append(parent + child)
                         i += 2
                     else:

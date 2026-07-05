@@ -42,15 +42,16 @@ describe("Sidebar", () => {
     const onNavigateDashboard = vi.fn();
     render(<Sidebar onNavigateDashboard={onNavigateDashboard} />);
     
-    const button = screen.getByRole("button");
+    const svg = screen.getByTestId("layout-dashboard");
+    const button = svg.closest("button");
     expect(button).toBeInTheDocument();
     
-    button.click();
+    button!.click();
     expect(onNavigateDashboard).toHaveBeenCalledTimes(1);
   });
 
-  it("renders the child DatasetPanel component", () => {
+  it("renders the dataset placeholder when no dataset is configured", () => {
     render(<Sidebar onNavigateDashboard={vi.fn()} />);
-    expect(screen.getByTestId("mock-dataset-panel")).toBeInTheDocument();
+    expect(screen.getByText(/No dataset is currently configured/i)).toBeInTheDocument();
   });
 });

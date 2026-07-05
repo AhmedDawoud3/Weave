@@ -16,6 +16,9 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodeParams, onRemoveNode }: PropertiesPanelProps) {
+  const edges = useWeaveStore((state) => state.edges);
+  const allNodes = useWeaveStore((state) => state.nodes);
+
   if (!selectedNode || !selectedNodeId) {
     return (
       <div className="w-80 border-l border-primary/10 bg-card/25 backdrop-blur-md p-8 flex flex-col items-center justify-center select-none text-muted-foreground/30">
@@ -26,9 +29,6 @@ export function PropertiesPanel({ selectedNode, selectedNodeId, onUpdateNodePara
   }
 
   const { type, params, label } = selectedNode.data;
-
-  const edges = useWeaveStore((state) => state.edges);
-  const allNodes = useWeaveStore((state) => state.nodes);
 
   const getInducedValue = (paramKey: string): number | null => {
     const incomingEdges = edges.filter(e => e.target === selectedNodeId);
