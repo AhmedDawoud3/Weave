@@ -268,3 +268,74 @@ def _ensure_tensor_transform(transform: Any) -> Compose:
         return Compose(new_transforms)
 
     return transform
+
+
+def check_dataset_downloaded(name: str) -> bool:
+    """Check if a predefined dataset has already been downloaded to disk."""
+    if name == "AG_NEWS_SUBSET":
+        return os.path.exists(os.path.join(".", "data", "ag_news_subset.csv"))
+
+    registry = load_registry()
+    if name not in registry:
+        return False
+
+    config = registry[name]
+    try:
+        module = importlib.import_module(config["module"])
+        dataset_class = getattr(module, config["class"])
+        default_params = config.get("default_params", {}).copy()
+
+        # Override split parameters
+        if "train" in default_params:
+            default_params["train"] = True
+        if "split" in default_params and "train" not in default_params:
+            default_params["split"] = "train"
+
+        # Explicitly set download=False so it raises if missing
+        default_params["download"] = False
+
+        root_dir = os.path.join(".", "data")
+        dataset_class(root=root_dir, **default_params)
+        return True
+    except Exception:
+        return False
+
+
+def get_dataset_size(name: str) -> float | None:
+    """Calculate the size of the dataset on disk in megabytes (MB)."""
+    root_dir = os.path.join(".", "data")
+    if name == "AG_NEWS_SUBSET":
+        path = os.path.join(root_dir, "ag_news_subset.csv")
+        if os.path.exists(path):
+            return os.path.getsize(path) / (1024 * 1024)
+        return None
+
+    folder_mapping = {
+        "MNIST": "MNIST",
+        "FashionMNIST": "FashionMNIST",
+        "CIFAR10": "cifar-10-batches-py",
+        "CIFAR100": "cifar-100-python",
+        "EMNIST": "EMNIST",
+        "QMNIST": "QMNIST",
+    }
+
+    if name in folder_mapping:
+        folder_path = os.path.join(root_dir, folder_mapping[name])
+        if os.path.isdir(folder_path):
+            total_size = 0
+            for dirpath, _, filenames in os.walk(folder_path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+            return total_size / (1024 * 1024)
+
+    if name == "SVHN":
+        total_size = 0
+        for f in ["train_32x32.mat", "test_32x32.mat"]:
+            fp = os.path.join(root_dir, f)
+            if os.path.exists(fp):
+                total_size += os.path.getsize(fp)
+        if total_size > 0:
+            return total_size / (1024 * 1024)
+
+    return None

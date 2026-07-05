@@ -28,7 +28,10 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
     getLossSuggestion,
     getLRSchedulePreview,
     inferredDatasetShape,
-    getFormattedGraph
+    getFormattedGraph,
+    datasetConfig,
+    datasetDownloadStatus,
+    setActiveTab: setStoreTab
   } = useWeaveStore();
 
   const [activeTab, setActiveTab] = useState<'config' | 'metrics' | 'logs' | 'inference'>('config');
@@ -105,13 +108,17 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
   };
 
   // Local Form state
-  const [dataset, setDataset] = useState('MNIST');
-  const batchSize = 32;
   const [optimizer, setOptimizer] = useState('AdamW');
   const [learningRate, setLearningRate] = useState(0.001);
   const [scheduler, setScheduler] = useState('CosineAnnealingLR');
   const [epochs, setEpochs] = useState(5);
   const [lossFunction, setLossFunction] = useState('CrossEntropyLoss');
+
+  // Dataset readiness checks
+  const isDatasetConfigured = !!datasetConfig;
+  const isPredefined = datasetConfig?.source === 'predefined';
+  const isDownloaded = isPredefined ? (datasetConfig && datasetDownloadStatus[(datasetConfig as any).name] === 'downloaded') : true;
+  const isDatasetReady = isDatasetConfigured && isDownloaded;
 
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
@@ -142,19 +149,6 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
   // Start executing the training runner config
   const handleStartRun = () => {
     const config = {
-      dataset_config: {
-        dataset_name: dataset,
-        train_transforms: [
-          { type: "Resize", size: [28, 28] },
-          { type: "ToTensor" },
-          { type: "Normalize", mean: [0.1307], std: [0.3081] }
-        ]
-      },
-      dataloader_config: {
-        batch_size: batchSize,
-        shuffle: true,
-        num_workers: 2
-      },
       optimizer_config: {
         optimizer_type: optimizer,
         lr: learningRate,
@@ -218,8 +212,17 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
 
     // Loss Sparkline from Epoch metrics (or steps if empty)
     const pointsData = epochMetrics.length > 0 ? epochMetrics : stepMetrics;
-    const losses = pointsData.map(d => d.loss !== undefined ? d.loss : 0);
-    const accuracies = epochMetrics.map(d => d.accuracy !== undefined ? d.accuracy : 0);
+    const losses = pointsData.map(d => {
+      const val = d.metrics?.train_loss ?? d.metrics?.loss ?? d.loss;
+      return val !== undefined && val !== null ? val : 0;
+    });
+    const accuracies = epochMetrics.map(d => {
+      const val = d.metrics?.val_accuracy ?? d.metrics?.train_accuracy ?? d.metrics?.accuracy ?? d.accuracy;
+      if (val !== undefined && val !== null) {
+        return val > 1.0 ? val / 100.0 : val;
+      }
+      return 0;
+    });
 
     const maxLoss = Math.max(...losses, 1);
     const minLoss = Math.min(...losses, 0);
@@ -361,7 +364,7 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
           ) : (
             <Button
               onClick={handleStartRun}
-              disabled={validationStatus !== 'success' || isTraining}
+              disabled={validationStatus !== 'success' || isTraining || !isDatasetReady}
               className="bg-gradient-to-r from-[#40d3b6] to-[#1e8fd3] text-black font-extrabold h-9 px-6 rounded-xl flex items-center gap-1.5"
             >
               {isTraining ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
@@ -486,16 +489,60 @@ export function TrainingConsole({ onClose }: TrainingConsoleProps) {
                 {renderLRSparkline()}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Dataset Catalog</Label>
-                <Select value={dataset} onValueChange={setDataset}>
-                  <SelectTrigger className="bg-background/40 border-primary/10 rounded-xl h-10"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-[#0e0e11] border-primary/10 text-white">
-                    <SelectItem value="MNIST">MNIST Digits (Images)</SelectItem>
-                    <SelectItem value="CIFAR10">CIFAR-10 Objects</SelectItem>
-                    <SelectItem value="Custom">Custom ImageFolder</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+                  Configured Dataset
+                </Label>
+                {datasetConfig ? (
+                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                          {datasetConfig.source === 'predefined' ? (datasetConfig as any).name : `${datasetConfig.source} source`}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {datasetConfig.source === 'predefined' ? 'Predefined torchvision dataset' : 'Local folder / Custom'}
+                        </span>
+                      </div>
+                      
+                      {isPredefined && (
+                        <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded ${
+                          isDownloaded 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {isDownloaded ? 'Downloaded' : 'Not Ready'}
+                        </span>
+                      )}
+                    </div>
+
+                    {!isDownloaded && (
+                      <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 space-y-2 select-none">
+                        <p className="text-[9px] text-amber-400 leading-normal font-medium">
+                          ⚠️ The selected dataset is not downloaded yet. Please download it from the Dataset panel before starting.
+                        </p>
+                        <Button
+                          onClick={() => setStoreTab('dataset')}
+                          className="h-6 w-full text-[9px] bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-md"
+                        >
+                          Go to Dataset Panel
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl space-y-2 select-none">
+                    <p className="text-[9px] text-red-400 leading-normal font-medium">
+                      ❌ No dataset is configured. You must set up a dataset before training.
+                    </p>
+                    <Button
+                      onClick={() => setStoreTab('dataset')}
+                      className="h-6 w-full text-[9px] bg-[#ef4444] hover:bg-red-600 text-white font-extrabold rounded-md"
+                    >
+                      Configure Dataset
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+import threading
 from importlib.metadata import metadata
 
 import torch.nn as nn
@@ -21,6 +22,7 @@ from compiler import (
     export_torchscript,
     get_optimizer,
 )
+from dataset import check_dataset_downloaded, get_dataset_size
 from dataset.preview import preview_dataset
 from dataset.registry import load_registry
 from dataset.scanner import smart_scan
@@ -178,7 +180,11 @@ app.add_middleware(
     allow_origins=[
         "https://weave-ai.dev",
         "http://localhost:5173",
+        "http://localhost:3000",
         "http://localhost:8000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -428,6 +434,195 @@ def datasets_validate(request: DatasetValidateRequest):
     """
     result = validate_dataset_config(request.dataset_config)
     return DatasetValidateResponse(**result)
+
+
+# Dictionary to track active download threads and their progress
+downloads_state: dict[str, dict] = {}
+downloads_lock = threading.Lock()
+
+
+def background_download_task(name: str):
+    from dataset.dataset_factory import get_dataset
+    
+    root_dir = os.path.join(".", "data")
+    
+    # Expected total sizes for progress calculation (in bytes)
+    sizes = {
+        "MNIST": 11.5 * 1024 * 1024,
+        "FashionMNIST": 30 * 1024 * 1024,
+        "CIFAR10": 170 * 1024 * 1024,
+        "CIFAR100": 170 * 1024 * 1024,
+        "EMNIST": 535 * 1024 * 1024,
+        "QMNIST": 19 * 1024 * 1024,
+        "SVHN": 280 * 1024 * 1024,
+    }
+    expected_size = sizes.get(name, 50 * 1024 * 1024)
+    
+    with downloads_lock:
+        if name in downloads_state:
+            downloads_state[name]["status"] = "downloading"
+            downloads_state[name]["total_bytes"] = int(expected_size)
+        
+    try:
+        get_dataset(name=name, root_dir=root_dir, split="train")
+        
+        with downloads_lock:
+            if name in downloads_state:
+                downloads_state[name]["status"] = "completed"
+                downloads_state[name]["progress"] = 100.0
+                downloads_state[name]["bytes_downloaded"] = int(expected_size)
+    except Exception as e:
+        logging.getLogger(__name__).exception(f"Failed to download dataset {name}")
+        with downloads_lock:
+            if name in downloads_state:
+                downloads_state[name]["status"] = "failed"
+                downloads_state[name]["error"] = str(e)
+
+
+def estimate_downloaded_bytes(name: str) -> int:
+    root_dir = os.path.join(".", "data")
+    if not os.path.isdir(root_dir):
+        return 0
+        
+    total_size = 0
+    name_lower = name.lower()
+    
+    # 1. Sum files in the specific subfolder if it exists
+    folder_mapping = {
+        "MNIST": "MNIST",
+        "FashionMNIST": "FashionMNIST",
+        "CIFAR10": "cifar-10-batches-py",
+        "CIFAR100": "cifar-100-python",
+        "EMNIST": "EMNIST",
+        "QMNIST": "QMNIST",
+    }
+    
+    if name in folder_mapping:
+        folder_path = os.path.join(root_dir, folder_mapping[name])
+        if os.path.isdir(folder_path):
+            for dirpath, _, filenames in os.walk(folder_path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    try:
+                        total_size += os.path.getsize(fp)
+                    except OSError:
+                        pass
+                        
+    # 2. Check files directly in root_dir containing the dataset name
+    # e.g., cifar-10-python.tar.gz, cifar-10-python.tar.gz.download, svhn mat files, etc.
+    try:
+        for f in os.listdir(root_dir):
+            fp = os.path.join(root_dir, f)
+            if os.path.isfile(fp):
+                f_lower = f.lower()
+                normalized_name = name_lower.replace("10", "-10")
+                if (name_lower in f_lower) or (normalized_name in f_lower) or (f_lower.startswith(name_lower)):
+                    try:
+                        total_size += os.path.getsize(fp)
+                    except OSError:
+                        pass
+    except OSError:
+        pass
+        
+    return total_size
+
+
+@app.get("/datasets/status/{name}", tags=["Dataset Catalog"])
+def get_dataset_status(name: str):
+    """Checks if a dataset is downloaded, and returns status and size on disk."""
+    try:
+        downloaded = check_dataset_downloaded(name)
+        size_mb = get_dataset_size(name)
+        
+        # Check active downloads too
+        with downloads_lock:
+            state = downloads_state.get(name)
+            
+        status_str = "not_downloaded"
+        if downloaded:
+            status_str = "downloaded"
+        elif state:
+            status_str = state["status"]
+            
+        return {
+            "name": name,
+            "downloaded": downloaded,
+            "size_mb": size_mb,
+            "status": status_str
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/datasets/download/{name}", tags=["Dataset Catalog"])
+async def start_dataset_download(name: str):
+    """Starts the download of a dataset in a background thread and streams progress updates."""
+    # Start download in background if not already downloading
+    with downloads_lock:
+        state = downloads_state.get(name)
+        if not state or state["status"] in ["completed", "failed"]:
+            downloads_state[name] = {
+                "status": "starting",
+                "progress": 0.0,
+                "bytes_downloaded": 0,
+                "total_bytes": 0,
+                "error": None,
+                "thread": None
+            }
+            thread = threading.Thread(target=background_download_task, args=(name,), daemon=True)
+            downloads_state[name]["thread"] = thread
+            thread.start()
+    
+    # Stream progress over SSE
+    async def event_generator():
+        try:
+            while True:
+                with downloads_lock:
+                    state = downloads_state.get(name)
+                
+                if not state:
+                    break
+                    
+                status_val = state["status"]
+                error_val = state["error"]
+                total = state["total_bytes"]
+                
+                if status_val == "downloading":
+                    downloaded = estimate_downloaded_bytes(name)
+                    if total > 0:
+                        percent = min(99.0, (downloaded / total) * 100.0)
+                    else:
+                        percent = 0.0
+                elif status_val == "completed":
+                    percent = 100.0
+                    downloaded = total
+                elif status_val == "failed":
+                    percent = 0.0
+                    downloaded = 0
+                else:
+                    percent = 0.0
+                    downloaded = 0
+                    
+                yield {
+                    "event": "download_progress",
+                    "data": json.dumps({
+                        "name": name,
+                        "status": status_val,
+                        "percent": percent,
+                        "bytes_downloaded": downloaded,
+                        "total_bytes": total,
+                        "error": error_val
+                    })
+                }
+                
+                if status_val in ["completed", "failed"]:
+                    break
+                    
+                await asyncio.sleep(0.5)
+        except asyncio.CancelledError:
+            pass
+            
+    return EventSourceResponse(event_generator())
 
 
 @app.post(

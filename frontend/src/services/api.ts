@@ -371,12 +371,52 @@ export const api = {
         }
       });
 
+      eventSource.addEventListener('setup_status', (event: any) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          onEvent({ type: 'setup_status', ...parsed });
+        } catch (e) {
+          console.error("Failed to parse SSE setup status:", e);
+        }
+      });
+
       eventSource.addEventListener('training_complete', (event: any) => {
         try {
           const parsed = JSON.parse(event.data);
           onEvent({ type: 'training_complete', ...parsed });
         } catch (e) {
           console.error("Failed to parse SSE complete metrics:", e);
+        }
+      });
+
+      eventSource.onerror = (err) => {
+        onError(err);
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    },
+
+    getDatasetStatus: async (name: string) => {
+      const url = `${engineBaseUrl}/datasets/status/${name}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(),
+      });
+      return handleResponse(res);
+    },
+
+    streamDatasetDownload: (name: string, onEvent: (data: any) => void, onError: (err: any) => void) => {
+      const url = `${engineBaseUrl}/datasets/download/${name}`;
+      const eventSource = new EventSource(url);
+
+      eventSource.addEventListener('download_progress', (event: any) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          onEvent(parsed);
+        } catch (e) {
+          console.error("Failed to parse SSE download progress:", e);
         }
       });
 

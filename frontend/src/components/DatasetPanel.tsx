@@ -20,10 +20,23 @@ export function DatasetPanel() {
     removeTransform,
     reorderTransforms,
     updateTransformParam,
-    setDataLoaderConfig
+    setDataLoaderConfig,
+    datasetDownloadStatus,
+    datasetDownloadProgress,
+    checkDatasetStatus,
+    downloadDataset
   } = useWeaveStore();
 
   const [datasetsCatalog, setDatasetsCatalog] = useState<DatasetCatalogEntry[]>([]);
+  const datasetSizes: Record<string, string> = {
+    'MNIST': '11.5 MB',
+    'FashionMNIST': '30 MB',
+    'CIFAR10': '170 MB',
+    'CIFAR100': '170 MB',
+    'EMNIST': '535 MB',
+    'QMNIST': '19 MB',
+    'SVHN': '280 MB',
+  };
   const [transformsCatalog, setTransformsCatalog] = useState<TransformCatalogEntry[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -162,6 +175,22 @@ export function DatasetPanel() {
     }
     loadCatalogs();
   }, []);
+
+  // Check statuses of catalog datasets when they load
+  useEffect(() => {
+    if (datasetsCatalog.length > 0) {
+      datasetsCatalog.forEach((dataset) => {
+        checkDatasetStatus(dataset.name);
+      });
+    }
+  }, [datasetsCatalog, checkDatasetStatus]);
+
+  // Check selected predefined dataset status when it changes
+  useEffect(() => {
+    if (datasetConfig && datasetConfig.source === 'predefined' && (datasetConfig as any).name) {
+      checkDatasetStatus((datasetConfig as any).name);
+    }
+  }, [datasetConfig, checkDatasetStatus]);
 
   // Validate configuration against engine
   const handleValidateConfig = async () => {
@@ -468,6 +497,7 @@ export function DatasetPanel() {
             <div className="grid grid-cols-2 gap-2.5">
               {datasetsCatalog.map((dataset) => {
                 const isSelected = datasetConfig.name === dataset.name;
+                const status = datasetDownloadStatus[dataset.name] || 'not_downloaded';
                 return (
                   <div
                     key={dataset.name}
@@ -479,7 +509,21 @@ export function DatasetPanel() {
                     }`}
                   >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[11px] font-black tracking-wide text-white">{dataset.name}</span>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[11px] font-black tracking-wide text-white">{dataset.name}</span>
+                        {status === 'downloaded' && (
+                          <span className="px-1 py-0.5 text-[6.5px] font-black uppercase tracking-wider rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Downloaded</span>
+                        )}
+                        {(status === 'downloading' || status === 'starting') && (
+                          <span className="px-1 py-0.5 text-[6.5px] font-black uppercase tracking-wider rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">Downloading</span>
+                        )}
+                        {status === 'not_downloaded' && (
+                          <span className="px-1 py-0.5 text-[6.5px] font-black uppercase tracking-wider rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Ready to DL</span>
+                        )}
+                        {status === 'failed' && (
+                          <span className="px-1 py-0.5 text-[6.5px] font-black uppercase tracking-wider rounded bg-red-500/10 text-red-400 border border-red-500/20">Failed</span>
+                        )}
+                      </div>
                       <span className="text-[8px] text-muted-foreground truncate leading-snug">{dataset.description}</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -487,13 +531,97 @@ export function DatasetPanel() {
                         {dataset.shape?.join('×')}
                       </span>
                       <span className="text-[8px] text-muted-foreground/80 font-black">
-                        {dataset.num_classes} CLS
+                        {dataset.num_classes} CLS {datasetSizes[dataset.name] ? `• ${datasetSizes[dataset.name]}` : ''}
                       </span>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Download Status & Trigger Panel */}
+            {(() => {
+              const selectedName = (datasetConfig as any).name;
+              const status = datasetDownloadStatus[selectedName] || 'not_downloaded';
+              const progress = datasetDownloadProgress[selectedName];
+              
+              return (
+                <div className="p-4 rounded-xl border border-white/5 bg-white/[0.01] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+                        Status for {selectedName}
+                      </span>
+                      <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                        {status === 'downloaded' && (
+                          <>
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                            Already Downloaded
+                          </>
+                        )}
+                        {(status === 'downloading' || status === 'starting') && (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
+                            Downloading Dataset...
+                          </>
+                        )}
+                        {status === 'not_downloaded' && (
+                          <>
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]" />
+                            Not Downloaded
+                          </>
+                        )}
+                        {status === 'failed' && (
+                          <>
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-400 shadow-[0_0_8px_#f87171]" />
+                            Download Failed (Click to Retry)
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {status === 'not_downloaded' && (
+                      <Button
+                        onClick={() => downloadDataset(selectedName)}
+                        size="sm"
+                        className="h-7 text-[10px] bg-[#40d3b6] hover:bg-[#34bda2] text-black font-extrabold px-3 rounded-lg"
+                      >
+                        Download Dataset
+                      </Button>
+                    )}
+                    {status === 'failed' && (
+                      <Button
+                        onClick={() => downloadDataset(selectedName)}
+                        size="sm"
+                        variant="destructive"
+                        className="h-7 text-[10px] font-extrabold px-3 rounded-lg"
+                      >
+                        Retry Download
+                      </Button>
+                    )}
+                  </div>
+
+                  {(status === 'downloading' || status === 'starting') && progress && (
+                    <div className="space-y-1.5">
+                      <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-blue-400 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${progress.percent}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[9px] font-mono text-muted-foreground">
+                        <span>{Math.round(progress.percent)}%</span>
+                        {progress.total_bytes > 0 && (
+                          <span>
+                            {(progress.bytes_downloaded / (1024 * 1024)).toFixed(1)} MB / {(progress.total_bytes / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="flex flex-col gap-1.5 mt-4">
               <span className="text-[10px] text-[#40d3b6] font-extrabold uppercase tracking-wider">

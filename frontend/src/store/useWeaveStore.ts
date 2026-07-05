@@ -91,6 +91,12 @@ interface WeaveState {
   inferDatasetShape: () => Promise<void>;
   activeTab: 'canvas' | 'dataset';
   setActiveTab: (tab: 'canvas' | 'dataset') => void;
+
+  // Dataset Download Status
+  datasetDownloadStatus: Record<string, 'not_downloaded' | 'starting' | 'downloading' | 'completed' | 'failed' | 'downloaded'>;
+  datasetDownloadProgress: Record<string, { percent: number; bytes_downloaded: number; total_bytes: number }>;
+  checkDatasetStatus: (name: string) => Promise<void>;
+  downloadDataset: (name: string) => Promise<void>;
 }
 
 
@@ -302,6 +308,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     activeInputShape: null,
     isInferringDatasetShape: false,
     activeTab: 'canvas',
+    datasetDownloadStatus: {},
+    datasetDownloadProgress: {},
 
     // Auth State
     token: localStorage.getItem('weave_token'),
@@ -1231,16 +1239,167 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       const formattedEdges = formattedGraph.edges;
 
       // Invert local training config schema into Python TrainingConfig
+      const storeDatasetConfig = get().datasetConfig;
+      let pythonDatasetConfig: any = null;
+
+      if (storeDatasetConfig) {
+        if (storeDatasetConfig.source === 'predefined') {
+          pythonDatasetConfig = {
+            source: 'predefined',
+            name: storeDatasetConfig.name,
+            split: storeDatasetConfig.split || 'train',
+            transforms: (storeDatasetConfig.transforms || []).map((t: any) => {
+              const { type, ...rest } = t;
+              return { type, ...rest };
+            }),
+            dataloader: {
+              batch_size: storeDatasetConfig.dataloader?.batch_size || 32,
+              shuffle: storeDatasetConfig.dataloader?.shuffle ?? true,
+              num_workers: storeDatasetConfig.dataloader?.num_workers ?? 2,
+              pin_memory: storeDatasetConfig.dataloader?.pin_memory ?? true,
+              drop_last: storeDatasetConfig.dataloader?.drop_last ?? false
+            }
+          };
+        } else if (storeDatasetConfig.source === 'image_folder') {
+          pythonDatasetConfig = {
+            source: 'image_folder',
+            root: storeDatasetConfig.root || '',
+            split_ratio: storeDatasetConfig.split_ratio ?? 0.8,
+            transforms: (storeDatasetConfig.transforms || []).map((t: any) => {
+              const { type, ...rest } = t;
+              return { type, ...rest };
+            }),
+            dataloader: {
+              batch_size: storeDatasetConfig.dataloader?.batch_size || 32,
+              shuffle: storeDatasetConfig.dataloader?.shuffle ?? true,
+              num_workers: storeDatasetConfig.dataloader?.num_workers ?? 2,
+              pin_memory: storeDatasetConfig.dataloader?.pin_memory ?? true,
+              drop_last: storeDatasetConfig.dataloader?.drop_last ?? false
+            }
+          };
+        } else if (storeDatasetConfig.source === 'custom') {
+          pythonDatasetConfig = {
+            source: 'custom',
+            modality: storeDatasetConfig.modality || 'image',
+            root: storeDatasetConfig.root || '',
+            file_path: storeDatasetConfig.file_path || '',
+            label_source: storeDatasetConfig.label_source || 'folder',
+            label_file: storeDatasetConfig.label_file || '',
+            image_column: storeDatasetConfig.image_column || '',
+            label_column: storeDatasetConfig.label_column || '',
+            file_pattern: storeDatasetConfig.file_pattern || '',
+            text_column: storeDatasetConfig.text_column || '',
+            vocab_size: storeDatasetConfig.vocab_size || 10000,
+            max_length: storeDatasetConfig.max_length || 128,
+            target_column: storeDatasetConfig.target_column || '',
+            feature_columns: storeDatasetConfig.feature_columns || [],
+            sample_rate: storeDatasetConfig.sample_rate || 16000,
+            max_duration_sec: storeDatasetConfig.max_duration_sec || 5.0,
+            n_mels: storeDatasetConfig.n_mels || 128,
+            transforms: (storeDatasetConfig.transforms || []).map((t: any) => {
+              const { type, ...rest } = t;
+              return { type, ...rest };
+            }),
+            dataloader: {
+              batch_size: storeDatasetConfig.dataloader?.batch_size || 32,
+              shuffle: storeDatasetConfig.dataloader?.shuffle ?? true,
+              num_workers: storeDatasetConfig.dataloader?.num_workers ?? 2,
+              pin_memory: storeDatasetConfig.dataloader?.pin_memory ?? true,
+              drop_last: storeDatasetConfig.dataloader?.drop_last ?? false
+            }
+          };
+        }
+      } else {
+        // Fallback default
+        pythonDatasetConfig = {
+          source: 'predefined',
+          name: 'MNIST',
+          split: 'train',
+          transforms: [
+            { type: "Resize", size: [28, 28] },
+            { type: "ToTensor" },
+            { type: "Normalize", mean: [0.1307], std: [0.3081] }
+          ],
+          dataloader: {
+            batch_size: 32,
+            shuffle: true,
+            num_workers: 2,
+            pin_memory: true,
+            drop_last: false
+          }
+        };
+      }
+
+      const lossFunction = config.loss_config?.loss_type || 'CrossEntropyLoss';
+      
+      const optType = config.optimizer_config?.optimizer_type || 'AdamW';
+      const lr = config.optimizer_config?.lr ?? 0.001;
+      const weightDecay = config.optimizer_config?.weight_decay ?? 0.01;
+
+      const schedType = config.optimizer_config?.scheduler_type || 'None';
+      let schedulerConfig: any = null;
+      if (schedType && schedType !== 'None') {
+        const schedParams: any = {};
+        if (schedType === 'CosineAnnealingLR') {
+          schedParams.T_max = config.training_settings?.epochs || 5;
+          schedParams.eta_min = 1e-6;
+        } else if (schedType === 'StepLR') {
+          schedParams.step_size = 5;
+          schedParams.gamma = 0.1;
+        } else if (schedType === 'ExponentialLR') {
+          schedParams.gamma = 0.9;
+        } else if (schedType === 'ReduceLROnPlateau') {
+          schedParams.mode = 'min';
+          schedParams.factor = 0.1;
+          schedParams.patience = 3;
+        } else if (schedType === 'OneCycleLR') {
+          schedParams.max_lr = lr;
+          schedParams.total_steps = (config.training_settings?.epochs || 5) * 100;
+        }
+        schedulerConfig = {
+          type: schedType,
+          params: schedParams
+        };
+      }
+
       const pythonConfig = {
         model_graph: {
           nodes: formattedNodes,
           edges: formattedEdges
         },
-        dataset_config: config.dataset_config,
-        dataloader_config: config.dataloader_config,
-        optimizer_config: config.optimizer_config,
-        loss_config: config.loss_config,
-        training_settings: config.training_settings
+        dataset_config: pythonDatasetConfig,
+        loss: {
+          type: lossFunction,
+          params: {}
+        },
+        optimizer: {
+          type: optType,
+          params: {
+            lr: lr,
+            weight_decay: weightDecay
+          }
+        },
+        scheduler: schedulerConfig,
+        training: {
+          epochs: config.training_settings?.epochs || 5,
+          device: config.training_settings?.device || 'cpu',
+          mixed_precision: false,
+          gradient_clip_norm: 1.0,
+          gradient_accumulation_steps: 1,
+          validation_frequency: 1,
+          early_stopping: {
+            enabled: false,
+            patience: 10,
+            monitor: 'val_loss',
+            mode: 'min'
+          },
+          checkpointing: {
+            save_best: true,
+            save_every_n_epochs: 1,
+            monitor: 'val_loss',
+            directory: 'data/checkpoints'
+          }
+        }
       };
 
       try {
@@ -1249,29 +1408,48 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         set({ activeRunId: runId, trainingLogs: [...get().trainingLogs, `Training run ${runId} successfully spawned.`] });
 
         // Connect SSE stream
-        api.engine.streamTraining(
+        let unsubscribe: () => void = () => {};
+        unsubscribe = api.engine.streamTraining(
           runId,
           (event) => {
-            const currentLogs = get().trainingLogs;
-            if (event.type === 'step_metrics') {
+            if (event.type === 'setup_status') {
+              set((state) => ({
+                trainingLogs: [...state.trainingLogs, `[Setup] ${event.message}`]
+              }));
+            } else if (event.type === 'step_metrics') {
+              const loss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
               set((state) => ({
                 stepMetrics: [...state.stepMetrics, event],
-                trainingLogs: [...currentLogs, `[Step ${event.step}] Loss: ${event.loss?.toFixed(4) || 'N/A'}`]
+                trainingLogs: [...state.trainingLogs, `[Step ${event.step}] Loss: ${loss !== undefined && loss !== null ? loss.toFixed(4) : 'N/A'}`]
               }));
             } else if (event.type === 'epoch_metrics') {
+              const trainLoss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
+              const valLoss = event.metrics?.val_loss;
+              const lossStr = valLoss !== undefined && valLoss !== null 
+                ? `Loss: ${trainLoss?.toFixed(4) || 'N/A'} (Val: ${valLoss.toFixed(4)})` 
+                : `Loss: ${trainLoss?.toFixed(4) || 'N/A'}`;
+              const accuracy = event.metrics?.val_accuracy ?? event.metrics?.train_accuracy ?? event.metrics?.accuracy ?? event.accuracy;
+              let displayAcc = accuracy;
+              if (displayAcc !== undefined && displayAcc !== null) {
+                if (displayAcc <= 1.0) {
+                  displayAcc = displayAcc * 100;
+                }
+              }
+              const accStr = displayAcc !== undefined && displayAcc !== null ? `, Acc: ${displayAcc.toFixed(2)}%` : '';
               set((state) => ({
                 epochMetrics: [...state.epochMetrics, event],
                 trainingLogs: [
-                  ...currentLogs,
-                  `=== Epoch ${event.epoch} Complete === Loss: ${event.loss?.toFixed(4)}, Acc: ${(event.accuracy * 100)?.toFixed(2)}%`
+                  ...state.trainingLogs,
+                  `=== Epoch ${event.epoch} Complete === ${lossStr}${accStr}`
                 ]
               }));
             } else if (event.type === 'training_complete') {
-              set({
+              set((state) => ({
                 isTraining: false,
                 trainingStatus: 'completed',
-                trainingLogs: [...currentLogs, `🎉 Training completed successfully!`]
-              });
+                trainingLogs: [...state.trainingLogs, `🎉 Training completed successfully!`]
+              }));
+              unsubscribe();
             }
           },
           (err) => {
@@ -1284,12 +1462,16 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
                   trainingStatus: 'failed',
                   trainingLogs: [...get().trainingLogs, `❌ Training aborted: Engine error.`]
                 });
+                unsubscribe();
               } else if (statusRes.status === 'completed' || statusRes.status === 'stopped') {
                 set({
                   isTraining: false,
                   trainingStatus: statusRes.status
                 });
+                unsubscribe();
               }
+            }).catch(() => {
+              // Note: Do NOT call unsubscribe() here. Let EventSource auto-reconnect on transient/CORS errors.
             });
           }
         );
@@ -1578,6 +1760,82 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       }
     },
 
-    setActiveTab: (tab) => set({ activeTab: tab })
+    setActiveTab: (tab) => set({ activeTab: tab }),
+
+    checkDatasetStatus: async (name: string) => {
+      try {
+        const res = await api.engine.getDatasetStatus(name);
+        set((state) => ({
+          datasetDownloadStatus: {
+            ...state.datasetDownloadStatus,
+            [name]: res.status
+          },
+          datasetDownloadProgress: {
+            ...state.datasetDownloadProgress,
+            [name]: {
+              percent: res.status === 'downloaded' ? 100 : 0,
+              bytes_downloaded: 0,
+              total_bytes: 0
+            }
+          }
+        }));
+      } catch (err) {
+        console.error(`Failed to check status for dataset ${name}:`, err);
+      }
+    },
+
+    downloadDataset: async (name: string) => {
+      // Set status to starting
+      set((state) => ({
+        datasetDownloadStatus: {
+          ...state.datasetDownloadStatus,
+          [name]: 'starting'
+        },
+        datasetDownloadProgress: {
+          ...state.datasetDownloadProgress,
+          [name]: { percent: 0, bytes_downloaded: 0, total_bytes: 0 }
+        }
+      }));
+
+      try {
+        api.engine.streamDatasetDownload(
+          name,
+          (progressEvent) => {
+            // Check status and update progress
+            set((state) => ({
+              datasetDownloadStatus: {
+                ...state.datasetDownloadStatus,
+                [name]: progressEvent.status
+              },
+              datasetDownloadProgress: {
+                ...state.datasetDownloadProgress,
+                [name]: {
+                  percent: progressEvent.percent,
+                  bytes_downloaded: progressEvent.bytes_downloaded,
+                  total_bytes: progressEvent.total_bytes
+                }
+              }
+            }));
+          },
+          (err) => {
+            console.error(`SSE download stream error for ${name}:`, err);
+            set((state) => ({
+              datasetDownloadStatus: {
+                ...state.datasetDownloadStatus,
+                [name]: 'failed'
+              }
+            }));
+          }
+        );
+      } catch (err) {
+        console.error(`Failed to initiate download for dataset ${name}:`, err);
+        set((state) => ({
+          datasetDownloadStatus: {
+            ...state.datasetDownloadStatus,
+            [name]: 'failed'
+          }
+        }));
+      }
+    }
   };
 });

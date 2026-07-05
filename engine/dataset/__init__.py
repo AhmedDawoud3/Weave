@@ -4,7 +4,7 @@ Public API for the Weave Engine dataset subsystem.
 """
 
 from .dataloader import create_dataloader, create_dataloader_from_config, split_dataset
-from .dataset_factory import get_dataset, get_dataset_from_config
+from .dataset_factory import get_dataset, get_dataset_from_config, check_dataset_downloaded, get_dataset_size
 from .preview import preview_dataset
 from .registry import (
     get_dataset_metadata,
@@ -28,6 +28,8 @@ __all__ = [
     # Dataset factory
     "get_dataset",
     "get_dataset_from_config",
+    "check_dataset_downloaded",
+    "get_dataset_size",
     # DataLoader
     "create_dataloader",
     "create_dataloader_from_config",
