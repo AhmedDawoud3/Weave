@@ -23,12 +23,12 @@ export function SplashPage() {
       key="splash"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, y: -20 }}
-      className="h-screen w-full bg-[#0a0a0a] flex flex-col items-center justify-center"
+      className="h-screen w-full bg-background flex flex-col items-center justify-center"
     >
       <motion.h1
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-6xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-[#40d3b6] to-[#1e8fd3]"
+        className="text-6xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue"
       >
         WEAVE
       </motion.h1>

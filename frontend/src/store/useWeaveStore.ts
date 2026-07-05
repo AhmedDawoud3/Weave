@@ -70,6 +70,9 @@ interface WeaveState {
   suggestedLoss: string | null;
   suggestedLossAlternatives: string[];
   lrPreview: number[];
+  trainingStreamUnsubscribe: (() => void) | null;
+  connectTrainingStream: (runId: string) => void;
+  checkActiveRuns: () => Promise<void>;
   startTraining: (config: any) => Promise<void>;
   controlTraining: (action: 'pause' | 'resume' | 'stop') => Promise<void>;
   getLossSuggestion: (outputShape: number[], finalActivation: string, taskType: string) => Promise<void>;
@@ -1222,6 +1225,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     suggestedLoss: null,
     suggestedLossAlternatives: [],
     lrPreview: [],
+    trainingStreamUnsubscribe: null,
 
     startTraining: async (config) => {
       set({
@@ -1406,75 +1410,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         const startRes = await api.engine.startTraining(pythonConfig);
         const runId = startRes.run_id;
         set({ activeRunId: runId, trainingLogs: [...get().trainingLogs, `Training run ${runId} successfully spawned.`] });
-
         // Connect SSE stream
-        let unsubscribe: () => void = () => {};
-        unsubscribe = api.engine.streamTraining(
-          runId,
-          (event) => {
-            if (event.type === 'setup_status') {
-              set((state) => ({
-                trainingLogs: [...state.trainingLogs, `[Setup] ${event.message}`]
-              }));
-            } else if (event.type === 'step_metrics') {
-              const loss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
-              set((state) => ({
-                stepMetrics: [...state.stepMetrics, event],
-                trainingLogs: [...state.trainingLogs, `[Step ${event.step}] Loss: ${loss !== undefined && loss !== null ? loss.toFixed(4) : 'N/A'}`]
-              }));
-            } else if (event.type === 'epoch_metrics') {
-              const trainLoss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
-              const valLoss = event.metrics?.val_loss;
-              const lossStr = valLoss !== undefined && valLoss !== null 
-                ? `Loss: ${trainLoss?.toFixed(4) || 'N/A'} (Val: ${valLoss.toFixed(4)})` 
-                : `Loss: ${trainLoss?.toFixed(4) || 'N/A'}`;
-              const accuracy = event.metrics?.val_accuracy ?? event.metrics?.train_accuracy ?? event.metrics?.accuracy ?? event.accuracy;
-              let displayAcc = accuracy;
-              if (displayAcc !== undefined && displayAcc !== null) {
-                if (displayAcc <= 1.0) {
-                  displayAcc = displayAcc * 100;
-                }
-              }
-              const accStr = displayAcc !== undefined && displayAcc !== null ? `, Acc: ${displayAcc.toFixed(2)}%` : '';
-              set((state) => ({
-                epochMetrics: [...state.epochMetrics, event],
-                trainingLogs: [
-                  ...state.trainingLogs,
-                  `=== Epoch ${event.epoch} Complete === ${lossStr}${accStr}`
-                ]
-              }));
-            } else if (event.type === 'training_complete') {
-              set((state) => ({
-                isTraining: false,
-                trainingStatus: 'completed',
-                trainingLogs: [...state.trainingLogs, `🎉 Training completed successfully!`]
-              }));
-              unsubscribe();
-            }
-          },
-          (err) => {
-            console.error("SSE stream error:", err);
-            // Check status manually to see if it crashed or ended
-            api.engine.getTrainingStatus(runId).then((statusRes) => {
-              if (statusRes.status === 'failed') {
-                set({
-                  isTraining: false,
-                  trainingStatus: 'failed',
-                  trainingLogs: [...get().trainingLogs, `❌ Training aborted: Engine error.`]
-                });
-                unsubscribe();
-              } else if (statusRes.status === 'completed' || statusRes.status === 'stopped') {
-                set({
-                  isTraining: false,
-                  trainingStatus: statusRes.status
-                });
-                unsubscribe();
-              }
-            }).catch(() => {
-              // Note: Do NOT call unsubscribe() here. Let EventSource auto-reconnect on transient/CORS errors.
-            });
-          }
-        );
+        get().connectTrainingStream(runId);
       } catch (err: any) {
         set({
           isTraining: false,
@@ -1484,7 +1421,111 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       }
     },
 
-    controlTraining: async (action) => {
+    connectTrainingStream: (runId: string) => {
+      // Clean up previous stream if any
+      const currentUnsubscribe = get().trainingStreamUnsubscribe;
+      if (currentUnsubscribe) {
+        try {
+          currentUnsubscribe();
+        } catch (e) {
+          console.error("Error unsubscribing previous stream:", e);
+        }
+      }
+
+      const unsubscribe = api.engine.streamTraining(
+        runId,
+        (event) => {
+          if (event.type === 'setup_status') {
+            set((state) => ({
+              trainingLogs: [...state.trainingLogs, `[Setup] ${event.message}`]
+            }));
+          } else if (event.type === 'step_metrics') {
+            const loss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
+            set((state) => ({
+              stepMetrics: [...state.stepMetrics, event],
+              trainingLogs: [...state.trainingLogs, `[Step ${event.step}] Loss: ${loss !== undefined && loss !== null ? loss.toFixed(4) : 'N/A'}`]
+            }));
+          } else if (event.type === 'epoch_metrics') {
+            const trainLoss = event.metrics?.train_loss ?? event.metrics?.loss ?? event.loss;
+            const valLoss = event.metrics?.val_loss;
+            const lossStr = valLoss !== undefined && valLoss !== null 
+              ? `Loss: ${trainLoss?.toFixed(4) || 'N/A'} (Val: ${valLoss.toFixed(4)})` 
+              : `Loss: ${trainLoss?.toFixed(4) || 'N/A'}`;
+            const accuracy = event.metrics?.val_accuracy ?? event.metrics?.train_accuracy ?? event.metrics?.accuracy ?? event.accuracy;
+            let displayAcc = accuracy;
+            if (displayAcc !== undefined && displayAcc !== null) {
+              if (displayAcc <= 1.0) {
+                displayAcc = displayAcc * 100;
+              }
+            }
+            const accStr = displayAcc !== undefined && displayAcc !== null ? `, Acc: ${displayAcc.toFixed(2)}%` : '';
+            set((state) => ({
+              epochMetrics: [...state.epochMetrics, event],
+              trainingLogs: [
+                ...state.trainingLogs,
+                `=== Epoch ${event.epoch} Complete === ${lossStr}${accStr}`
+              ]
+            }));
+          } else if (event.type === 'training_complete') {
+            set((state) => ({
+              isTraining: false,
+              trainingStatus: 'completed',
+              trainingLogs: [...state.trainingLogs, `🎉 Training completed successfully!`]
+            }));
+            const streamUnsub = get().trainingStreamUnsubscribe;
+            if (streamUnsub) streamUnsub();
+          }
+        },
+        (err) => {
+          console.error("SSE stream error:", err);
+          // Check status manually to see if it crashed or ended
+          api.engine.getTrainingStatus(runId).then((statusRes) => {
+            if (statusRes.status === 'failed') {
+              set({
+                isTraining: false,
+                trainingStatus: 'failed',
+                trainingLogs: [...get().trainingLogs, `❌ Training aborted: Engine error.`]
+              });
+              const streamUnsub = get().trainingStreamUnsubscribe;
+              if (streamUnsub) streamUnsub();
+            } else if (statusRes.status === 'completed' || statusRes.status === 'stopped') {
+              set({
+                isTraining: false,
+                trainingStatus: statusRes.status
+              });
+              const streamUnsub = get().trainingStreamUnsubscribe;
+              if (streamUnsub) streamUnsub();
+            }
+          }).catch(() => {
+            // Note: Do NOT call unsubscribe here. Let EventSource auto-reconnect on transient/CORS errors.
+          });
+        }
+      );
+
+      set({ trainingStreamUnsubscribe: unsubscribe });
+    },
+
+    checkActiveRuns: async () => {
+      try {
+        const res = await api.engine.getActiveRuns();
+        if (res && res.active_runs && res.active_runs.length > 0) {
+          const activeRun = res.active_runs[0];
+          const runId = activeRun.run_id;
+          
+          if (get().activeRunId !== runId) {
+            set({
+              activeRunId: runId,
+              isTraining: true,
+              trainingStatus: activeRun.status,
+              trainingLogs: [`Reconnected to running background job: ${runId}`]
+            });
+            get().connectTrainingStream(runId);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check active runs:", err);
+      }
+    },    controlTraining: async (action) => {
       const runId = get().activeRunId;
       if (!runId) return;
 

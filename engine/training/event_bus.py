@@ -77,20 +77,21 @@ class EventBus:
         terminal_types = {"training_complete", "training_failed", "stopped"}
 
         while True:
-            # Drain any buffered events
+            # Clear notification first to avoid race conditions with incoming pushes
+            self._notify.clear()
+
             with self._lock:
                 pending = self._events[cursor:]
 
-            for event in pending:
-                yield event
-                cursor += 1
-                if event.get("type") in terminal_types:
-                    return
+            if pending:
+                for event in pending:
+                    yield event
+                    cursor += 1
+                    if event.get("type") in terminal_types:
+                        return
+                continue
 
-            # If already finished and nothing left, stop
             if self._finished:
                 return
 
-            # Wait for the next push
-            self._notify.clear()
             await self._notify.wait()

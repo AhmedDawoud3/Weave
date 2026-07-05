@@ -129,6 +129,17 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     }
   }, [activeInputShape]);
 
+  const checkActiveRuns = useWeaveStore(state => (state as any).checkActiveRuns);
+
+  // Periodically check and reconnect to any running background training jobs
+  useEffect(() => {
+    if (checkActiveRuns) {
+      checkActiveRuns();
+      const interval = setInterval(checkActiveRuns, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [checkActiveRuns]);
+
   const handleShapeSubmit = () => {
     // Parse format like "32, 3, 224, 224" or "[32, 3, 224, 224]"
     const clean = shapeInput.replace(/[\[\]]/g, '').trim();

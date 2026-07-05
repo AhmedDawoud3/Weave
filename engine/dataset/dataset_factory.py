@@ -33,6 +33,7 @@ def get_dataset(
     root_dir: str,
     transform: Compose | None = None,
     split: str = "train",
+    download: bool = False,
 ) -> Dataset:
     """Dynamically instantiate a predefined dataset from the registry.
 
@@ -44,6 +45,7 @@ def get_dataset(
         root_dir: Directory path to download/load the dataset.
         transform: Optional transform pipeline to apply to samples.
         split: Dataset split, either "train" or "test".
+        download: Whether to trigger torchvision's auto-downloader if missing.
 
     Returns:
         A torchvision Dataset instance.
@@ -64,12 +66,12 @@ def get_dataset(
     dataset_class = getattr(module, config["class"])
 
     default_params = config.get("default_params", {}).copy()
-    # Override train/test split if the underlying dataset accepts a `train` bool
     if "train" in default_params:
         default_params["train"] = split == "train"
-    # SVHN uses "split" instead of "train"
     if "split" in default_params and "train" not in default_params:
         default_params["split"] = split
+    if "download" in default_params:
+        default_params["download"] = download
 
     dataset = dataset_class(
         root=root_dir,
@@ -112,7 +114,7 @@ def _create_predefined(config: PredefinedDatasetConfig) -> Dataset:
     """Create a predefined dataset (torchvision image or built-in text)."""
     if config.name == "AG_NEWS_SUBSET":
         return TextDataset(
-            file_path=os.path.join(".", "data", "ag_news_subset.csv"),
+            file_path=os.path.join("..", "data", "ag_news_subset.csv"),
             text_column="text",
             target_column="label",
             max_length=getattr(config, "max_length", 128) or 128,
@@ -126,7 +128,7 @@ def _create_predefined(config: PredefinedDatasetConfig) -> Dataset:
     transform = _ensure_tensor_transform(transform)
     return get_dataset(
         name=config.name,
-        root_dir=os.path.join(".", "data"),
+        root_dir=os.path.join("..", "data"),
         transform=transform,
         split=config.split,
     )
@@ -273,7 +275,7 @@ def _ensure_tensor_transform(transform: Any) -> Compose:
 def check_dataset_downloaded(name: str) -> bool:
     """Check if a predefined dataset has already been downloaded to disk."""
     if name == "AG_NEWS_SUBSET":
-        return os.path.exists(os.path.join(".", "data", "ag_news_subset.csv"))
+        return os.path.exists(os.path.join("..", "data", "ag_news_subset.csv"))
 
     registry = load_registry()
     if name not in registry:
@@ -294,7 +296,7 @@ def check_dataset_downloaded(name: str) -> bool:
         # Explicitly set download=False so it raises if missing
         default_params["download"] = False
 
-        root_dir = os.path.join(".", "data")
+        root_dir = os.path.join("..", "data")
         dataset_class(root=root_dir, **default_params)
         return True
     except Exception:
@@ -303,7 +305,7 @@ def check_dataset_downloaded(name: str) -> bool:
 
 def get_dataset_size(name: str) -> float | None:
     """Calculate the size of the dataset on disk in megabytes (MB)."""
-    root_dir = os.path.join(".", "data")
+    root_dir = os.path.join("..", "data")
     if name == "AG_NEWS_SUBSET":
         path = os.path.join(root_dir, "ag_news_subset.csv")
         if os.path.exists(path):

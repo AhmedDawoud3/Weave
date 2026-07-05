@@ -81,6 +81,8 @@ export interface DatasetCatalogEntry {
   modality: string;
   shape: number[] | null;
   num_classes: number | null;
+  size?: string;
+  category?: string;
 }
 
 export interface DatasetCatalogResponse {

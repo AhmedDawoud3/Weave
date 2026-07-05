@@ -41,6 +41,13 @@ class TrainingRunner:
         run_id = str(uuid.uuid4())
         logger.info(f"Initiating training run. Assigned run_id: {run_id}")
 
+        # Redirect checkpoints from watched "data/" directory to parent "../data/" directory
+        # to prevent Uvicorn auto-reload from restarting the server and killing the background run.
+        if config.training and config.training.checkpointing:
+            directory = config.training.checkpointing.directory
+            if directory.startswith("data"):
+                config.training.checkpointing.directory = directory.replace("data", "../data", 1)
+
         # 1. Event loop registration
         try:
             loop = asyncio.get_running_loop()

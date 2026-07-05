@@ -10,7 +10,9 @@
         "num_classes": 10,
         "description": "Handwritten digit recognition dataset (0-9)",
         "tags": ["grayscale", "classification", "vision"],
-        "modality": "image"
+        "modality": "image",
+        "category": "FAMOUS",
+        "size": "11.5 MB"
     },
     "FashionMNIST": {
         "module": "torchvision.datasets",
@@ -23,7 +25,9 @@
         "num_classes": 10,
         "description": "Fashion article images (T-shirt, trouser, pullover, etc.)",
         "tags": ["grayscale", "classification", "vision", "fashion"],
-        "modality": "image"
+        "modality": "image",
+        "category": "FAMOUS",
+        "size": "30.0 MB"
     },
     "CIFAR10": {
         "module": "torchvision.datasets",
@@ -36,7 +40,9 @@
         "num_classes": 10,
         "description": "Small color images in 10 classes (airplane, car, bird, etc.)",
         "tags": ["color", "classification", "vision"],
-        "modality": "image"
+        "modality": "image",
+        "category": "FAMOUS",
+        "size": "170.0 MB"
     },
     "CIFAR100": {
         "module": "torchvision.datasets",
@@ -49,7 +55,24 @@
         "num_classes": 100,
         "description": "Small color images in 100 fine-grained classes",
         "tags": ["color", "classification", "vision", "fine-grained"],
-        "modality": "image"
+        "modality": "image",
+        "category": "FAMOUS",
+        "size": "170.0 MB"
+    },
+    "SVHN": {
+        "module": "torchvision.datasets",
+        "class": "SVHN",
+        "default_params": {
+            "split": "train",
+            "download": true
+        },
+        "shape": [3, 32, 32],
+        "num_classes": 10,
+        "description": "Street View House Numbers dataset from Google",
+        "tags": ["color", "classification", "vision", "digits"],
+        "modality": "image",
+        "category": "FAMOUS",
+        "size": "280.0 MB"
     },
     "EMNIST": {
         "module": "torchvision.datasets",
@@ -63,7 +86,9 @@
         "num_classes": 62,
         "description": "Extended MNIST with letters and digits (62 classes)",
         "tags": ["grayscale", "classification", "vision", "letters"],
-        "modality": "image"
+        "modality": "image",
+        "category": "VISION",
+        "size": "535.0 MB"
     },
     "QMNIST": {
         "module": "torchvision.datasets",
@@ -76,20 +101,53 @@
         "num_classes": 10,
         "description": "QMNIST — reconstructed MNIST with richer metadata",
         "tags": ["grayscale", "classification", "vision"],
-        "modality": "image"
+        "modality": "image",
+        "category": "VISION",
+        "size": "19.0 MB"
     },
-    "SVHN": {
+    "KMNIST": {
         "module": "torchvision.datasets",
-        "class": "SVHN",
+        "class": "KMNIST",
         "default_params": {
-            "split": "train",
+            "train": true,
             "download": true
         },
-        "shape": [3, 32, 32],
+        "shape": [1, 28, 28],
         "num_classes": 10,
-        "description": "Street View House Numbers dataset",
-        "tags": ["color", "classification", "vision", "digits"],
-        "modality": "image"
+        "description": "Kuzushiji-MNIST dataset of Japanese Hiragana characters",
+        "tags": ["grayscale", "classification", "vision", "japanese"],
+        "modality": "image",
+        "category": "VISION",
+        "size": "15.5 MB"
+    },
+    "USPS": {
+        "module": "torchvision.datasets",
+        "class": "USPS",
+        "default_params": {
+            "train": true,
+            "download": true
+        },
+        "shape": [1, 16, 16],
+        "num_classes": 10,
+        "description": "U.S. Postal Service handwritten digit dataset",
+        "tags": ["grayscale", "classification", "vision", "digits"],
+        "modality": "image",
+        "category": "VISION",
+        "size": "0.4 MB"
+    },
+    "Semeion": {
+        "module": "torchvision.datasets",
+        "class": "Semeion",
+        "default_params": {
+            "download": true
+        },
+        "shape": [1, 16, 16],
+        "num_classes": 10,
+        "description": "Semeion Handwritten Digit Dataset of 16x16 pixel images",
+        "tags": ["grayscale", "classification", "vision", "digits"],
+        "modality": "image",
+        "category": "VISION",
+        "size": "0.2 MB"
     },
     "AG_NEWS_SUBSET": {
         "module": "dataset.custom_loaders.text_dataset",
@@ -106,6 +164,8 @@
         "num_classes": 4,
         "description": "Predefined subset of AG News dataset for text classification.",
         "tags": ["text", "classification", "news"],
-        "modality": "text"
+        "modality": "text",
+        "category": "NLP",
+        "size": "17 KB"
     }
 }

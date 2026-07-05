@@ -64,21 +64,21 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-screen w-full bg-[#070709] flex items-center justify-center p-6"
+      className="h-screen w-full bg-background flex items-center justify-center p-6"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,143,211,0.1),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.12),transparent_50%)]" />
 
-      <Card className="w-[420px] p-8 bg-card/30 backdrop-blur-xl border border-primary/10 shadow-[0_0_50px_rgba(30,143,211,0.05)] rounded-2xl relative z-10">
+      <Card className="w-[420px] p-8 bg-card/30 backdrop-blur-xl border border-primary/10 shadow-[0_0_50px_rgba(108,60,225,0.08)] rounded-2xl relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-emerald-500/20 flex items-center justify-center shadow-lg border border-primary/20 mb-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-weave-blue/20 flex items-center justify-center shadow-lg border border-primary/20 mb-4">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
             >
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#40d3b6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="#1e8fd3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="#40d3b6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="#1ABCFE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </motion.div>
           </div>
@@ -154,14 +154,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <Button
             type="submit"
             disabled={isAuthenticating}
-            className="w-full h-12 mt-2 bg-gradient-to-r from-[#40d3b6] to-[#1e8fd3] hover:brightness-110 active:scale-[0.99] text-black font-extrabold uppercase rounded-xl transition-all shadow-[0_4px_20px_rgba(30,143,211,0.2)]"
+            className="w-full h-12 mt-2 bg-gradient-to-r from-weave-violet to-weave-blue hover:brightness-110 active:scale-[0.99] text-white font-extrabold uppercase rounded-xl transition-all shadow-[0_4px_20px_rgba(108,60,225,0.25)] cursor-pointer"
           >
             {isAuthenticating ? 'Connecting...' : isRegister ? 'Register' : 'Login'}
           </Button>
 
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-primary/5" /></div>
-            <span className="relative px-3 bg-[#0a0a0c] text-[9px] text-muted-foreground uppercase tracking-wider font-bold">
+            <span className="relative px-3 bg-[#0d0f1a] text-[9px] text-muted-foreground uppercase tracking-wider font-bold">
               Secure Gateway Access
             </span>
           </div>

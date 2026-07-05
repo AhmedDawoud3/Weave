@@ -225,6 +225,15 @@ export const api = {
       return handleResponse(res);
     },
 
+    getActiveRuns: async () => {
+      const url = `${engineBaseUrl}/training/active`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(),
+      });
+      return handleResponse(res);
+    },
+
     exportPyTorch: async (
       graphDto: any,
       inputShape: number[] = [1, 10],
@@ -415,12 +424,18 @@ export const api = {
         try {
           const parsed = JSON.parse(event.data);
           onEvent(parsed);
+          if (parsed.status === 'completed' || parsed.status === 'failed') {
+            eventSource.close();
+          }
         } catch (e) {
           console.error("Failed to parse SSE download progress:", e);
         }
       });
 
       eventSource.onerror = (err) => {
+        if (eventSource.readyState === 2) {
+          return; // Already closed cleanly by client
+        }
         onError(err);
       };
 

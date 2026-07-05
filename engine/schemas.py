@@ -1083,6 +1083,8 @@ class DatasetCatalogEntry(BaseModel):
     modality: str
     shape: list[int] | None = None
     num_classes: int | None = None
+    size: str | None = None
+    category: str | None = None
 
 
 class DatasetCatalogResponse(BaseModel):

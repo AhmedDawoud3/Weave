@@ -15,19 +15,19 @@ export function Sidebar({ onNavigateDashboard }: SidebarProps) {
       {/* Brand Header */}
       <div className="p-6 pb-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2" onClick={onNavigateDashboard}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-[#1e8fd3] flex items-center justify-center border border-primary/25 cursor-pointer">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-weave-blue flex items-center justify-center border border-primary/25 cursor-pointer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="text-xl font-black text-[#40d3b6] tracking-wider cursor-pointer">WEAVE</h1>
+          <h1 className="text-xl font-black text-weave-teal tracking-wider cursor-pointer">WEAVE</h1>
         </div>
         
         <Button
           variant="ghost"
           size="icon"
           onClick={onNavigateDashboard}
-          className="hover:bg-primary/15 text-muted-foreground hover:text-[#40d3b6] rounded-xl transition-all cursor-pointer"
+          className="hover:bg-primary/15 text-muted-foreground hover:text-weave-teal rounded-xl transition-all cursor-pointer"
         >
           <LayoutDashboard size={18} />
         </Button>
@@ -40,7 +40,7 @@ export function Sidebar({ onNavigateDashboard }: SidebarProps) {
       {/* Dataset Summary Box */}
       <div className="flex-1 p-6 space-y-5 overflow-y-auto no-scrollbar">
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-          <Database size={13} className="text-[#40d3b6]" />
+          <Database size={13} className="text-weave-teal" />
           Active Ingestion
         </div>
 
@@ -66,10 +66,10 @@ export function Sidebar({ onNavigateDashboard }: SidebarProps) {
             const modality = isTextPredefined ? 'text' : (isPredefined ? 'image' : (isImageFolder ? 'image' : (customConfig?.modality || 'image')));
             
             return (
-              <div className="bg-[#07070a]/65 border border-primary/15 rounded-2xl p-4.5 space-y-4.5 shadow-[0_0_20px_rgba(64,211,182,0.02)]">
+              <div className="bg-[#07070a]/65 border border-primary/15 rounded-2xl p-4.5 space-y-4.5 shadow-[0_0_20px_rgba(45,212,191,0.02)]">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[9px] text-[#40d3b6] font-extrabold uppercase tracking-wide block mb-1">
+                    <span className="text-[9px] text-weave-teal font-extrabold uppercase tracking-wide block mb-1">
                       Source: {datasetConfig.source}
                     </span>
                     <h3 className="text-sm font-black text-white capitalize leading-tight">
@@ -131,7 +131,7 @@ export function Sidebar({ onNavigateDashboard }: SidebarProps) {
 
                   <div className="flex justify-between text-xs mt-1.5 items-center">
                     <span className="text-muted-foreground uppercase text-[9px] font-bold">Tensor Shape:</span>
-                    <span className="text-[#40d3b6] font-bold text-[11px] font-mono">
+                    <span className="text-weave-teal font-bold text-[11px] font-mono">
                       {inferredDatasetShape ? inferredDatasetShape.join('×') : 'Unknown'}
                     </span>
                   </div>

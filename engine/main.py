@@ -338,6 +338,8 @@ def datasets_catalog():
                 modality=config.get("modality", "image"),
                 shape=config.get("shape"),
                 num_classes=config.get("num_classes"),
+                size=config.get("size"),
+                category=config.get("category", "FAMOUS"),
             )
         )
     return DatasetCatalogResponse(datasets=entries)
@@ -444,7 +446,7 @@ downloads_lock = threading.Lock()
 def background_download_task(name: str):
     from dataset.dataset_factory import get_dataset
     
-    root_dir = os.path.join(".", "data")
+    root_dir = os.path.join("..", "data")
     
     # Expected total sizes for progress calculation (in bytes)
     sizes = {
@@ -455,6 +457,9 @@ def background_download_task(name: str):
         "EMNIST": 535 * 1024 * 1024,
         "QMNIST": 19 * 1024 * 1024,
         "SVHN": 280 * 1024 * 1024,
+        "KMNIST": 15.5 * 1024 * 1024,
+        "USPS": 0.4 * 1024 * 1024,
+        "Semeion": 0.2 * 1024 * 1024,
     }
     expected_size = sizes.get(name, 50 * 1024 * 1024)
     
@@ -464,7 +469,7 @@ def background_download_task(name: str):
             downloads_state[name]["total_bytes"] = int(expected_size)
         
     try:
-        get_dataset(name=name, root_dir=root_dir, split="train")
+        get_dataset(name=name, root_dir=root_dir, split="train", download=True)
         
         with downloads_lock:
             if name in downloads_state:
@@ -480,7 +485,7 @@ def background_download_task(name: str):
 
 
 def estimate_downloaded_bytes(name: str) -> int:
-    root_dir = os.path.join(".", "data")
+    root_dir = os.path.join("..", "data")
     if not os.path.isdir(root_dir):
         return 0
         
@@ -495,6 +500,9 @@ def estimate_downloaded_bytes(name: str) -> int:
         "CIFAR100": "cifar-100-python",
         "EMNIST": "EMNIST",
         "QMNIST": "QMNIST",
+        "KMNIST": "KMNIST",
+        "USPS": "usps",
+        "Semeion": "semeion",
     }
     
     if name in folder_mapping:
@@ -773,6 +781,10 @@ def export_onnx_endpoint(request: ExportRequest):
     Returns:
         ExportResponse with status and output path.
     """
+    if request.checkpoint_path and request.checkpoint_path.startswith("data"):
+        request.checkpoint_path = request.checkpoint_path.replace("data", "../data", 1)
+    if request.output_path and request.output_path.startswith("data"):
+        request.output_path = request.output_path.replace("data", "../data", 1)
     try:
         path = export_onnx(request)
         return ExportResponse(status="success", output_path=path)
@@ -791,6 +803,10 @@ def export_pytorch_endpoint(request: ExportRequest):
     Returns:
         ExportResponse with status and output path.
     """
+    if request.checkpoint_path and request.checkpoint_path.startswith("data"):
+        request.checkpoint_path = request.checkpoint_path.replace("data", "../data", 1)
+    if request.output_path and request.output_path.startswith("data"):
+        request.output_path = request.output_path.replace("data", "../data", 1)
     try:
         path = export_pytorch(request)
         from compiler.exporter import generate_pytorch_code
@@ -813,6 +829,10 @@ def export_torchscript_endpoint(request: ExportRequest):
     Returns:
         ExportResponse with status and output path.
     """
+    if request.checkpoint_path and request.checkpoint_path.startswith("data"):
+        request.checkpoint_path = request.checkpoint_path.replace("data", "../data", 1)
+    if request.output_path and request.output_path.startswith("data"):
+        request.output_path = request.output_path.replace("data", "../data", 1)
     try:
         path = export_torchscript(request)
         return ExportResponse(status="success", output_path=path)
@@ -838,6 +858,9 @@ def predict_endpoint(request: InferenceRequest):
     import torch
 
     from compiler.exporter import load_checkpoint_model
+
+    if request.checkpoint_path and request.checkpoint_path.startswith("data"):
+        request.checkpoint_path = request.checkpoint_path.replace("data", "../data", 1)
 
     try:
         # Load the compiled model and place it on CPU first
@@ -978,6 +1001,21 @@ async def stream_training(run_id: str):
             logger.info(f"SSE stream cancelled for run_id: {run_id}")
 
     return EventSourceResponse(event_generator())
+
+
+@app.get("/training/active", tags=["Training Engine"])
+def get_active_runs():
+    """Returns a list of all active (running or paused) training runs."""
+    active = []
+    for run_id, trainer in runner.active_runs.items():
+        if trainer.status in ["running", "paused"]:
+            active.append({
+                "run_id": run_id,
+                "status": trainer.status,
+                "current_epoch": trainer.current_epoch,
+                "total_epochs": trainer.total_epochs,
+            })
+    return {"active_runs": active}
 
 
 @app.post("/training/control/{run_id}", tags=["Training Engine"])

@@ -53,11 +53,11 @@ export function WeaveEdge({
   // speed range: 0.5s (fast) to 3.0s (slow)
   const speed = Math.max(0.6, Math.min(3.0, 1.2 + Math.log10(numElements / 1000)));
 
-  let strokeColor = 'stroke-[#40d3b6]/25';
+  let strokeColor = 'stroke-weave-teal/25';
   if (isSourceError) {
     strokeColor = 'stroke-red-500/40';
   } else if (hasShape) {
-    strokeColor = 'stroke-[#40d3b6]/35';
+    strokeColor = 'stroke-weave-teal/35';
   }
 
   // Shape label — uses × as separator for tensor notation: 32×64×7×7
@@ -81,7 +81,7 @@ export function WeaveEdge({
       {/* Visual path — transition-colors only (not path geometry) to avoid drag lag */}
       <path
         id={id}
-        className={`reactflow__edge-path transition-colors duration-300 ${strokeColor} group-hover:stroke-[#40d3b6]`}
+        className={`reactflow__edge-path transition-colors duration-300 ${strokeColor} group-hover:stroke-weave-teal`}
         d={edgePath}
         markerEnd={markerEnd}
         fill="none"
@@ -94,7 +94,7 @@ export function WeaveEdge({
       {/* Flow animation particle */}
       {hasShape && !isSourceError && (
         <path
-          className="animate-flow-path stroke-[#40d3b6] opacity-80"
+          className="animate-flow-path stroke-weave-teal opacity-80"
           d={edgePath}
           fill="none"
           strokeWidth={2}
@@ -120,9 +120,9 @@ export function WeaveEdge({
             <div
               className={`
                 px-[5px] py-[2px] rounded-full
-                bg-[#060b0a]/85 border border-[#40d3b6]/20
+                bg-slate-950/85 border border-weave-teal/20
                 backdrop-blur-sm
-                text-[#40d3b6]/80 font-mono font-semibold text-[7.5px] tracking-tight
+                text-weave-teal/80 font-mono font-semibold text-[7.5px] tracking-tight
                 whitespace-nowrap select-none
                 transition-opacity duration-150
                 ${showDelete ? 'opacity-20' : 'opacity-100'}

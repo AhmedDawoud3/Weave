@@ -28,15 +28,6 @@ export function DatasetPanel() {
   } = useWeaveStore();
 
   const [datasetsCatalog, setDatasetsCatalog] = useState<DatasetCatalogEntry[]>([]);
-  const datasetSizes: Record<string, string> = {
-    'MNIST': '11.5 MB',
-    'FashionMNIST': '30 MB',
-    'CIFAR10': '170 MB',
-    'CIFAR100': '170 MB',
-    'EMNIST': '535 MB',
-    'QMNIST': '19 MB',
-    'SVHN': '280 MB',
-  };
   const [transformsCatalog, setTransformsCatalog] = useState<TransformCatalogEntry[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -185,12 +176,14 @@ export function DatasetPanel() {
     }
   }, [datasetsCatalog, checkDatasetStatus]);
 
+  const selectedName = datasetConfig && datasetConfig.source === 'predefined' ? (datasetConfig as any).name : null;
+
   // Check selected predefined dataset status when it changes
   useEffect(() => {
-    if (datasetConfig && datasetConfig.source === 'predefined' && (datasetConfig as any).name) {
-      checkDatasetStatus((datasetConfig as any).name);
+    if (selectedName) {
+      checkDatasetStatus(selectedName);
     }
-  }, [datasetConfig, checkDatasetStatus]);
+  }, [selectedName, checkDatasetStatus]);
 
   // Validate configuration against engine
   const handleValidateConfig = async () => {
@@ -531,7 +524,7 @@ export function DatasetPanel() {
                         {dataset.shape?.join('×')}
                       </span>
                       <span className="text-[8px] text-muted-foreground/80 font-black">
-                        {dataset.num_classes} CLS {datasetSizes[dataset.name] ? `• ${datasetSizes[dataset.name]}` : ''}
+                        {dataset.num_classes} CLS {dataset.size ? `• ${dataset.size}` : ''}
                       </span>
                     </div>
                   </div>

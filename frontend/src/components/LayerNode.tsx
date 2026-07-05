@@ -159,7 +159,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
   // ── colour themes ──────────────────────────────────────────────────────────
   let typeColor  = 'text-purple-400/90';
-  let border     = selected ? 'border-primary shadow-[0_0_15px_rgba(64,211,182,0.35)]' : 'border-primary/20 hover:border-primary/50';
+  let border     = selected ? 'border-primary shadow-[0_0_15px_rgba(108,60,225,0.45)]' : 'border-primary/20 hover:border-primary/50';
   let handleCls  = '!bg-primary';
   let bgCls      = 'bg-[#0e0e12]/85';
 
@@ -218,7 +218,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     const raw = isInduced ? inducedVal : data.params?.[f.key];
     const inputCls = `nodrag w-full bg-[#070709] border rounded-md px-2 py-0.5 text-[10px] focus:outline-none transition-colors ${
       isInduced 
-        ? 'opacity-65 cursor-not-allowed border-[#40d3b6]/30 text-[#40d3b6] font-bold font-mono' 
+        ? 'opacity-65 cursor-not-allowed border-weave-teal/30 text-weave-teal font-bold font-mono' 
         : 'border-primary/15 text-white focus:border-primary/50'
     }`;
 
@@ -264,7 +264,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
         <div className="flex items-center justify-between">
           <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
           {isInduced && (
-            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-[#40d3b6] bg-[#40d3b6]/10 px-1 py-0.2 rounded border border-[#40d3b6]/20">
+            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-weave-teal bg-weave-teal/10 px-1 py-0.2 rounded border border-weave-teal/20">
               🔒 Induced
             </span>
           )}
@@ -375,7 +375,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
           {/* Shape badge (always visible once compiled) */}
           {shape && (
-            <div className={`mt-0.5 text-[7.5px] font-bold tracking-tight ${isBlock ? 'text-indigo-300' : 'text-[#40d3b6]'}`}>
+            <div className={`mt-0.5 text-[7.5px] font-bold tracking-tight ${isBlock ? 'text-indigo-300' : 'text-weave-teal'}`}>
               [{shape.join(', ')}]
             </div>
           )}
