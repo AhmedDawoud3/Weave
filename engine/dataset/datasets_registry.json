@@ -90,5 +90,22 @@
         "description": "Street View House Numbers dataset",
         "tags": ["color", "classification", "vision", "digits"],
         "modality": "image"
+    },
+    "AG_NEWS_SUBSET": {
+        "module": "dataset.custom_loaders.text_dataset",
+        "class": "TextDataset",
+        "default_params": {
+            "file_path": "data/ag_news_subset.csv",
+            "text_column": "text",
+            "target_column": "label",
+            "max_length": 128,
+            "vocab_size": 10000,
+            "tokenizer": "bpe"
+        },
+        "shape": [128],
+        "num_classes": 4,
+        "description": "Predefined subset of AG News dataset for text classification.",
+        "tags": ["text", "classification", "news"],
+        "modality": "text"
     }
 }

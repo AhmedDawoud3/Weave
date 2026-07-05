@@ -108,6 +108,7 @@ The `datasets_registry.json` file maps dataset names to configuration objects:
 | EMNIST | `[1, 28, 28]` | 47 | image | Extended MNIST with letters |
 | QMNIST | `[1, 28, 28]` | 10 | image | MNIST with revised labels |
 | SVHN | `[3, 32, 32]` | 10 | image | Street View House Numbers |
+| AG_NEWS_SUBSET | `[128]` (Variable) | 4 | text | Predefined subset of AG News dataset for text classification |
 
 ## Transforms Registry Format
 

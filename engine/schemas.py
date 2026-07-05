@@ -651,6 +651,13 @@ class PredefinedDatasetConfig(BaseModel):
     transforms: list[TransformConfig] = Field(default_factory=list)
     dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
 
+    # Optional tokenizer fields for predefined text datasets
+    tokenizer: str | None = None
+    vocab_size: int | None = None
+    max_length: int | None = None
+    lowercase: bool | None = None
+    remove_punctuation: bool | None = None
+
 
 class ImageFolderDatasetConfig(BaseModel):
     """
@@ -696,6 +703,8 @@ class CustomDatasetConfig(BaseModel):
     tokenizer: str = "bpe"
     vocab_size: int = 30000
     max_length: int = 512
+    lowercase: bool = True
+    remove_punctuation: bool = False
 
     # tabular specific
     feature_columns: list[str] = Field(default_factory=list)

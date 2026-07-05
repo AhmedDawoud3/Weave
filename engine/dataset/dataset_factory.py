@@ -109,7 +109,19 @@ def get_dataset_from_config(config: DatasetConfig) -> Dataset:
 
 
 def _create_predefined(config: PredefinedDatasetConfig) -> Dataset:
-    """Create a predefined torchvision dataset."""
+    """Create a predefined dataset (torchvision image or built-in text)."""
+    if config.name == "AG_NEWS_SUBSET":
+        return TextDataset(
+            file_path=os.path.join(".", "data", "ag_news_subset.csv"),
+            text_column="text",
+            target_column="label",
+            max_length=getattr(config, "max_length", 128) or 128,
+            vocab_size=getattr(config, "vocab_size", 10000) or 10000,
+            tokenizer=getattr(config, "tokenizer", "bpe") or "bpe",
+            lowercase=getattr(config, "lowercase", True) if getattr(config, "lowercase", True) is not None else True,
+            remove_punctuation=getattr(config, "remove_punctuation", False) if getattr(config, "remove_punctuation", False) is not None else False,
+        )
+
     transform = _build_transforms_if_any(config.transforms)
     transform = _ensure_tensor_transform(transform)
     return get_dataset(
@@ -189,6 +201,8 @@ def _create_custom_text(config: CustomDatasetConfig) -> Dataset:
         max_length=config.max_length,
         vocab_size=config.vocab_size,
         tokenizer=config.tokenizer,
+        lowercase=getattr(config, "lowercase", True),
+        remove_punctuation=getattr(config, "remove_punctuation", False),
     )
 
 

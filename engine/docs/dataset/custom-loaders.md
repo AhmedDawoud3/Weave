@@ -56,7 +56,7 @@ images/dog1.jpg,dog
     options:
       show_source: true
 
-Loads text data from a CSV file with whitespace tokenization.
+Loads text data from a CSV file with custom tokenizers (BPE, whitespace, or char-level).
 
 **Parameters:**
 
@@ -66,14 +66,18 @@ Loads text data from a CSV file with whitespace tokenization.
 | `text_column` | `str` | `"text"` | Column name for text data |
 | `target_column` | `str \| None` | `None` | Column name for labels |
 | `max_length` | `int` | `512` | Maximum sequence length |
-| `transform` | `callable \| None` | `None` | Transform pipeline |
+| `vocab_size` | `int` | `30000` | Maximum vocabulary size |
+| `tokenizer` | `str` | `"whitespace"` | Tokenizer type (`"bpe"`, `"whitespace"`, `"char"`) |
+| `lowercase` | `bool` | `True` | Convert text to lowercase |
+| `remove_punctuation` | `bool` | `False` | Remove punctuation characters |
 
 **Features:**
 
-* Whitespace tokenization with vocabulary building
-* Pads short sequences to `max_length` (pad token = 0)
-* Truncates long sequences to `max_length`
-* Builds `class_to_idx` mapping for target labels
+* **Byte-Pair Encoding (BPE)**: Trains a subword tokenizer dynamically on up to 2000 rows of the dataset.
+* **Whitespace & Character Splits**: Generates term-frequency vocabularies.
+* **Preprocessing Options**: Convert text to lowercase and remove punctuation before tokenization.
+* **Sequence Alignment**: Pads short sequences to `max_length` (pad token = 0) and truncates long sequences.
+* **Predefined Text Dataset**: Automatically creates and writes a synthetic subset of the AG News dataset to `data/ag_news_subset.csv` when selected from predefined sources.
 * Special tokens: `<PAD>` = 0, `<UNK>` = 1
 
 ---

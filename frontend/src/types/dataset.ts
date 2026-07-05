@@ -49,6 +49,8 @@ export interface CustomDatasetConfig {
   tokenizer?: string;
   vocab_size?: number;
   max_length?: number;
+  lowercase?: boolean;
+  remove_punctuation?: boolean;
 
   // tabular specific
   feature_columns?: string[];

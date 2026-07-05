@@ -13,6 +13,7 @@ import { Terminal, Code2, RefreshCw, Plus, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sidebar } from '../components/Sidebar';
 import { LayerPalette } from '../components/LayerPalette';
+import { DatasetWorkspace } from '../components/DatasetWorkspace';
 
 
 import { LayerNode } from '../components/LayerNode';
@@ -64,7 +65,9 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     enterSubGraph,
     exitSubGraph,
     isKernelConnected,
-    checkKernelConnection
+    checkKernelConnection,
+    activeTab,
+    setActiveTab
   } = useWeaveStore();
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
@@ -205,6 +208,31 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
           <div className="h-8 w-px bg-primary/10" />
 
+          {/* Workspace Switcher */}
+          <div className="flex bg-black/40 border border-primary/10 rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
+            <button
+              onClick={() => setActiveTab('canvas')}
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                activeTab === 'canvas'
+                  ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
+                  : 'text-muted-foreground hover:text-white'
+              }`}
+            >
+              Model Canvas
+            </button>
+            <button
+              onClick={() => setActiveTab('dataset')}
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                activeTab === 'dataset'
+                  ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
+                  : 'text-muted-foreground hover:text-white'
+              }`}
+            >
+              Dataset Workspace
+            </button>
+          </div>
+
+          <div className="h-8 w-px bg-primary/10" />
 
           {/* SubGraph Selector or Breadcrumbs Navigation */}
           {navigationStack.length > 0 ? (
@@ -348,87 +376,93 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
       {/* Main Studio Body Workspace */}
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
-        <Sidebar onNavigateDashboard={onNavigateDashboard} />
+        {activeTab === 'canvas' ? (
+          <>
+            <Sidebar onNavigateDashboard={onNavigateDashboard} />
 
-        {/* Canvas Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">
-          <LayerPalette />
+            {/* Canvas Area */}
+            <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">
+              <LayerPalette />
 
-          <div className="flex-1 relative min-h-0 min-w-0">
-          {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
-          {navigationStack.length > 0 && (
-            <>
-              {/* Top floating button: + ADD INPUT */}
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-                <Button
-                  onClick={handleAddInputNode}
-                  className="bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg border border-emerald-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+              <div className="flex-1 relative min-h-0 min-w-0">
+                {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
+                {navigationStack.length > 0 && (
+                  <>
+                    {/* Top floating button: + ADD INPUT */}
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+                      <Button
+                        onClick={handleAddInputNode}
+                        className="bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg border border-emerald-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                      >
+                        <Plus size={14} strokeWidth={3} />
+                        ADD INPUT NODE
+                      </Button>
+                    </div>
+
+                    {/* Bottom floating button: + ADD OUTPUT */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+                      <Button
+                        onClick={handleAddOutputNode}
+                        className="bg-amber-600/90 hover:bg-amber-500 text-white rounded-full font-bold shadow-lg border border-amber-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                      >
+                        <Plus size={14} strokeWidth={3} />
+                        ADD OUTPUT NODE
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* validation Warning float */}
+                {validationStatus === 'error' && validationMessage && (
+                  <div className="absolute left-6 top-6 max-w-sm bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-xl z-20 flex items-start gap-2.5 text-xs text-red-400 select-text">
+                    <span className="shrink-0 mt-0.5">⚠️</span>
+                    <p className="leading-relaxed font-semibold">{validationMessage}</p>
+                  </div>
+                )}
+
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onInit={setReactFlowInstance}
+                  onDrop={onDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onNodeClick={(_, n) => setSelectedNodeId(n.id)}
+                  onPaneClick={() => setSelectedNodeId(null)}
+                  onNodeDoubleClick={handleNodeDoubleClick}
+
+                  nodeTypes={nodeTypes}
+                  edgeTypes={edgeTypes}
+                  defaultEdgeOptions={{ 
+                    type: 'weave',
+                    markerEnd: {
+                      type: MarkerType.ArrowClosed,
+                      color: '#40d3b6',
+                    }
+                  }}
+                  snapToGrid={true}
+                  snapGrid={[15, 15]}
+                  fitView
                 >
-                  <Plus size={14} strokeWidth={3} />
-                  ADD INPUT NODE
-                </Button>
+                  <Background color="#1a1a1f" gap={20} />
+                  <Controls className="bg-[#0e0e11]/80 border border-primary/10 rounded-xl overflow-hidden [&>button]:border-primary/5 [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-primary/20 [&>svg]:fill-white" />
+                  <MiniMap 
+                    className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]" 
+                    nodeColor="#1a1a24"
+                    maskColor="rgba(0, 0, 0, 0.4)"
+                    nodeStrokeColor="#40d3b6"
+                    nodeBorderRadius={4}
+                  />
+                </ReactFlow>
               </div>
-
-              {/* Bottom floating button: + ADD OUTPUT */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-                <Button
-                  onClick={handleAddOutputNode}
-                  className="bg-amber-600/90 hover:bg-amber-500 text-white rounded-full font-bold shadow-lg border border-amber-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
-                >
-                  <Plus size={14} strokeWidth={3} />
-                  ADD OUTPUT NODE
-                </Button>
-              </div>
-            </>
-          )}
-
-          {/* validation Warning float */}
-          {validationStatus === 'error' && validationMessage && (
-            <div className="absolute left-6 top-6 max-w-sm bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-xl z-20 flex items-start gap-2.5 text-xs text-red-400 select-text">
-              <span className="shrink-0 mt-0.5">⚠️</span>
-              <p className="leading-relaxed font-semibold">{validationMessage}</p>
             </div>
-          )}
-
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={(e) => e.preventDefault()}
-            onNodeClick={(_, n) => setSelectedNodeId(n.id)}
-            onPaneClick={() => setSelectedNodeId(null)}
-            onNodeDoubleClick={handleNodeDoubleClick}
-
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            defaultEdgeOptions={{ 
-              type: 'weave',
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                color: '#40d3b6',
-              }
-            }}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            fitView
-          >
-            <Background color="#1a1a1f" gap={20} />
-            <Controls className="bg-[#0e0e11]/80 border border-primary/10 rounded-xl overflow-hidden [&>button]:border-primary/5 [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-primary/20 [&>svg]:fill-white" />
-            <MiniMap 
-              className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]" 
-              nodeColor="#1a1a24"
-              maskColor="rgba(0, 0, 0, 0.4)"
-              nodeStrokeColor="#40d3b6"
-              nodeBorderRadius={4}
-            />
-          </ReactFlow>
-        </div>
+          </>
+        ) : (
+          <DatasetWorkspace />
+        )}
       </div>
-    </div>
 
       {/* Collapsible bottom training console drawer */}
       <AnimatePresence>

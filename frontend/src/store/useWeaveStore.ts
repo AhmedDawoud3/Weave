@@ -88,6 +88,8 @@ interface WeaveState {
   updateTransformParam: (index: number, key: string, value: any) => void;
   setDataLoaderConfig: (config: Partial<DataLoaderConfig>) => void;
   inferDatasetShape: () => Promise<void>;
+  activeTab: 'canvas' | 'dataset';
+  setActiveTab: (tab: 'canvas' | 'dataset') => void;
 }
 
 
@@ -298,6 +300,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     inferredDatasetShape: null,
     activeInputShape: null,
     isInferringDatasetShape: false,
+    activeTab: 'canvas',
 
     // Auth State
     token: localStorage.getItem('weave_token'),
@@ -1549,6 +1552,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           })
         }));
       }
-    }
+    },
+
+    setActiveTab: (tab) => set({ activeTab: tab })
   };
 });
