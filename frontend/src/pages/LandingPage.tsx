@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import ReactFlow, { Background, Handle, Position, Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useCallback } from 'react';
+import { useWeaveStore } from '../store/useWeaveStore';
 
 
 
@@ -131,12 +132,18 @@ const FEATURES = [
 export function LandingPage() {
   const navigate = useNavigate();
 
+  const { isAuthenticated, user } = useWeaveStore();
+
   const handleLogin = () => {
     navigate('/login');
   };
 
   const handleGetStarted = () => {
-    navigate('/signin');
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signin');
+    }
   };
 
   // Prevent React Flow from being interactive (read-only for the landing page)
@@ -162,19 +169,35 @@ export function LandingPage() {
             <a href="#workflow" className="hover:text-white transition-colors">Workflow</a>
             <a href="#samples" className="hover:text-white transition-colors">Samples</a>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleLogin}
-              className="text-xs font-bold uppercase tracking-wider text-white hover:text-[#1ABCFE] transition-colors"
-            >
-              Login
-            </button>
-            <Button
-              onClick={handleGetStarted}
-              className="bg-[#6C3CE1] hover:bg-[#6C3CE1]/90 text-white font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-[0_0_20px_rgba(108,60,225,0.3)]"
-            >
-              Get Started
-            </Button>
+          <div className="flex items-center gap-4 text-xs">
+            {isAuthenticated ? (
+              <>
+                <span className="text-[#E2E8F0]/70 font-medium hidden sm:inline">
+                  Welcome back, <span className="text-white font-bold">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
+                </span>
+                <Button
+                  onClick={() => navigate('/dashboard')}
+                  className="bg-[#6C3CE1] hover:bg-[#6C3CE1]/90 text-white font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-[0_0_20px_rgba(108,60,225,0.3)]"
+                >
+                  Dashboard
+                </Button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleLogin}
+                  className="font-bold uppercase tracking-wider text-white hover:text-[#1ABCFE] transition-colors"
+                >
+                  Login
+                </button>
+                <Button
+                  onClick={handleGetStarted}
+                  className="bg-[#6C3CE1] hover:bg-[#6C3CE1]/90 text-white font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-[0_0_20px_rgba(108,60,225,0.3)]"
+                >
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -217,12 +240,21 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button
-              onClick={handleGetStarted}
-              className="bg-white text-[#0F1117] hover:bg-[#E2E8F0] font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center gap-2"
-            >
-              Launch Workspace <ChevronRight size={18} />
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                onClick={() => navigate('/dashboard')}
+                className="bg-white text-[#0F1117] hover:bg-[#E2E8F0] font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center gap-2"
+              >
+                Go to Dashboard <ChevronRight size={18} />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGetStarted}
+                className="bg-white text-[#0F1117] hover:bg-[#E2E8F0] font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center gap-2"
+              >
+                Launch Workspace <ChevronRight size={18} />
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}

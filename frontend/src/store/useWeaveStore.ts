@@ -3,6 +3,26 @@ import { Node, Edge, Connection, addEdge, applyNodeChanges, applyEdgeChanges, No
 import { api } from '../services/api';
 import { Project, SubGraph, NodeData, LayerType, LayerParams, DatasetConfig, TransformConfig, DataLoaderConfig } from '../types';
 
+function decodeToken(token: string | null): { email: string; name?: string } | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    
+    const email = payload.email || payload.unique_name || payload.sub || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "";
+    const name = payload.display_name || payload.name || "";
+    
+    return { email, name };
+  } catch (e) {
+    console.error("Failed to decode JWT token:", e);
+    return null;
+  }
+}
+
+const initialToken = localStorage.getItem('weave_token');
+const initialUser = decodeToken(initialToken);
+
 interface WeaveState {
   // Auth
   token: string | null;
@@ -297,9 +317,9 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     datasetDownloadProgress: {},
 
     // Auth State
-    token: localStorage.getItem('weave_token'),
-    isAuthenticated: !!localStorage.getItem('weave_token'),
-    user: null,
+    token: initialToken,
+    isAuthenticated: !!initialToken,
+    user: initialUser,
     authError: null,
     isAuthenticating: false,
     isKernelConnected: false,
@@ -319,7 +339,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         const res = await api.auth.login(dto);
         if (res.succeeded && res.token) {
           localStorage.setItem('weave_token', res.token);
-          set({ token: res.token, isAuthenticated: true, isAuthenticating: false });
+          const decodedUser = decodeToken(res.token);
+          set({ token: res.token, isAuthenticated: true, user: decodedUser, isAuthenticating: false });
           return true;
         }
         set({ authError: res.errors?.join('; ') || 'Login failed', isAuthenticating: false });
@@ -338,7 +359,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           // Auto login on register success or prompt login
           if (res.token) {
             localStorage.setItem('weave_token', res.token);
-            set({ token: res.token, isAuthenticated: true, isAuthenticating: false });
+            const decodedUser = decodeToken(res.token);
+            set({ token: res.token, isAuthenticated: true, user: decodedUser, isAuthenticating: false });
           } else {
             set({ isAuthenticating: false });
           }
@@ -358,7 +380,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         const res = await api.auth.externalLogin({ provider, idToken });
         if (res.succeeded && res.token) {
           localStorage.setItem('weave_token', res.token);
-          set({ token: res.token, isAuthenticated: true, isAuthenticating: false });
+          const decodedUser = decodeToken(res.token);
+          set({ token: res.token, isAuthenticated: true, user: decodedUser, isAuthenticating: false });
           return true;
         }
         set({ authError: res.errors?.join('; ') || 'External login failed', isAuthenticating: false });
