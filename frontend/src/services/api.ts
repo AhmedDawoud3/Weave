@@ -8,9 +8,9 @@ const getHeaders = () => {
   };
 };
 
-const handleResponse = async (res: Response) => {
+const handleResponse = async (res: Response, options?: { skipAuthRedirect?: boolean }) => {
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !options?.skipAuthRedirect) {
       localStorage.removeItem('weave_token');
       window.location.href = '/';
       throw new Error('Session expired. Please log in again.');
@@ -40,7 +40,7 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify(dto),
       });
-      return handleResponse(res);
+      return handleResponse(res, { skipAuthRedirect: true });
     },
     register: async (dto: any) => {
       const res = await fetch(`${apiBaseUrl}/api/Auth/register`, {
@@ -48,7 +48,15 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify(dto),
       });
-      return handleResponse(res);
+      return handleResponse(res, { skipAuthRedirect: true });
+    },
+    externalLogin: async (dto: { provider: string; idToken: string }) => {
+      const res = await fetch(`${apiBaseUrl}/api/Auth/external-login`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res, { skipAuthRedirect: true });
     },
   },
 

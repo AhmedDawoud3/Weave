@@ -12,6 +12,7 @@ interface WeaveState {
   isAuthenticating: boolean;
   login: (dto: any) => Promise<boolean>;
   register: (dto: any) => Promise<boolean>;
+  externalLogin: (provider: string, idToken: string) => Promise<boolean>;
   logout: () => void;
   isKernelConnected: boolean;
   checkKernelConnection: () => Promise<void>;
@@ -366,6 +367,23 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         return false;
       } catch (err: any) {
         set({ authError: err.message || 'Registration failed', isAuthenticating: false });
+        return false;
+      }
+    },
+
+    externalLogin: async (provider, idToken) => {
+      set({ isAuthenticating: true, authError: null });
+      try {
+        const res = await api.auth.externalLogin({ provider, idToken });
+        if (res.succeeded && res.token) {
+          localStorage.setItem('weave_token', res.token);
+          set({ token: res.token, isAuthenticated: true, isAuthenticating: false });
+          return true;
+        }
+        set({ authError: res.errors?.join('; ') || 'External login failed', isAuthenticating: false });
+        return false;
+      } catch (err: any) {
+        set({ authError: err.message || 'External login failed', isAuthenticating: false });
         return false;
       }
     },

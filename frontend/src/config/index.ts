@@ -1,4 +1,4 @@
 export const config = {
-  apiBaseUrl: import.meta.env.VITE_API_URL || window.location.origin,
+  apiBaseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   appName: 'Weave',
 };

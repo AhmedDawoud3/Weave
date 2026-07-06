@@ -72,4 +72,25 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Login or register with an external provider like Google or Facebook.
+    /// </summary>
+    [HttpPost("external-login")]
+    public async Task<ActionResult<AuthResponseDto>> ExternalLogin(
+        [FromBody] ExternalAuthDto dto,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(dto.Provider) || string.IsNullOrEmpty(dto.IdToken))
+        {
+            return BadRequest(new AuthResponseDto { Succeeded = false, Errors = new List<string> { "Provider and IdToken are required." } });
+        }
+
+        var result = await _authService.ExternalLoginAsync(dto, ct);
+
+        if (!result.Succeeded)
+            return Unauthorized(result);
+
+        return Ok(result);
+    }
 }
