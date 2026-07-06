@@ -12,7 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Terminal, Code2, RefreshCw, Plus, Search, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Sidebar } from '../components/Sidebar';
 import { LayerPalette } from '../components/LayerPalette';
 import { DatasetWorkspace } from '../components/DatasetWorkspace';
 
@@ -442,8 +441,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
         {activeTab === 'canvas' ? (
           <>
-            <Sidebar onNavigateDashboard={handleNavigateDashboard} />
-            <LayerPalette />
+            <LayerPalette onNavigateDashboard={handleNavigateDashboard} />
 
             {/* Canvas Area */}
             <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">

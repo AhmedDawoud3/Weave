@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, DragEvent } from 'react';
 import { useWeaveStore } from '../store/useWeaveStore';
-import { Search, ChevronDown, ChevronRight, Layers, GitCommit, Settings, Cpu, Maximize } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Layers, GitCommit, Settings, Cpu, Maximize, Database, LayoutDashboard, Sliders, ArrowRight } from 'lucide-react';
+import { Button } from './ui/button';
 import type { LayerType } from '../types';
 
 interface LayerCategory {
@@ -19,13 +20,13 @@ const CATEGORIES: LayerCategory[] = [
   },
   {
     name: "Conv & Pool",
-    colorClass: "border-cyan-500/20 text-cyan-400 bg-cyan-500/5 hover:border-cyan-500/40 hover:bg-cyan-500/10",
+    colorClass: "border-cyan-500/20 text-cyan-400 bg-cyan-500/5 hover:border-cyan-400/40 hover:bg-cyan-500/10",
     icon: Layers,
     types: ['Conv2d', 'ConvTranspose2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d']
   },
   {
     name: "Linear",
-    colorClass: "border-purple-500/20 text-purple-400 bg-purple-500/5 hover:border-purple-500/40 hover:bg-purple-500/10",
+    colorClass: "border-purple-500/20 text-purple-400 bg-purple-500/5 hover:border-purple-400/40 hover:bg-purple-500/10",
     icon: GitCommit,
     types: ['Linear', 'Embedding']
   },
@@ -61,8 +62,13 @@ const CATEGORIES: LayerCategory[] = [
   }
 ];
 
-export function LayerPalette() {
+interface LayerPaletteProps {
+  onNavigateDashboard: () => void;
+}
+
+export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
   const addNode = useWeaveStore((state) => state.addNode);
+  const { datasetConfig, inferredDatasetShape, setActiveTab } = useWeaveStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     "Boundary": true,
@@ -123,10 +129,67 @@ export function LayerPalette() {
   const filteredMatches = getFilteredLayers();
 
   return (
-    <div className="w-56 border-r border-white/5 bg-[#0a0a0f]/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 relative z-30 font-sans">
+    <div className="w-64 border-r border-white/5 bg-[#0a0a0f]/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 relative z-30 font-sans">
       
-      {/* Search Header */}
-      <div className="p-4 border-b border-white/5 shrink-0 space-y-2">
+      {/* Brand Header */}
+      <div className="p-4 flex items-center justify-between border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateDashboard}>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center border border-primary/20">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="text-sm font-black text-white tracking-wider">WEAVE</span>
+        </div>
+        <button
+          onClick={onNavigateDashboard}
+          className="p-1.5 hover:bg-white/5 hover:text-primary rounded-lg text-muted-foreground transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
+        >
+          <LayoutDashboard size={15} />
+        </button>
+      </div>
+
+      {/* Active Ingestion Summary (Small part atop of the library) */}
+      <div className="p-4 border-b border-white/5 shrink-0 space-y-2.5">
+        <div className="flex items-center gap-1.5 text-[8.5px] text-[#64748b] font-black uppercase tracking-widest">
+          <Database size={11} className="text-primary" />
+          <span>Active Ingestion</span>
+        </div>
+        
+        {!datasetConfig ? (
+          <div className="p-3 border border-dashed border-white/5 bg-white/[0.005] rounded-xl text-center space-y-2 select-none">
+            <p className="text-[9px] text-muted-foreground leading-normal">
+              No dataset is configured.
+            </p>
+            <Button
+              onClick={() => setActiveTab('dataset')}
+              className="w-full bg-primary/10 hover:bg-primary text-white hover:text-primary-foreground font-black text-[9px] uppercase tracking-wider h-7 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+            >
+              Configure <ArrowRight size={10} />
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 space-y-2 select-none">
+            <div className="flex justify-between items-center text-[10px] gap-2">
+              <span className="text-white font-bold truncate flex-1 leading-tight uppercase tracking-wide">
+                {datasetConfig.source === 'predefined' ? datasetConfig.name : 'Custom Dataset'}
+              </span>
+              <span className="text-[8.5px] bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.2 font-black font-mono shrink-0">
+                {inferredDatasetShape ? inferredDatasetShape.join('×') : 'Unknown'}
+              </span>
+            </div>
+            <Button
+              onClick={() => setActiveTab('dataset')}
+              className="w-full bg-white/5 border border-white/5 hover:bg-primary text-white hover:text-primary-foreground font-bold text-[8.5px] uppercase tracking-wider h-6.5 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer"
+            >
+              Edit config <Sliders size={10} className="ml-0.5" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Library Section Header */}
+      <div className="p-4 pb-2 shrink-0 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[9px] text-[#64748b] font-black uppercase tracking-widest">Library</span>
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[8px] font-bold text-[#475569] bg-white/5 border border-white/10 rounded-md">
@@ -147,11 +210,11 @@ export function LayerPalette() {
       </div>
 
       {/* Layer List Scroll Container */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 pt-1 space-y-2 no-scrollbar">
         {filteredMatches !== null ? (
           /* Search results view */
           <div className="space-y-1">
-            <div className="text-[8px] text-muted-foreground uppercase font-black tracking-widest px-2.5 py-1">
+            <div className="text-[8px] text-muted-foreground/60 uppercase font-black tracking-widest px-2.5 py-1">
               Search Results
             </div>
             {filteredMatches.length === 0 ? (
@@ -183,7 +246,7 @@ export function LayerPalette() {
               <div key={cat.name} className="space-y-1">
                 <button
                   onClick={() => toggleCategory(cat.name)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-black uppercase text-left text-[#94a3b8] hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-black uppercase text-left text-[#94a3b8] hover:bg-white/5 hover:text-white transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
                 >
                   <div className="flex items-center gap-2">
                     <Icon size={12} className="opacity-75" />
