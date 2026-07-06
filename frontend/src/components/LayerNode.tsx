@@ -1,12 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps, useUpdateNodeInternals } from 'reactflow';
-import { Network, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { Network, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NodeData } from '../types';
 import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
 
-// ─── per-layer key parameter config ───────────────────────────────────────────
-// Each entry defines what shows as the compact "key stat" on hover (before dropdown).
-// label: display label, key: param key, format: optional value formatter
 interface KeyParam { label: string; key: string; format?: (v: any) => string }
 
 const KEY_PARAMS: Partial<Record<string, KeyParam[]>> = {
@@ -35,7 +32,6 @@ const KEY_PARAMS: Partial<Record<string, KeyParam[]>> = {
   Slice:            [{ label: 'dim', key: 'dim' }, { label: 'index', key: 'index' }],
 };
 
-// ─── full editable field config ───────────────────────────────────────────────
 interface FieldDef {
   label: string;
   key: string;
@@ -62,16 +58,9 @@ const FULL_FIELDS: Partial<Record<string, FieldDef[]>> = {
   Flatten:          [{ label: 'Start Dim', key: 'start_dim', type: 'number' }, { label: 'End Dim', key: 'end_dim', type: 'number' }],
   Reshape:          [{ label: 'Shape', key: 'target_shape', type: 'json', placeholder: '-1, 64' }],
   Permute:          [{ label: 'Dims', key: 'dims', type: 'json', placeholder: '0, 2, 3, 1' }],
-  Mean:             [{ label: 'Dim', key: 'dim', type: 'json', placeholder: '0, 2, 3' }, { label: 'Keepdim', key: 'keepdim', type: 'boolean' }],
-  Var:              [{ label: 'Dim', key: 'dim', type: 'json', placeholder: '0, 2, 3' }, { label: 'Keepdim', key: 'keepdim', type: 'boolean' }, { label: 'Unbiased', key: 'unbiased', type: 'boolean' }],
-  Sqrt:             [{ label: 'Eps', key: 'eps', type: 'number' }],
-  Scale:            [{ label: 'Value', key: 'value', type: 'number' }],
-  ChannelScaleBias: [{ label: 'Num Features', key: 'num_features', type: 'number' }],
   Slice:            [{ label: 'Dim', key: 'dim', type: 'number' }, { label: 'Index', key: 'index', type: 'number' }],
-  CustomAutograd:   [{ label: 'Forward Code', key: 'forward_code', type: 'text' }, { label: 'Backward Code', key: 'backward_code', type: 'text' }],
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> & { selected?: boolean }) {
   const shape = data.outputShape;
   const isError = !!data.error;
@@ -94,7 +83,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const isInputNode  = data.type === 'InputNode';
   const isOutputNode = data.type === 'OutputNode';
 
-  // ── hover / dropdown state ─────────────────────────────────────────────────
+  // Hover / expansion state
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
@@ -102,7 +91,6 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Collapse and cancel timers immediately when dragging starts
   useEffect(() => {
     if (dragging) {
       if (enterTimer.current) clearTimeout(enterTimer.current);
@@ -114,24 +102,19 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
   const onMouseEnter = useCallback(() => {
     if (dragging) return;
-    // Cancel any pending collapse
     if (leaveTimer.current) clearTimeout(leaveTimer.current);
-    // Only expand after the user deliberately pauses — 400ms delay prevents
-    // accidental expansion when quickly moving across the node to grab a handle
-    enterTimer.current = setTimeout(() => setIsHovered(true), 400);
+    enterTimer.current = setTimeout(() => setIsHovered(true), 350);
   }, [dragging]);
 
   const onMouseLeave = useCallback(() => {
-    // Cancel pending expand immediately on leave
     if (enterTimer.current) clearTimeout(enterTimer.current);
-    // Collapse after a short grace period (lets user move into the expanded panel)
     leaveTimer.current = setTimeout(() => {
       if (!isExpanded) setIsHovered(false);
     }, 200);
   }, [isExpanded]);
 
   const commitLabel = () => {
-    if (labelDraft.trim()) updateNodeLabel(id, labelDraft.trim() as string);
+    if (labelDraft.trim()) updateNodeLabel(id, labelDraft.trim());
     setEditingLabel(false);
   };
 
@@ -139,7 +122,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     updateNodeParams(id, { [key]: value });
   };
 
-  // ── handle counts for blocks ───────────────────────────────────────────────
+  // Determine handle counts
   let targetCount = 1;
   let sourceCount = 1;
   if (isInputNode)  { targetCount = 0; sourceCount = 1; }
@@ -157,27 +140,54 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     }
   }
 
-  // ── colour themes ──────────────────────────────────────────────────────────
+  // Calculate visual sorting of input handles to prevent crossed lines
+  const handleSourceX = Array.from({ length: targetCount }).map((_, i) => {
+    const targetHandleId = `input_${i}`;
+    const edge = incomingEdges.find(e => e.targetHandle === targetHandleId || (targetCount === 1 && !e.targetHandle));
+    if (edge) {
+      const sourceNode = allNodes.find(n => n.id === edge.source);
+      if (sourceNode) {
+        return { index: i, x: sourceNode.position.x };
+      }
+    }
+    return { index: i, x: i * 10000 };
+  });
+
+  const sortedHandles = [...handleSourceX].sort((a, b) => a.x - b.x);
+  const visualPositionMap = new Map<number, number>();
+  sortedHandles.forEach((h, rank) => {
+    visualPositionMap.set(h.index, rank);
+  });
+
+  const rankKey = Array.from({ length: targetCount })
+    .map((_, i) => visualPositionMap.get(i) ?? i)
+    .join(',');
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, targetCount, rankKey, updateNodeInternals]);
+
+  // Color themes
   let typeColor  = 'text-purple-400/90';
-  let border     = selected ? 'border-primary shadow-[0_0_15px_rgba(108,60,225,0.45)]' : 'border-primary/20 hover:border-primary/50';
+  let borderCls  = selected ? 'border-primary shadow-[0_0_15px_rgba(108,60,225,0.35)]' : 'border-white/10 hover:border-white/20';
   let handleCls  = '!bg-primary';
-  let bgCls      = 'bg-[#0e0e12]/85';
+  let bgCls      = 'bg-[#0f111a]';
 
   if (isInputNode) {
     typeColor = 'text-emerald-400';
-    border    = selected ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-emerald-500/30 hover:border-emerald-500/60';
+    borderCls = selected ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)]' : 'border-emerald-500/20 hover:border-emerald-500/40';
     handleCls = '!bg-emerald-500';
+    bgCls     = 'bg-[#0d1411]';
   } else if (isOutputNode) {
     typeColor = 'text-amber-400';
-    border    = selected ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]'  : 'border-amber-500/30 hover:border-amber-500/60';
+    borderCls = selected ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.25)]' : 'border-amber-500/20 hover:border-amber-500/40';
     handleCls = '!bg-amber-500';
+    bgCls     = 'bg-[#14100d]';
   } else if (isBlock) {
     typeColor = 'text-indigo-400';
-    border    = selected
-      ? 'border-indigo-500 ring-2 ring-indigo-500/40 ring-offset-2 ring-offset-[#070709] shadow-[0_0_20px_rgba(99,102,241,0.5)]'
-      : 'border-indigo-500/50 ring-1 ring-indigo-500/20 ring-offset-2 ring-offset-[#070709] hover:border-indigo-400 hover:shadow-[0_0_18px_rgba(99,102,241,0.4)]';
+    borderCls = selected ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'border-indigo-500/30 hover:border-indigo-500/50';
     handleCls = '!bg-indigo-500';
-    bgCls     = 'bg-[#12112a]/90';
+    bgCls     = 'bg-[#11121d]';
   } else {
     if      (['Add','Concat','Multiply'].includes(data.type))                              typeColor = 'text-yellow-400/90';
     else if (['BatchNorm2d','LayerNorm','GroupNorm'].includes(data.type))                  typeColor = 'text-teal-400/90';
@@ -186,20 +196,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   }
 
   if (isError) {
-    border = isBlock
-      ? 'border-red-500 ring-2 ring-red-500/30 ring-offset-2 ring-offset-[#070709] shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-      : 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
+    borderCls = 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
+    bgCls     = 'bg-[#1a0c0c]';
   }
 
-  const cardBase = `${bgCls} backdrop-blur-md border ${border} transition-all duration-200 rounded-lg shadow-xl`;
-
-  // ── key params for hover summary ───────────────────────────────────────────
+  // Key parameter compact summary
   const keyParamDefs = KEY_PARAMS[data.type] || [];
   const keyParamLine = keyParamDefs.map(kp =>
     kp.format ? kp.format(data.params) : `${kp.label}=${data.params?.[kp.key] ?? '–'}`
   ).join('  ');
 
-  // Helper to determine if a parameter field is induced
+  // Induced parameter lookup
   const getInducedValue = (paramKey: string): number | null => {
     if (incomingEdges.length !== 1) return null;
     const incomingNode = allNodes.find(n => n.id === incomingEdges[0].source);
@@ -211,23 +218,23 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     return null;
   };
 
-  // ── full field renderer (inside expanded dropdown) ─────────────────────────
   const renderField = (f: FieldDef) => {
     const inducedVal = getInducedValue(f.key);
     const isInduced = inducedVal !== null;
     const raw = isInduced ? inducedVal : data.params?.[f.key];
-    const inputCls = `nodrag w-full bg-[#070709] border rounded-md px-2 py-0.5 text-[10px] focus:outline-none transition-colors ${
+    const inputCls = `nodrag w-full bg-background border rounded-md px-2 py-1 text-[10px] focus:outline-none transition-colors ${
       isInduced 
-        ? 'opacity-65 cursor-not-allowed border-weave-teal/30 text-weave-teal font-bold font-mono' 
-        : 'border-primary/15 text-white focus:border-primary/50'
+        ? 'opacity-65 cursor-not-allowed border-primary/30 text-primary font-bold font-mono' 
+        : 'border-white/5 text-white focus:border-primary/50'
     }`;
 
     if (f.type === 'boolean') {
       return (
-        <div key={f.key} className="flex items-center justify-between">
-          <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
+        <div key={f.key} className="flex items-center justify-between py-1">
+          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
           <button
-            className={`nodrag text-[9px] px-2 py-0.5 rounded font-bold border transition-all ${
+            type="button"
+            className={`nodrag text-[9px] px-2 py-0.5 rounded font-bold border transition-all cursor-pointer ${
               raw !== false ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-neutral-400'
             }`}
             onClick={(e) => { e.stopPropagation(); handleParamChange(f.key, raw !== false ? false : true); }}
@@ -237,11 +244,12 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
         </div>
       );
     }
+
     if (f.type === 'json') {
       const display = Array.isArray(raw) ? raw.join(', ') : (raw ?? '');
       return (
-        <div key={f.key} className="space-y-0.5">
-          <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
+        <div key={f.key} className="space-y-0.5 py-1">
+          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
           <input
             className={inputCls}
             defaultValue={display}
@@ -259,12 +267,13 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
         </div>
       );
     }
+
     return (
-      <div key={f.key} className="space-y-0.5">
+      <div key={f.key} className="space-y-0.5 py-1">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-neutral-400 font-medium">{f.label}</span>
+          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
           {isInduced && (
-            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-weave-teal bg-weave-teal/10 px-1 py-0.2 rounded border border-weave-teal/20">
+            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-[#2DD4BF] bg-[#2DD4BF]/10 px-1 py-0.2 rounded border border-[#2DD4BF]/20">
               🔒 Induced
             </span>
           )}
@@ -286,46 +295,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   };
 
   const fullFields = FULL_FIELDS[data.type] || [];
-
-  // ── Calculate dynamic visual sorting of input handles to prevent crossed lines ──
-  const handleSourceX = Array.from({ length: targetCount }).map((_, i) => {
-    const targetHandleId = `input_${i}`;
-    const edge = incomingEdges.find(e => e.targetHandle === targetHandleId || (targetCount === 1 && !e.targetHandle));
-    if (edge) {
-      const sourceNode = allNodes.find(n => n.id === edge.source);
-      if (sourceNode) {
-        return { index: i, x: sourceNode.position.x };
-      }
-    }
-    return { index: i, x: i * 10000 }; // Default to index order if not connected
-  });
-
-  const sortedHandles = [...handleSourceX].sort((a, b) => a.x - b.x);
-  const visualPositionMap = new Map<number, number>();
-  sortedHandles.forEach((h, rank) => {
-    visualPositionMap.set(h.index, rank);
-  });
-
-  const rankKey = Array.from({ length: targetCount })
-    .map((_, i) => visualPositionMap.get(i) ?? i)
-    .join(',');
-
-  // Force React Flow to recalculate handle offsets and redraw edges when handles move or scale
-  useEffect(() => {
-    updateNodeInternals(id);
-  }, [id, targetCount, rankKey, updateNodeInternals]);
-
-  const baseW = isBlock ? 'min-w-[152px] max-w-[178px]' : 'min-w-[110px] max-w-[135px]';
-  const expandedW = 'min-w-[190px] max-w-[210px]';
+  const baseW = isBlock ? 'w-44' : 'w-36';
+  const expandedW = 'w-52';
   const cardW = isExpanded ? expandedW : baseW;
 
   return (
     <div
-      className="relative group"
+      className="relative group select-none"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* ── Target handles top ── */}
+      {/* Target Handles (Inputs) */}
       {Array.from({ length: targetCount }).map((_, i) => {
         const rank = visualPositionMap.get(i) ?? i;
         const leftPercent = ((rank + 1) * 100) / (targetCount + 1);
@@ -336,114 +316,110 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
             position={Position.Top}
             id={`input_${i}`}
             style={targetCount > 1 ? { left: `${leftPercent}%` } : undefined}
-            className={`w-2.5 h-2.5 ${handleCls} border border-[#070709] !z-50 rounded-full`}
+            className={`w-2 h-2 ${handleCls} border border-[#070709] !z-50 rounded-full`}
           />
         );
       })}
 
-      {/* ── Delete × badge (top-right, appears on hover) ── */}
+      {/* Delete Badge */}
       <button
-        className="nodrag absolute -top-2 -right-2 w-4 h-4 rounded-full bg-[#1a0a0a] border border-red-500/40 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 flex items-center justify-center text-[9px] font-black shadow-md scale-0 group-hover:scale-100 transition-all duration-150 z-[70] cursor-pointer leading-none"
-        title="Remove layer"
         onClick={(e) => { e.stopPropagation(); removeNode(id); }}
+        className="absolute -top-2 -right-2 w-4.5 h-4.5 rounded-full bg-[#1c0c0c] border border-red-500/30 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity z-50 cursor-pointer shadow-md select-none"
+        title="Delete Layer"
       >
         ✕
       </button>
 
-      {/* ── Card ── */}
-      <div className={`${cardBase} ${cardW} transition-all duration-200 overflow-hidden`}>
-
-        {/* Error pulse */}
+      {/* Expandable Node Content Area */}
+      <div className={`backdrop-blur-md border ${bgCls} ${borderCls} ${cardW} rounded-lg shadow-xl overflow-hidden transition-all duration-200`}>
+        
+        {/* Error Flag */}
         {isError && (
-          <div className="absolute right-1.5 top-1 text-red-500 animate-pulse z-10 text-[9px]" title={data.error || 'Error'}>⚠</div>
+          <div className="absolute right-2 top-1 text-red-500 text-[8px] animate-pulse" title={data.error || 'Layer Error'}>
+            ⚠️
+          </div>
         )}
 
-        {/* ── Collapsed / resting state ── */}
-        <div className={`py-1.5 px-3 text-center ${isBlock ? '' : ''}`}>
-          {/* Type chip */}
+        {/* Resting Content Row */}
+        <div className="py-2 px-3 text-center flex flex-col items-center justify-center">
+          {/* Node Type Header */}
           <div className={`text-[7px] font-black ${typeColor} tracking-wider uppercase mb-0.5`}>
             {data.type}
           </div>
 
-          {/* Label row — icon for blocks */}
-          <div className="flex items-center justify-center gap-1">
-            {isBlock && <Network size={9} className="text-indigo-400 shrink-0" strokeWidth={2.5} />}
-            <span className="text-[10px] font-bold text-white uppercase line-clamp-1 truncate">
-              {data.label}
-            </span>
+          {/* Node Label (Editable directly on click) */}
+          <div className="flex items-center justify-center gap-1 w-full">
+            {isBlock && <Network size={8} className="text-indigo-400 shrink-0" />}
+            
+            {editingLabel ? (
+              <div className="flex gap-1 items-center nodrag">
+                <input
+                  autoFocus
+                  className="w-20 bg-background border border-white/10 rounded px-1 text-[9px] text-white focus:outline-none"
+                  value={labelDraft}
+                  onChange={(e) => setLabelDraft(e.target.value)}
+                  onBlur={commitLabel}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitLabel(); }}
+                />
+              </div>
+            ) : (
+              <span
+                onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
+                className="text-[10px] font-bold text-white uppercase truncate max-w-[100px] cursor-pointer hover:underline"
+              >
+                {data.label}
+              </span>
+            )}
           </div>
 
-          {/* Shape badge (always visible once compiled) */}
-          {shape && (
-            <div className={`mt-0.5 text-[7.5px] font-bold tracking-tight ${isBlock ? 'text-indigo-300' : 'text-weave-teal'}`}>
-              [{shape.join(', ')}]
+          {/* Output Shape Badge */}
+          {shape ? (
+            <div className="text-[7.5px] font-mono text-[#2DD4BF] mt-0.5 font-semibold">
+              {shape.join('×')}
+            </div>
+          ) : (
+            <div className="text-[7px] text-muted-foreground/40 mt-0.5 font-mono">
+              no shape
             </div>
           )}
         </div>
 
-        {/* ── Hover expansion: key params + chevron ── */}
+        {/* Expanded Parameters Panel (Visible on Hover/Expand) */}
         {(isHovered || isExpanded) && !isInputNode && !isOutputNode && (
-          <div className="border-t border-white/[0.05] px-3 pb-1.5 pt-1.5">
-            {/* Key params line */}
-            {keyParamLine && (
-              <div className="text-[8.5px] text-neutral-300 font-mono tracking-tight text-center leading-tight mb-1.5">
+          <div className="border-t border-white/5 px-3 pb-2 pt-1.5 bg-black/10 select-none">
+            
+            {/* Key stats summary line */}
+            {keyParamLine && !isExpanded && (
+              <div className="text-[8px] text-neutral-300 font-mono tracking-tight text-center leading-tight py-1 select-none">
                 {keyParamLine}
               </div>
             )}
 
-            {/* Expanded full fields */}
+            {/* Complete field configurations */}
             {isExpanded && (
-              <div className="space-y-2 mb-2">
-                {/* Rename label */}
-                <div className="space-y-0.5">
-                  <span className="text-[9px] text-neutral-400 font-medium">Name</span>
-                  {editingLabel ? (
-                    <div className="flex gap-1 items-center">
-                      <input
-                        autoFocus
-                        className="nodrag flex-1 bg-[#070709] border border-primary/30 rounded-md px-2 py-0.5 text-[10px] text-white focus:outline-none"
-                        value={labelDraft}
-                        onChange={(e) => setLabelDraft(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') commitLabel(); if (e.key === 'Escape') { setLabelDraft(data.label ?? ''); setEditingLabel(false); } }}
-                      />
-                      <button onClick={commitLabel} className="nodrag text-emerald-400 hover:text-emerald-300"><Check size={10} /></button>
-                      <button onClick={() => { setLabelDraft(data.label ?? ''); setEditingLabel(false); }} className="nodrag text-red-400 hover:text-red-300"><X size={10} /></button>
-                    </div>
-                  ) : (
-                    <button
-                      className="nodrag w-full text-left bg-[#070709] border border-white/10 rounded-md px-2 py-0.5 text-[10px] text-white/80 hover:border-primary/30 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
-                    >
-                      {data.label}
-                    </button>
-                  )}
-                </div>
-
-                {/* All params */}
+              <div className="space-y-1 mt-1 text-left">
                 {fullFields.map(renderField)}
-
                 {fullFields.length === 0 && (
-                  <p className="text-[8px] text-neutral-500 italic text-center">No configurable parameters</p>
+                  <p className="text-[8px] text-neutral-500 italic text-center py-1">No configurations</p>
                 )}
 
-                {/* Incoming Connections Section */}
+                {/* Connections list */}
                 {incomingEdges.length > 0 && (
-                  <div className="space-y-1 border-t border-white/[0.05] pt-2 mt-2 text-left">
-                    <span className="text-[7.5px] text-neutral-400 font-extrabold uppercase tracking-wider block mb-1">Incoming Connections</span>
+                  <div className="space-y-1 border-t border-white/5 pt-2 mt-2 select-none">
+                    <span className="text-[7.5px] text-[#64748b] font-black uppercase tracking-wider block mb-1">Incoming Links</span>
                     <div className="space-y-1">
                       {incomingEdges.map((edge) => {
                         const sourceNode = allNodes.find(n => n.id === edge.source);
                         const handleNum = edge.targetHandle ? edge.targetHandle.split('_')[1] : '0';
-                        const handleLabel = targetCount > 1 ? `Input ${Number(handleNum) + 1}` : 'Input';
+                        const handleLabel = targetCount > 1 ? `Port ${Number(handleNum) + 1}` : 'Port';
                         return (
-                          <div key={edge.id} className="flex items-center justify-between bg-black/45 rounded px-2 py-1 text-[9px] border border-white/[0.03]">
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-primary/75 text-[6.5px] font-black uppercase font-mono leading-none mb-0.5">{handleLabel}</span>
-                              <span className="text-white font-bold truncate max-w-[110px] leading-tight">{sourceNode?.data?.label || edge.source}</span>
-                            </div>
+                          <div key={edge.id} className="flex items-center justify-between bg-background border border-white/5 rounded px-1.5 py-0.5 text-[8px] font-mono gap-1">
+                            <span className="text-primary text-[7.5px] font-black">{handleLabel}:</span>
+                            <span className="text-white/60 truncate max-w-[80px] flex-1">{sourceNode?.data?.label || edge.source}</span>
                             <button
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); removeEdge(edge.id); }}
-                              className="nodrag w-4 h-4 rounded bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-[8px] font-bold shrink-0 ml-1"
+                              className="nodrag w-3.5 h-3.5 rounded bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors cursor-pointer text-[7px] font-bold"
                               title="Disconnect"
                             >
                               ✕
@@ -457,29 +433,30 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
               </div>
             )}
 
-            {/* Chevron toggle */}
+            {/* Expand toggle chevron button */}
             <button
-              className="nodrag w-full flex items-center justify-center gap-0.5 text-[8px] text-neutral-500 hover:text-primary transition-colors py-0.5"
+              type="button"
+              className="nodrag w-full flex items-center justify-center gap-0.5 text-[8px] text-muted-foreground hover:text-white transition-colors py-1 mt-1 cursor-pointer border-t border-white/5"
               onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); if (isExpanded) setIsHovered(true); }}
             >
               {isExpanded ? (
-                <><ChevronUp size={10} strokeWidth={2.5} /><span>collapse</span></>
+                <><ChevronUp size={10} /><span>Collapse</span></>
               ) : (
-                <><ChevronDown size={10} strokeWidth={2.5} /><span>all params</span></>
+                <><ChevronDown size={10} /><span>Edit Params</span></>
               )}
             </button>
           </div>
         )}
 
-        {/* Block hint */}
+        {/* Double-click nested block help text */}
         {isBlock && !isExpanded && (
-          <div className="text-[7px] text-indigo-400/50 text-center pb-1.5 italic">
-            double-click to enter
+          <div className="text-[5.5px] text-indigo-400/40 uppercase tracking-wider text-center pb-1 font-bold">
+            2× Click Inside
           </div>
         )}
       </div>
 
-      {/* ── Source handles bottom ── */}
+      {/* Source Handles (Outputs) */}
       {Array.from({ length: sourceCount }).map((_, i) => (
         <Handle
           key={`source-${i}`}
@@ -487,7 +464,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
           position={Position.Bottom}
           id={`output_${i}`}
           style={sourceCount > 1 ? { left: `${((i + 1) * 100) / (sourceCount + 1)}%` } : undefined}
-          className={`w-2.5 h-2.5 ${handleCls} border border-[#070709] !z-50 rounded-full`}
+          className={`w-2 h-2 ${handleCls} border border-[#070709] !z-50 rounded-full`}
         />
       ))}
     </div>

@@ -106,6 +106,8 @@ export function MetricsView({ epochs }: MetricsViewProps) {
 
   const lossPoints = getPointsString(lossesToPlot);
   const valLossPoints = getPointsString(valLossesToPlot);
+  const closedLossPoints = lossPoints ? `${lossPoints} ${width - padding},${height - padding} ${padding},${height - padding}` : '';
+  const closedValLossPoints = valLossPoints ? `${valLossPoints} ${width - padding},${height - padding} ${padding},${height - padding}` : '';
 
   // Scaling for Accuracy
   const maxAcc = Math.max(...accuracies, 1);
@@ -119,6 +121,8 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         return `${x},${y}`;
       }).join(' ')
     : '';
+
+  const closedAccuracyPoints = accuracyPoints ? `${accuracyPoints} ${width - padding},${height - padding} ${padding},${height - padding}` : '';
 
   const latestTrainLoss = lossesToPlot[lossesToPlot.length - 1];
   const latestValLoss = validValLosses.length > 0 ? validValLosses[validValLosses.length - 1] : null;
@@ -169,10 +173,38 @@ export function MetricsView({ epochs }: MetricsViewProps) {
           </div>
           <div className="relative w-full h-36">
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+              <defs>
+                <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1e8fd3" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#1e8fd3" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="valLossGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+                </linearGradient>
+              </defs>
               {/* Gridlines */}
               <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
               <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
               <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
+
+              {/* Loss Area Gradient */}
+              {closedLossPoints && (
+                <polygon
+                  points={closedLossPoints}
+                  fill="url(#lossGrad)"
+                  stroke="none"
+                />
+              )}
+
+              {/* Validation Loss Area Gradient */}
+              {closedValLossPoints && (
+                <polygon
+                  points={closedValLossPoints}
+                  fill="url(#valLossGrad)"
+                  stroke="none"
+                />
+              )}
 
               {/* Training Loss Path */}
               {lossPoints && (
@@ -214,10 +246,25 @@ export function MetricsView({ epochs }: MetricsViewProps) {
           <div className="relative w-full h-36">
             {accuracies.length > 0 ? (
               <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+                <defs>
+                  <linearGradient id="accGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
                 {/* Gridlines */}
                 <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
                 <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
                 <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
+
+                {/* Accuracy Area Gradient */}
+                {closedAccuracyPoints && (
+                  <polygon
+                    points={closedAccuracyPoints}
+                    fill="url(#accGrad)"
+                    stroke="none"
+                  />
+                )}
 
                 {/* Accuracy Path */}
                 {accuracyPoints && (

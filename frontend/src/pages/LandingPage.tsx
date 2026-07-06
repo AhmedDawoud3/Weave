@@ -10,6 +10,7 @@ import ReactFlow, { Background, Handle, Position, Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useCallback } from 'react';
 import { useWeaveStore } from '../store/useWeaveStore';
+import { GridBackground } from '../components/ui/GridBackground';
 
 
 
@@ -204,6 +205,7 @@ export function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6">
+        <GridBackground />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(108,60,225,0.15),transparent_50%)]" />
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <motion.div

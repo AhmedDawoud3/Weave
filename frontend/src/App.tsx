@@ -5,12 +5,14 @@ import { DashboardPage } from './pages/DashboardPage';
 import { StudioPage } from './pages/StudioPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[#070709] text-white overflow-hidden font-sans">
-      <BrowserRouter>
-        <Routes>
+    <ThemeProvider>
+      <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
+        <BrowserRouter>
+          <Routes>
           {/* Landing Page */}
           <Route path="/" element={<LandingPage />} />
           
@@ -62,6 +64,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </div>
+    </ThemeProvider>
   );
 }
 

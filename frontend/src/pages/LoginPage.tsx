@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail, User, ShieldAlert } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, Lock, Mail, User, ShieldAlert, Cpu, Terminal, Sparkles, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useWeaveStore } from '../store/useWeaveStore';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -12,6 +11,12 @@ import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props
 // Read Client IDs from environment variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "unconfigured-client-id";
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+
+const PYTORCH_CODE_SNIPPETS = [
+  "import torch\nimport torch.nn as nn\n\nclass CNN(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv1 = nn.Conv2d(3, 32, 3)\n        self.relu = nn.ReLU()",
+  "        self.pool = nn.MaxPool2d(2)\n        self.fc = nn.Linear(32*14*14, 10)\n\n    def forward(self, x):\n        x = self.pool(self.relu(self.conv1(x)))\n        return self.fc(x.view(x.size(0), -1))",
+  "# Model successfully compiled by Weave\n# Starting training run...\n# Epoch 1: Loss = 0.432, Acc = 85.4%\n# Epoch 2: Loss = 0.291, Acc = 91.2%"
+];
 
 function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthenticating: boolean, onLoginSuccess: () => void }) {
   const { externalLogin } = useWeaveStore();
@@ -56,8 +61,8 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
     <div className="flex flex-col gap-3 mt-6">
       {localError && <div className="text-xs text-red-400 text-center">{localError}</div>}
       <div className="relative my-4 text-center">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-primary/10" /></div>
-        <span className="relative px-3 bg-[#0d0f1a] text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
+        <span className="relative px-3 bg-background text-[10px] text-[#64748b] uppercase tracking-wider font-bold">
           Or continue with
         </span>
       </div>
@@ -67,7 +72,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
           type="button"
           disabled={isAuthenticating}
           onClick={handleGoogleClick}
-          className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all"
+          className="bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-white font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -79,7 +84,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
         </Button>
 
         <FacebookLogin
-          appId={FACEBOOK_APP_ID || "1234567890"} // Requires a non-empty string to render
+          appId={FACEBOOK_APP_ID || "1234567890"}
           fields="name,email,picture"
           callback={responseFacebook}
           render={renderProps => (
@@ -87,7 +92,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
               type="button"
               disabled={isAuthenticating}
               onClick={() => handleFacebookClick(renderProps.onClick)}
-              className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-white font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all"
+              className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-white font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="#1877F2">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -119,6 +124,26 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
 
   const { login, register, authError, isAuthenticating } = useWeaveStore();
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // PyTorch code terminal typing simulation
+  const [typedLines, setTypedLines] = useState<string[]>([]);
+  
+  useEffect(() => {
+    let currentIdx = 0;
+    const interval = setInterval(() => {
+      if (currentIdx < PYTORCH_CODE_SNIPPETS.length) {
+        setTypedLines(prev => [...prev, PYTORCH_CODE_SNIPPETS[currentIdx]]);
+        currentIdx++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 3200);
+
+    setTypedLines([PYTORCH_CODE_SNIPPETS[0]]);
+    currentIdx = 1;
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,115 +190,206 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="h-screen w-full bg-background flex items-center justify-center p-6"
+        className="min-h-screen w-full bg-background flex flex-col md:flex-row overflow-y-auto md:overflow-hidden font-sans"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.12),transparent_50%)]" />
-
-        <Card className="w-[420px] p-8 bg-card/30 backdrop-blur-xl border border-primary/10 shadow-[0_0_50px_rgba(108,60,225,0.08)] rounded-2xl relative z-10">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-weave-blue/20 flex items-center justify-center shadow-lg border border-primary/20 mb-4">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-              >
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 17L12 22L22 17" stroke="#1ABCFE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </motion.div>
+        {/* Left Pane - Live Glowing Neural Network Visuals */}
+        <div className="hidden md:flex w-1/2 flex-col justify-between p-12 bg-[#050608] border-r border-white/5 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(108,60,225,0.08),transparent_50%)] pointer-events-none" />
+          
+          {/* Logo Brand */}
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#6C3CE1] to-[#1ABCFE]/20 flex items-center justify-center shadow-lg border border-[#6C3CE1]/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
-            <h2 className="text-2xl font-black text-center text-white tracking-wider uppercase">
-              {isRegister ? 'Create Account' : 'Welcome Back'}
-            </h2>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
-              {isRegister ? 'Sign up for Weave Studio' : 'Enter your credentials to login'}
-            </p>
+            <span className="text-white font-black tracking-widest uppercase text-sm">Weave Studio</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {(authError || localError) && (
-              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs text-red-400">
-                <ShieldAlert className="shrink-0 mt-0.5" size={16} />
-                <span>{localError || authError}</span>
+          {/* Glowing Neural Network Layout SVG */}
+          <div className="my-auto relative flex flex-col items-center justify-center min-h-[300px]">
+            <svg className="w-full max-w-[420px]" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Lines */}
+              <line x1="50" y1="100" x2="150" y2="50" stroke="rgba(108,60,225,0.3)" strokeWidth="2" />
+              <line x1="50" y1="100" x2="150" y2="150" stroke="rgba(108,60,225,0.3)" strokeWidth="2" />
+              <line x1="150" y1="50" x2="250" y2="50" stroke="rgba(26,188,254,0.3)" strokeWidth="2" />
+              <line x1="150" y1="150" x2="250" y2="150" stroke="rgba(26,188,254,0.3)" strokeWidth="2" />
+              <line x1="250" y1="50" x2="350" y2="100" stroke="rgba(45,212,191,0.3)" strokeWidth="2" />
+              <line x1="250" y1="150" x2="350" y2="100" stroke="rgba(45,212,191,0.3)" strokeWidth="2" />
+
+              {/* Animated pulses */}
+              <circle r="4" fill="#2DD4BF" className="animate-pulse">
+                <animateMotion dur="3s" repeatCount="indefinite" path="M 50,100 L 150,50 L 250,50 L 350,100" />
+              </circle>
+              <circle r="4" fill="#6C3CE1" className="animate-pulse">
+                <animateMotion dur="2.5s" repeatCount="indefinite" path="M 50,100 L 150,150 L 250,150 L 350,100" />
+              </circle>
+
+              {/* Nodes */}
+              <circle cx="50" cy="100" r="16" fill="#0c0d14" stroke="#6C3CE1" strokeWidth="3" />
+              <text x="50" y="104" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle">IN</text>
+
+              <circle cx="150" cy="50" r="16" fill="#0c0d14" stroke="#1ABCFE" strokeWidth="3" />
+              <text x="150" y="54" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">CONV</text>
+
+              <circle cx="150" cy="150" r="16" fill="#0c0d14" stroke="#1ABCFE" strokeWidth="3" />
+              <text x="150" y="154" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">RELU</text>
+
+              <circle cx="250" cy="50" r="16" fill="#0c0d14" stroke="#2DD4BF" strokeWidth="3" />
+              <text x="250" y="54" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">POOL</text>
+
+              <circle cx="250" cy="150" r="16" fill="#0c0d14" stroke="#2DD4BF" strokeWidth="3" />
+              <text x="250" y="154" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">FC</text>
+
+              <circle cx="350" cy="100" r="16" fill="#0c0d14" stroke="#F97316" strokeWidth="3" />
+              <text x="350" y="104" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">OUT</text>
+            </svg>
+
+            {/* Fake PyTorch Terminal */}
+            <div className="w-full max-w-[420px] bg-[#0c0d14] border border-white/5 rounded-2xl p-4 mt-8 font-mono text-[11px] text-[#94a3b8] leading-relaxed shadow-xl">
+              <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Terminal size={14} className="text-[#2DD4BF]" />
+                  <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Compiler Terminal</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/40" />
+                </div>
               </div>
-            )}
+              <div className="space-y-2 h-[120px] overflow-y-auto scrollbar-none select-none">
+                {typedLines.map((line, i) => (
+                  <pre key={i} className="whitespace-pre-wrap text-white/80">
+                    {line}
+                  </pre>
+                ))}
+              </div>
+            </div>
+          </div>
 
-            {isRegister && (
-              <>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    placeholder="Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-background/40 border-primary/10 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
+          {/* Footer Info */}
+          <div className="flex justify-between items-center text-[10px] text-[#475569] uppercase font-bold relative z-10">
+            <span>© 2026 Weave AI</span>
+            <span className="flex items-center gap-1">
+              <Cpu size={12} /> GPU Optimized
+            </span>
+          </div>
+        </div>
 
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    placeholder="Username (e.g. ahmed123)"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="bg-background/40 border-primary/10 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-              </>
-            )}
+        {/* Right Pane - Sleek Glassmorphic Login/Register Form */}
+        <div className="w-full md:w-1/2 flex items-center justify-center p-8 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.06),transparent_50%)] pointer-events-none" />
 
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <Input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-background/40 border-primary/10 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-              />
+          <div className="w-full max-w-[400px] p-8 bg-card/15 backdrop-blur-xl border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-2xl relative z-10">
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/10 flex items-center justify-center border border-primary/20 mb-4 shadow-lg">
+                <Sparkles className="text-primary" size={20} />
+              </div>
+              <h2 className="text-2xl font-black text-center text-white tracking-wider uppercase">
+                {isRegister ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center">
+                {isRegister ? 'Sign up for Weave Studio' : 'Enter your credentials to login'}
+              </p>
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background/40 border-primary/10 pl-10 pr-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AnimatePresence mode="wait">
+                {(authError || localError) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs text-red-400"
+                  >
+                    <ShieldAlert className="shrink-0 mt-0.5" size={16} />
+                    <span>{localError || authError}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isRegister && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 overflow-hidden"
+                >
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      placeholder="Full Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="bg-background/40 border-white/5 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      placeholder="Username (e.g. ahmed123)"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="bg-background/40 border-white/5 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Input
+                  type="email"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-background/40 border-white/5 pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-background/40 border-white/5 pl-10 pr-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isAuthenticating}
+                className="w-full h-12 mt-2 bg-gradient-to-r from-primary to-secondary hover:brightness-110 active:scale-[0.99] text-white font-extrabold uppercase rounded-xl transition-all shadow-[0_4px_20px_rgba(108,60,225,0.25)] cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-              </button>
-            </div>
+                {isAuthenticating ? 'Connecting...' : isRegister ? 'Register' : 'Login'}
+                <ChevronRight size={16} />
+              </Button>
+            </form>
 
-            <Button
-              type="submit"
-              disabled={isAuthenticating}
-              className="w-full h-12 mt-2 bg-gradient-to-r from-weave-violet to-weave-blue hover:brightness-110 active:scale-[0.99] text-white font-extrabold uppercase rounded-xl transition-all shadow-[0_4px_20px_rgba(108,60,225,0.25)] cursor-pointer"
+            <SocialLoginButtons isAuthenticating={isAuthenticating} onLoginSuccess={handleLoginSuccess} />
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setLocalError(null);
+              }}
+              className="w-full text-[10px] text-muted-foreground hover:text-primary mt-6 uppercase tracking-widest font-bold text-center transition-colors focus:outline-none cursor-pointer"
             >
-              {isAuthenticating ? 'Connecting...' : isRegister ? 'Register' : 'Login'}
-            </Button>
-          </form>
-
-          <SocialLoginButtons isAuthenticating={isAuthenticating} onLoginSuccess={handleLoginSuccess} />
-
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(!isRegister);
-              setLocalError(null);
-            }}
-            className="w-full text-[10px] text-muted-foreground hover:text-primary mt-6 uppercase tracking-widest font-bold text-center transition-colors focus:outline-none"
-          >
-            {isRegister ? "Already have an account? Login" : "Don't have an account? Register"}
-          </button>
-        </Card>
+              {isRegister ? "Already have an account? Login" : "Don't have an account? Register"}
+            </button>
+          </div>
+        </div>
       </motion.div>
     </GoogleOAuthProvider>
   );

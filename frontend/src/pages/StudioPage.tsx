@@ -16,7 +16,6 @@ import { Sidebar } from '../components/Sidebar';
 import { LayerPalette } from '../components/LayerPalette';
 import { DatasetWorkspace } from '../components/DatasetWorkspace';
 
-
 import { LayerNode } from '../components/LayerNode';
 import { WeaveEdge } from '../components/WeaveEdge';
 import { TrainingPanel } from '../components/training/TrainingPanel';
@@ -444,10 +443,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
         {activeTab === 'canvas' ? (
           <>
             <Sidebar onNavigateDashboard={handleNavigateDashboard} />
+            <LayerPalette />
 
             {/* Canvas Area */}
             <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">
-              <LayerPalette />
 
               <div className="flex-1 relative min-h-0 min-w-0">
                 {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
