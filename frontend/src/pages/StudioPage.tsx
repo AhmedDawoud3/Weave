@@ -351,9 +351,12 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
         {/* Compile Status and Exporter menu actions */}
         <div className="flex items-center gap-4">
           {/* Kernel status indicator */}
-          <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-wider select-none">
+          <div 
+            className="flex items-center select-none nodrag cursor-help relative group px-1"
+            title={isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
+          >
             <span className={`w-2 h-2 rounded-full ${isKernelConnected ? 'bg-[#40d3b6] animate-pulse shadow-[0_0_8px_#40d3b6]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-            <span className={isKernelConnected ? 'text-[#40d3b6]' : 'text-red-400'}>
+            <span className="absolute top-7 left-1/2 -translate-x-1/2 bg-[#0c0d14] border border-white/5 text-[8.5px] font-black uppercase text-white rounded px-2 py-0.5 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
               {isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
             </span>
           </div>
