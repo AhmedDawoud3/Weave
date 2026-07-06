@@ -19,9 +19,10 @@ import { DatasetWorkspace } from '../components/DatasetWorkspace';
 
 import { LayerNode } from '../components/LayerNode';
 import { WeaveEdge } from '../components/WeaveEdge';
-import { TrainingConsole } from '../components/TrainingConsole';
+import { TrainingPanel } from '../components/training/TrainingPanel';
 import { ExportModal } from '../components/ExportModal';
 import { useWeaveStore } from '../store/useWeaveStore';
+import { useTrainingStore } from '../store/useTrainingStore';
 import { LayerType } from '../types';
 
 const nodeTypes = { layer: LayerNode };
@@ -76,6 +77,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     selectProjectById
   } = useWeaveStore();
 
+  const { isTraining, trainingStatus, checkActiveRuns } = useTrainingStore();
+
   useEffect(() => {
     async function loadProject() {
       if (id && activeProject?.id !== id) {
@@ -116,16 +119,19 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     }
   }, [activeInputShape]);
 
-  const checkActiveRuns = useWeaveStore(state => (state as any).checkActiveRuns);
-
   // Periodically check and reconnect to any running background training jobs
   useEffect(() => {
-    if (checkActiveRuns) {
-      checkActiveRuns();
-      const interval = setInterval(checkActiveRuns, 10000);
-      return () => clearInterval(interval);
-    }
+    checkActiveRuns();
+    const interval = setInterval(checkActiveRuns, 10000);
+    return () => clearInterval(interval);
   }, [checkActiveRuns]);
+
+  // Auto-open the training console when training starts or is active
+  useEffect(() => {
+    if (isTraining || trainingStatus === 'running' || trainingStatus === 'paused') {
+      setShowTrainingConsole(true);
+    }
+  }, [isTraining, trainingStatus]);
 
   const handleShapeSubmit = () => {
     // Parse format like "32, 3, 224, 224" or "[32, 3, 224, 224]"
@@ -406,9 +412,21 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             onClick={() => {
               setShowTrainingConsole(!showTrainingConsole);
             }}
-            className="bg-[#1e8fd3]/10 border border-[#1e8fd3]/25 hover:bg-[#1e8fd3] text-white hover:text-black font-extrabold text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5"
+            className={`${
+              isTraining
+                ? 'bg-[#1e8fd3]/25 border-[#1e8fd3]/50 ring-1 ring-[#1e8fd3]/30'
+                : 'bg-[#1e8fd3]/10 border-[#1e8fd3]/25'
+            } border hover:bg-[#1e8fd3] text-white hover:text-black font-extrabold text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5`}
           >
-            <Terminal size={16} /> TRAINING CONSOLE
+            {isTraining ? (
+              <span className="relative flex h-2.5 w-2.5 mr-0.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#40d3b6] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#40d3b6]" />
+              </span>
+            ) : (
+              <Terminal size={16} />
+            )}
+            {isTraining ? 'TRAINING ACTIVE' : 'TRAINING CONSOLE'}
           </Button>
 
           <Button
@@ -521,7 +539,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             transition={{ type: 'spring', damping: 20 }}
             className="absolute bottom-0 left-0 right-0 z-40"
           >
-            <TrainingConsole onClose={() => setShowTrainingConsole(false)} />
+            <TrainingPanel onClose={() => setShowTrainingConsole(false)} />
           </motion.div>
         )}
       </AnimatePresence>

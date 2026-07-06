@@ -15,3 +15,5 @@ export type {
   DatasetValidateResponse
 } from './dataset';
 
+export * from './training';
+
