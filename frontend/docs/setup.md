@@ -22,9 +22,11 @@ cp .env.example .env
 
 Available variables:
 
-| Variable         | Default                  | Description               |
-|------------------|--------------------------|---------------------------|
-| `VITE_API_URL`   | `http://localhost:5000`   | Backend Engine API URL    |
+| Variable                 | Default                  | Description                                            |
+|--------------------------|--------------------------|--------------------------------------------------------|
+| `VITE_API_URL`           | `http://localhost:5000`   | Backend Engine API URL                                 |
+| `VITE_GOOGLE_CLIENT_ID`  | `unconfigured-client-id` | OAuth Client ID from Google Cloud Console              |
+| `VITE_FACEBOOK_APP_ID`   | `""`                     | OAuth App ID from Facebook Developers Portal           |
 
 ## Development
 

@@ -38,6 +38,9 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+            VITE_FACEBOOK_APP_ID=${{ secrets.VITE_FACEBOOK_APP_ID }}
           tags: |
             weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:latest
             weavecntr-g2btc0dyc4bzbnc4.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_8B59328316774151B4EF373D52353442 }}/weave-combined:${{ github.sha }}

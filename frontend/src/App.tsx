@@ -3,6 +3,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StudioPage } from './pages/StudioPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 
 export default function App() {
@@ -12,6 +13,9 @@ export default function App() {
         <Routes>
           {/* Landing Page */}
           <Route path="/" element={<LandingPage />} />
+          
+          {/* Privacy Policy Page */}
+          <Route path="/privacy" element={<PrivacyPage />} />
           
           {/* Login Screen (Unauthenticated Only) */}
           <Route

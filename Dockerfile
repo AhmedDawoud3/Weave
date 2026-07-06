@@ -4,6 +4,14 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /frontend
 
+# Accept build arguments for production OAuth credentials
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_FACEBOOK_APP_ID
+
+# Set environment variables for the build process
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_FACEBOOK_APP_ID=$VITE_FACEBOOK_APP_ID
+
 # Copy dependency definitions and install
 COPY frontend/package*.json ./
 RUN npm install --legacy-peer-deps
