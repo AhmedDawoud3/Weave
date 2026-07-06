@@ -500,14 +500,29 @@ class Trainer:
             self._save_experiment_run()
 
         except Exception as e:
+            import traceback
+
+            tb_str = traceback.format_exc()
             logger.exception(
                 f"Run {self.run_id}: Exception occurred in training thread loop: {e}"
             )
+
+            # Push a detailed traceback log so it is displayed in the frontend logs terminal
+            self._push_event(
+                {
+                    "type": "setup_status",
+                    "run_id": self.run_id,
+                    "status": "error",
+                    "message": f"CRITICAL ERROR: {str(e)}\n{tb_str}",
+                }
+            )
+
             self.status = "failed"
             fail_msg = {
                 "type": "training_failed",
                 "run_id": self.run_id,
                 "error": str(e),
+                "traceback": tb_str,
             }
             self._push_event(fail_msg)
             if self.event_bus:

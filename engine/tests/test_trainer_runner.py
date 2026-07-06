@@ -101,7 +101,7 @@ def _create_pre_configured_runner(
 
     from training.event_bus import EventBus
 
-    event_bus = EventBus(loop)
+    event_bus = EventBus("test-run", loop)
 
     trainer = Trainer(
         run_id="test-run",
@@ -203,8 +203,9 @@ async def test_device_fallback(training_config, dummy_dataset):
     runner = TrainingRunner()
     training_config.training.device = "cuda"
 
+    loop = asyncio.get_running_loop()
     with patch("torch.cuda.is_available", return_value=False):
-        run_id = runner.start_run(training_config)
+        run_id = runner.start_run(training_config, loop)
         trainer = runner.get_trainer(run_id)
         assert trainer is not None
 

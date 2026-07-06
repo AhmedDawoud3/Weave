@@ -962,7 +962,7 @@ def compare_experiments(request: ExperimentCompareRequest):
 
 
 @app.post("/training/start", tags=["Training Engine"])
-def start_training(config: TrainingConfig):
+async def start_training(config: TrainingConfig):
     """Starts a training run in the background.
 
     Args:
@@ -972,7 +972,8 @@ def start_training(config: TrainingConfig):
         dict: Containing the generated unique run_id.
     """
     try:
-        run_id = runner.start_run(config)
+        loop = asyncio.get_running_loop()
+        run_id = runner.start_run(config, loop)
         return {"run_id": run_id}
     except Exception as e:
         logger.exception("Failed to start training.")
@@ -994,7 +995,8 @@ async def stream_training(run_id: str):
     Returns:
         EventSourceResponse: Event stream containing metrics messages.
     """
-    event_bus = runner.get_event_bus(run_id)
+    loop = asyncio.get_running_loop()
+    event_bus = runner.get_event_bus(run_id, loop)
     if not event_bus:
         raise HTTPException(status_code=404, detail="Run ID not found.")
 

@@ -103,7 +103,7 @@ async def test_stream_training_api_success():
 
     # Create an EventBus pre-loaded with events
     loop = asyncio.get_running_loop()
-    event_bus = EventBus(loop)
+    event_bus = EventBus("test-run-123", loop)
     event_bus.push({"type": "step_metrics", "step": 1, "metrics": {"loss": 0.5}})
     event_bus.push({"type": "training_complete", "best_epoch": 1, "best_val_loss": 0.5})
     event_bus.mark_finished()

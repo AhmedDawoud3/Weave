@@ -26,11 +26,12 @@ class TrainingRunner:
         # Maps run_id -> EventBus
         self.event_buses: dict[str, EventBus] = {}
 
-    def start_run(self, config: TrainingConfig) -> str:
+    def start_run(self, config: TrainingConfig, loop: asyncio.AbstractEventLoop) -> str:
         """Starts a background training run.
 
         Args:
             config (TrainingConfig): Complete training configuration.
+            loop (asyncio.AbstractEventLoop): The main ASGI event loop.
 
         Returns:
             str: Generated unique run_id.
@@ -50,14 +51,7 @@ class TrainingRunner:
                     "data", "../data", 1
                 )
 
-        # 1. Event loop registration
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        event_bus = EventBus(loop)
+        event_bus = EventBus(run_id, loop)
 
         # 2. Trainer instantiation with deferred parameters
         trainer = Trainer(
@@ -142,16 +136,68 @@ class TrainingRunner:
         """
         return self.active_runs.get(run_id)
 
-    def get_event_bus(self, run_id: str) -> EventBus | None:
-        """Gets the EventBus for streaming.
-
-        Args:
-            run_id (str): The run identifier.
-
-        Returns:
-            Optional[EventBus]: The event bus, or None if not found.
+    def get_event_bus(
+        self, run_id: str, loop: asyncio.AbstractEventLoop | None = None
+    ) -> EventBus | None:
+        """Gets the EventBus for streaming. If the run is not active, loads historical
+        metrics from disk and returns a completed/playback EventBus.
         """
-        return self.event_buses.get(run_id)
+        if run_id in self.event_buses:
+            return self.event_buses[run_id]
+
+        # Not in memory: check if it exists on disk
+        import json
+        import os
+
+        from training.experiments import get_run, get_runs_dir, save_run
+
+        runs_dir = get_runs_dir()
+        filepath = os.path.join(runs_dir, f"{run_id}.json")
+        steps_path = os.path.join(runs_dir, f"{run_id}.steps.jsonl")
+
+        if not os.path.exists(filepath):
+            return None
+
+        # Load run record to check status
+        record = get_run(run_id)
+        if not record:
+            return None
+
+        # Graceful Crash Recovery: If status is running/paused, but it's not active in memory,
+        # it means the server restarted while the run was ongoing. Mark it as stopped.
+        if record.status in ["running", "paused"]:
+            record.status = "stopped"
+            save_run(record)
+
+            # Append final stopped event to JSONL file to signal end of stream
+            stopped_msg = {
+                "type": "stopped",
+                "run_id": run_id,
+                "message": "Engine restarted. Training stopped.",
+            }
+            try:
+                with open(steps_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(stopped_msg) + "\n")
+            except Exception:
+                pass
+
+        # Create a playback EventBus
+        current_loop = loop or asyncio.get_event_loop()
+        playback_bus = EventBus(run_id, current_loop)
+
+        # Load all step events from JSONL file
+        if os.path.exists(steps_path):
+            try:
+                with open(steps_path, encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            playback_bus._events.append(json.loads(line))
+            except Exception as e:
+                logger.error(f"Failed to read historical events from {steps_path}: {e}")
+
+        # Mark finished so iter_events finishes immediately after yielding history
+        playback_bus.mark_finished()
+        return playback_bus
 
     def cleanup_run(self, run_id: str) -> None:
         """Removes run state tracking.

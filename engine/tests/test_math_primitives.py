@@ -17,7 +17,12 @@ from compiler.modules import (
 from schemas import GraphConfig
 
 
-def _copy_param(dest_module: nn.Module, param_name: str, src_tensor: torch.Tensor, reshape_to_4d: bool = False) -> None:
+def _copy_param(
+    dest_module: nn.Module,
+    param_name: str,
+    src_tensor: torch.Tensor,
+    reshape_to_4d: bool = False,
+) -> None:
     param = getattr(dest_module, param_name)
     assert isinstance(param, torch.Tensor)
     if reshape_to_4d:
@@ -29,11 +34,15 @@ def _copy_param(dest_module: nn.Module, param_name: str, src_tensor: torch.Tenso
 def test_math_modules():
     # Sub
     sub = SubModule()
-    assert torch.allclose(sub([torch.tensor(5.0), torch.tensor(2.0)]), torch.tensor(3.0))
+    assert torch.allclose(
+        sub([torch.tensor(5.0), torch.tensor(2.0)]), torch.tensor(3.0)
+    )
 
     # Div
     div = DivModule()
-    assert torch.allclose(div([torch.tensor(6.0), torch.tensor(2.0)]), torch.tensor(3.0))
+    assert torch.allclose(
+        div([torch.tensor(6.0), torch.tensor(2.0)]), torch.tensor(3.0)
+    )
 
     # Sqrt
     sqrt = SqrtModule(eps=1e-5)
@@ -75,7 +84,6 @@ def test_math_modules():
     assert reshape_mod(t_reshape).shape == (2, 3, 2)
 
 
-
 def test_batchnorm_manually_built_graph():
     # Construct a manual Batch Norm 2D graph configuration!
     # Input -> Mean -> mean
@@ -86,12 +94,24 @@ def test_batchnorm_manually_built_graph():
     # x_norm -> ChannelScaleBias -> Output
     graph_dict = {
         "nodes": [
-            {"id": "mean", "type": "Mean", "params": {"dim": [0, 2, 3], "keepdim": True}},
+            {
+                "id": "mean",
+                "type": "Mean",
+                "params": {"dim": [0, 2, 3], "keepdim": True},
+            },
             {"id": "x_sub", "type": "Sub", "params": {}},
-            {"id": "var", "type": "Var", "params": {"dim": [0, 2, 3], "keepdim": True, "unbiased": False}},
+            {
+                "id": "var",
+                "type": "Var",
+                "params": {"dim": [0, 2, 3], "keepdim": True, "unbiased": False},
+            },
             {"id": "std", "type": "Sqrt", "params": {"eps": 1e-5}},
             {"id": "x_norm", "type": "Div", "params": {}},
-            {"id": "scale_bias", "type": "ChannelScaleBias", "params": {"num_features": 3}},
+            {
+                "id": "scale_bias",
+                "type": "ChannelScaleBias",
+                "params": {"num_features": 3},
+            },
         ],
         "edges": [
             {"source": "input", "target": "mean"},
@@ -103,11 +123,13 @@ def test_batchnorm_manually_built_graph():
             {"source": "std", "target": "x_norm"},
             {"source": "x_norm", "target": "scale_bias"},
             {"source": "scale_bias", "target": "output"},
-        ]
+        ],
     }
 
     compiler = GraphCompiler()
-    res = compiler.validate_pipeline(GraphConfig.model_validate(graph_dict), [2, 3, 4, 4])
+    res = compiler.validate_pipeline(
+        GraphConfig.model_validate(graph_dict), [2, 3, 4, 4]
+    )
     assert res["status"] == "success"
     assert res["node_shapes"]["output"] == [2, 3, 4, 4]
 
@@ -116,13 +138,18 @@ def test_batchnorm_manually_built_graph():
 
     # Instantiate PyTorch equivalent in training mode (biased var, eps=1e-5)
     import torch.nn as nn
+
     pt_bn = nn.BatchNorm2d(num_features=3, eps=1e-5)
     pt_bn.train()
 
     # Align/copy parameters
     with torch.no_grad():
-        _copy_param(block.operations["scale_bias"], "weight", pt_bn.weight, reshape_to_4d=True)
-        _copy_param(block.operations["scale_bias"], "bias", pt_bn.bias, reshape_to_4d=True)
+        _copy_param(
+            block.operations["scale_bias"], "weight", pt_bn.weight, reshape_to_4d=True
+        )
+        _copy_param(
+            block.operations["scale_bias"], "bias", pt_bn.bias, reshape_to_4d=True
+        )
 
     # Run forward pass and compare
     x = torch.randn(2, 3, 4, 4)
@@ -136,15 +163,31 @@ def test_attention_manually_built_graph():
     # Construct a manual attention graph configuration!
     graph_dict = {
         "nodes": [
-            {"id": "q_proj", "type": "Linear", "params": {"in_features": 8, "out_features": 8}},
-            {"id": "k_proj", "type": "Linear", "params": {"in_features": 8, "out_features": 8}},
-            {"id": "v_proj", "type": "Linear", "params": {"in_features": 8, "out_features": 8}},
+            {
+                "id": "q_proj",
+                "type": "Linear",
+                "params": {"in_features": 8, "out_features": 8},
+            },
+            {
+                "id": "k_proj",
+                "type": "Linear",
+                "params": {"in_features": 8, "out_features": 8},
+            },
+            {
+                "id": "v_proj",
+                "type": "Linear",
+                "params": {"in_features": 8, "out_features": 8},
+            },
             {"id": "k_trans", "type": "Permute", "params": {"dims": [0, 2, 1]}},
             {"id": "scores", "type": "MatMul", "params": {}},
             {"id": "scaled_scores", "type": "Scale", "params": {"value": 0.35355339}},
             {"id": "attn_weights", "type": "Softmax", "params": {"dim": -1}},
             {"id": "context", "type": "MatMul", "params": {}},
-            {"id": "out_proj", "type": "Linear", "params": {"in_features": 8, "out_features": 8}},
+            {
+                "id": "out_proj",
+                "type": "Linear",
+                "params": {"in_features": 8, "out_features": 8},
+            },
         ],
         "edges": [
             {"source": "input", "target": "q_proj"},
@@ -159,7 +202,7 @@ def test_attention_manually_built_graph():
             {"source": "v_proj", "target": "context"},
             {"source": "context", "target": "out_proj"},
             {"source": "out_proj", "target": "output"},
-        ]
+        ],
     }
 
     compiler = GraphCompiler()
@@ -172,6 +215,7 @@ def test_attention_manually_built_graph():
 
     # Reference PyTorch linear layers
     import torch.nn as nn
+
     q_proj = nn.Linear(8, 8)
     k_proj = nn.Linear(8, 8)
     v_proj = nn.Linear(8, 8)
@@ -210,18 +254,42 @@ def test_rnn_manually_built_graph():
             {"id": "slice_0", "type": "Slice", "params": {"dim": 1, "index": 0}},
             {"id": "slice_1", "type": "Slice", "params": {"dim": 1, "index": 1}},
             {"id": "slice_2", "type": "Slice", "params": {"dim": 1, "index": 2}},
-            {"id": "i2h_0", "type": "Linear", "params": {"in_features": 4, "out_features": 6}},
+            {
+                "id": "i2h_0",
+                "type": "Linear",
+                "params": {"in_features": 4, "out_features": 6},
+            },
             {"id": "h0", "type": "Tanh", "params": {}},
-            {"id": "i2h_1", "type": "Linear", "params": {"in_features": 4, "out_features": 6}},
-            {"id": "h2h_1", "type": "Linear", "params": {"in_features": 6, "out_features": 6}},
+            {
+                "id": "i2h_1",
+                "type": "Linear",
+                "params": {"in_features": 4, "out_features": 6},
+            },
+            {
+                "id": "h2h_1",
+                "type": "Linear",
+                "params": {"in_features": 6, "out_features": 6},
+            },
             {"id": "add_1", "type": "Add", "params": {}},
             {"id": "h1", "type": "Tanh", "params": {}},
-            {"id": "i2h_2", "type": "Linear", "params": {"in_features": 4, "out_features": 6}},
-            {"id": "h2h_2", "type": "Linear", "params": {"in_features": 6, "out_features": 6}},
+            {
+                "id": "i2h_2",
+                "type": "Linear",
+                "params": {"in_features": 4, "out_features": 6},
+            },
+            {
+                "id": "h2h_2",
+                "type": "Linear",
+                "params": {"in_features": 6, "out_features": 6},
+            },
             {"id": "add_2", "type": "Add", "params": {}},
             {"id": "h2", "type": "Tanh", "params": {}},
             {"id": "concat_h", "type": "Concat", "params": {"dim": 1}},
-            {"id": "reshape_out", "type": "Reshape", "params": {"target_shape": [-1, 3, 6]}},
+            {
+                "id": "reshape_out",
+                "type": "Reshape",
+                "params": {"target_shape": [-1, 3, 6]},
+            },
         ],
         "edges": [
             {"source": "input", "target": "slice_0"},
@@ -244,7 +312,7 @@ def test_rnn_manually_built_graph():
             {"source": "h2", "target": "concat_h"},
             {"source": "concat_h", "target": "reshape_out"},
             {"source": "reshape_out", "target": "output"},
-        ]
+        ],
     }
 
     compiler = GraphCompiler()
@@ -257,6 +325,7 @@ def test_rnn_manually_built_graph():
 
     # Reference PyTorch linear layers
     import torch.nn as nn
+
     i2h_0 = nn.Linear(4, 6)
     i2h_1 = nn.Linear(4, 6)
     i2h_2 = nn.Linear(4, 6)
@@ -296,6 +365,7 @@ def test_rnn_manually_built_graph():
 
 def test_manual_tanh_module():
     from compiler.modules import TanhModule
+
     t = TanhModule()
     x = torch.tensor([0.0, 1.0, -1.0], requires_grad=True)
     y = t(x)
@@ -311,6 +381,7 @@ def test_manual_tanh_module():
 
 def test_custom_autograd_module():
     from compiler.modules import CustomAutogradModule
+
     # Define a custom square function with 2x derivative
     forward_code = "def forward(x):\n    return x * x"
     backward_code = "def backward(x, y, grad_output):\n    return grad_output * 2.0 * x"
@@ -330,25 +401,27 @@ def test_linear_auto_flatten_conditions():
     from schemas import LinearNode, LinearParams
 
     # 3D sequence input that shouldn't be flattened because in_features == input.shape[-1]
-    node = LinearNode(id="fc", type="Linear", params=LinearParams(in_features=8, out_features=12))
+    node = LinearNode(
+        id="fc", type="Linear", params=LinearParams(in_features=8, out_features=12)
+    )
     block = WeaveBlock(
         exec_order=["input", "fc", "output"],
         node_map={"fc": node},
-        incoming_edges={"fc": ["input"], "output": ["fc"]}
+        incoming_edges={"fc": ["input"], "output": ["fc"]},
     )
     x = torch.randn(2, 5, 8)
     out = block(x)
     assert out.shape == (2, 5, 12)
 
     # 4D image input that SHOULD be flattened because in_features != input.shape[-1]
-    node_img = LinearNode(id="fc_img", type="Linear", params=LinearParams(in_features=48, out_features=10))
+    node_img = LinearNode(
+        id="fc_img", type="Linear", params=LinearParams(in_features=48, out_features=10)
+    )
     block_img = WeaveBlock(
         exec_order=["input", "fc_img", "output"],
         node_map={"fc_img": node_img},
-        incoming_edges={"fc_img": ["input"], "output": ["fc_img"]}
+        incoming_edges={"fc_img": ["input"], "output": ["fc_img"]},
     )
     x_img = torch.randn(2, 3, 4, 4)  # 3 * 4 * 4 = 48
     out_img = block_img(x_img)
     assert out_img.shape == (2, 10)
-
-

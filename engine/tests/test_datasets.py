@@ -54,9 +54,12 @@ def test_get_dataset_uses_registry_and_split(monkeypatch, tmp_path):
     )
 
     transform = T.Compose([])
-    dataset = cast(Any, dataset_factory.get_dataset(
-        "Dummy", str(tmp_path), transform=transform, split="test"
-    ))
+    dataset = cast(
+        Any,
+        dataset_factory.get_dataset(
+            "Dummy", str(tmp_path), transform=transform, split="test"
+        ),
+    )
 
     assert dataset.root == str(tmp_path)
     assert dataset.transform is transform
