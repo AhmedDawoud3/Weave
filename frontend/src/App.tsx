@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { SplashPage } from './pages/SplashPage';
+import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StudioPage } from './pages/StudioPage';
@@ -10,8 +10,8 @@ export default function App() {
     <div className="min-h-screen bg-[#070709] text-white overflow-hidden font-sans">
       <BrowserRouter>
         <Routes>
-          {/* Splash Screen */}
-          <Route path="/" element={<SplashPage />} />
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
           
           {/* Login Screen (Unauthenticated Only) */}
           <Route
@@ -19,6 +19,16 @@ export default function App() {
             element={
               <PublicRoute>
                 <LoginPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Signin/Register Screen (Unauthenticated Only) */}
+          <Route
+            path="/signin"
+            element={
+              <PublicRoute>
+                <LoginPage defaultIsRegister={true} />
               </PublicRoute>
             }
           />

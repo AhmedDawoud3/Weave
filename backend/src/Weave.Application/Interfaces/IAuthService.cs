@@ -9,4 +9,5 @@ public interface IAuthService
 {
     Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto, CancellationToken ct = default);
     Task<AuthResponseDto> LoginAsync(LoginRequestDto dto, CancellationToken ct = default);
+    Task<AuthResponseDto> ExternalLoginAsync(ExternalAuthDto dto, CancellationToken ct = default);
 }

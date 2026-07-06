@@ -153,8 +153,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
       const isEditing = activeEl && (
-        activeEl.tagName === 'INPUT' || 
-        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
         activeEl.getAttribute('contenteditable') === 'true'
       );
       if (isEditing) return;
@@ -262,21 +262,19 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           <div className="flex bg-black/40 border border-primary/10 rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
             <button
               onClick={() => setActiveTab('canvas')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
-                activeTab === 'canvas'
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'canvas'
                   ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
                   : 'text-muted-foreground hover:text-white'
-              }`}
+                }`}
             >
               Model Canvas
             </button>
             <button
               onClick={() => setActiveTab('dataset')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
-                activeTab === 'dataset'
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'dataset'
                   ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
                   : 'text-muted-foreground hover:text-white'
-              }`}
+                }`}
             >
               Dataset Workspace
             </button>
@@ -386,13 +384,12 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           <Button
             variant="ghost"
             onClick={() => validatePipeline()}
-            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 ${
-              validationStatus === 'success' 
-                ? 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10' 
+            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 ${validationStatus === 'success'
+                ? 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                 : validationStatus === 'error'
                   ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
                   : 'border-primary/15 text-muted-foreground hover:bg-primary/10'
-            }`}
+              }`}
           >
             <RefreshCw size={14} className={`mr-1.5 ${validationStatus === 'idle' ? 'animate-spin' : ''}`} />
             {validationStatus === 'success' ? 'GRAPH VALIDATED' : validationStatus === 'error' ? 'COMPILE ERROR' : 'VALIDATING...'}
@@ -485,7 +482,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
                   nodeTypes={nodeTypes}
                   edgeTypes={edgeTypes}
-                  defaultEdgeOptions={{ 
+                  defaultEdgeOptions={{
                     type: 'weave',
                     markerEnd: {
                       type: MarkerType.ArrowClosed,
@@ -498,8 +495,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                 >
                   <Background color="#1a1a1f" gap={20} />
                   <Controls className="bg-[#0e0e11]/80 border border-primary/10 rounded-xl overflow-hidden [&>button]:border-primary/5 [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-primary/20 [&>svg]:fill-white" />
-                  <MiniMap 
-                    className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]" 
+                  <MiniMap
+                    className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]"
                     nodeColor="#1a1a24"
                     maskColor="rgba(0, 0, 0, 0.4)"
                     nodeStrokeColor="#40d3b6"
@@ -548,7 +545,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             >
               <h2 className="text-xl font-black mb-1 text-white uppercase">New Graph variant</h2>
               <p className="text-xs text-muted-foreground mb-4">Initialize a new subgraph revision/variant for model mapping.</p>
-              
+
               <form onSubmit={handleCreateSubGraph} className="space-y-4">
                 <input
                   type="text"
@@ -558,7 +555,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   required
                   className="w-full h-11 bg-background/50 border border-primary/10 p-3 text-sm rounded-xl outline-none focus:border-primary text-white"
                 />
-                
+
                 <div className="flex gap-3 pt-2">
                   <Button
                     type="button"
@@ -584,7 +581,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       {/* FLOATING COMMAND PALETTE */}
       <AnimatePresence>
         {showSearchPalette && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/45 backdrop-blur-xs flex items-center justify-center z-50 select-none"
             onClick={() => setShowSearchPalette(false)}
           >
@@ -609,7 +606,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     if (e.key === 'Escape') {
                       setShowSearchPalette(false);
                     } else if (e.key === 'Enter') {
-                      const filtered = ALL_LAYER_TYPES.filter(type => 
+                      const filtered = ALL_LAYER_TYPES.filter(type =>
                         type.toLowerCase().includes(searchQuery.toLowerCase())
                       );
                       if (filtered.length > 0) {
@@ -622,7 +619,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
               {/* Filtered list of layers */}
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {ALL_LAYER_TYPES.filter(type => 
+                {ALL_LAYER_TYPES.filter(type =>
                   type.toLowerCase().includes(searchQuery.toLowerCase())
                 ).map((type) => (
                   <button
@@ -639,13 +636,13 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     </span>
                   </button>
                 ))}
-                {ALL_LAYER_TYPES.filter(type => 
+                {ALL_LAYER_TYPES.filter(type =>
                   type.toLowerCase().includes(searchQuery.toLowerCase())
                 ).length === 0 && (
-                  <div className="p-6 text-center text-xs text-muted-foreground italic">
-                    No matching layers found.
-                  </div>
-                )}
+                    <div className="p-6 text-center text-xs text-muted-foreground italic">
+                      No matching layers found.
+                    </div>
+                  )}
               </div>
             </motion.div>
           </div>
