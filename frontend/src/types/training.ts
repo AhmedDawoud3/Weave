@@ -19,6 +19,10 @@ export interface StepMetricsEvent {
     [key: string]: any;
   };
   loss?: number; // fallback
+  elapsed_time?: number;
+  eta_seconds?: number;
+  steps_per_sec?: number;
+  total_steps?: number;
 }
 
 export interface EpochMetricsEvent {

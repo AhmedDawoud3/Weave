@@ -957,6 +957,10 @@ class StepMetricsMessage(BaseModel):
     epoch: int
     step: int
     metrics: dict
+    elapsed_time: float | None = None
+    eta_seconds: float | None = None
+    steps_per_sec: float | None = None
+    total_steps: int | None = None
 
 
 class EpochMetricsMessage(BaseModel):
@@ -1007,6 +1011,11 @@ class TrainingStatusResponse(BaseModel):
     current_epoch: int | None = None
     total_epochs: int | None = None
     latest_metrics: dict | None = None
+    elapsed_time: float | None = None
+    eta_seconds: float | None = None
+    steps_per_sec: float | None = None
+    current_step: int | None = None
+    total_steps: int | None = None
 
 
 # --- Metrics -----------------------------------------------------------------

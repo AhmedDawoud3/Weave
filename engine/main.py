@@ -1083,12 +1083,36 @@ def get_training_status(run_id: str):
     if status_val not in ["running", "paused", "completed", "failed", "stopped"]:
         status_val = "failed"
 
+    # Calculate dynamic progress metrics if the run is active
+    elapsed_time = getattr(trainer, "elapsed_time", None)
+    eta_seconds = getattr(trainer, "eta_seconds", None)
+    steps_per_sec = getattr(trainer, "steps_per_sec", None)
+    current_step = getattr(trainer, "current_step", None)
+    total_steps = getattr(trainer, "total_steps", None)
+
+    # Fallback to compute dynamically if start_time is set but values aren't populated yet
+    if (
+        status_val in ["running", "paused"]
+        and trainer.start_time is not None
+        and (elapsed_time is None or elapsed_time == 0)
+    ):
+        elapsed_time = time.time() - trainer.start_time
+        if current_step is not None and current_step > 0 and elapsed_time > 0:
+            steps_per_sec = current_step / elapsed_time
+            if steps_per_sec > 0 and total_steps is not None:
+                eta_seconds = (total_steps - current_step) / steps_per_sec
+
     return TrainingStatusResponse(
         run_id=run_id,
         status=status_val,  # type: ignore
         current_epoch=trainer.current_epoch,
         total_epochs=trainer.total_epochs,
         latest_metrics=trainer.latest_metrics,
+        elapsed_time=elapsed_time,
+        eta_seconds=eta_seconds,
+        steps_per_sec=steps_per_sec,
+        current_step=current_step,
+        total_steps=total_steps,
     )
 
 

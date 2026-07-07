@@ -18,6 +18,11 @@ interface TrainingState {
   suggestedLossAlternatives: string[];
   lrPreview: number[];
   sseConnectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
+  elapsedTime: number | null;
+  etaSeconds: number | null;
+  stepsPerSec: number | null;
+  currentStep: number | null;
+  totalSteps: number | null;
 
   // Actions
   startTraining: (config: any) => Promise<void>;
@@ -47,6 +52,11 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   suggestedLossAlternatives: [],
   lrPreview: [],
   sseConnectionState: 'disconnected',
+  elapsedTime: null,
+  etaSeconds: null,
+  stepsPerSec: null,
+  currentStep: null,
+  totalSteps: null,
 
   startTraining: async (config) => {
     set({
@@ -54,7 +64,12 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       trainingStatus: 'running',
       epochMetrics: [],
       stepMetrics: [],
-      trainingLogs: ['Compiling architecture & starting run...']
+      trainingLogs: ['Compiling architecture & starting run...'],
+      elapsedTime: null,
+      etaSeconds: null,
+      stepsPerSec: null,
+      currentStep: null,
+      totalSteps: null
     });
 
     const weaveState = useWeaveStore.getState();
@@ -332,7 +347,12 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       suggestedLoss: null,
       suggestedLossAlternatives: [],
       lrPreview: [],
-      sseConnectionState: 'disconnected'
+      sseConnectionState: 'disconnected',
+      elapsedTime: null,
+      etaSeconds: null,
+      stepsPerSec: null,
+      currentStep: null,
+      totalSteps: null
     });
   },
 
@@ -346,17 +366,16 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   },
 
   addStepMetric: (event) => {
-    const metrics = event.metrics || {};
-    const loss = metrics.train_loss ?? metrics.loss ?? event.loss;
-    const lossVal = loss !== undefined && loss !== null ? loss.toFixed(4) : 'N/A';
     set((state) => {
       const nextSteps = [...state.stepMetrics, event];
       if (nextSteps.length > 500) nextSteps.shift();
-      const logs = [...state.trainingLogs, `[Step ${event.step}] Loss: ${lossVal}`];
-      if (logs.length > 1000) logs.shift();
       return {
         stepMetrics: nextSteps,
-        trainingLogs: logs
+        elapsedTime: event.elapsed_time ?? null,
+        etaSeconds: event.eta_seconds ?? null,
+        stepsPerSec: event.steps_per_sec ?? null,
+        totalSteps: event.total_steps ?? null,
+        currentStep: event.step ?? null
       };
     });
   },

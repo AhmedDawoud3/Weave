@@ -256,6 +256,14 @@ class Trainer:
             else:
                 task_type = "classification"
 
+            # Progress tracking metrics
+            steps_per_epoch = len(self.train_loader)
+            self.total_steps = steps_per_epoch * self.settings.epochs
+            self.current_step = 0
+            self.steps_per_sec = 0.0
+            self.elapsed_time = 0.0
+            self.eta_seconds = None
+
             # Mixed Precision Setup
             scaler = torch.amp.GradScaler(
                 "cuda",
@@ -354,6 +362,16 @@ class Trainer:
                                 self.scheduler.step()
 
                     global_step += 1
+                    self.current_step = global_step
+
+                    if self.start_time is not None:
+                        self.elapsed_time = time.time() - self.start_time
+                        if self.elapsed_time > 0:
+                            self.steps_per_sec = self.current_step / self.elapsed_time
+                            self.eta_seconds = (self.total_steps - self.current_step) / self.steps_per_sec
+                        else:
+                            self.steps_per_sec = 0.0
+                            self.eta_seconds = None
 
                     # Compute step metrics
                     batch_size = inputs.size(0)
@@ -384,6 +402,10 @@ class Trainer:
                             "epoch": epoch,
                             "step": global_step,
                             "metrics": step_metrics,
+                            "elapsed_time": self.elapsed_time,
+                            "eta_seconds": self.eta_seconds,
+                            "steps_per_sec": self.steps_per_sec,
+                            "total_steps": self.total_steps,
                         }
                         self._push_event(step_msg)
 
