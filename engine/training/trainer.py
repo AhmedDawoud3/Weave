@@ -308,8 +308,8 @@ class Trainer:
                     if self.is_stopped:
                         break
 
-                    inputs = inputs.to(self.device)
-                    targets = targets.to(self.device)
+                    inputs = inputs.to(self.device, non_blocking=True)
+                    targets = targets.to(self.device, non_blocking=True)
 
                     # Mixed precision forward pass
                     with torch.amp.autocast(
@@ -357,7 +357,7 @@ class Trainer:
 
                     # Compute step metrics
                     batch_size = inputs.size(0)
-                    batch_loss = loss.detach().cpu().item()
+                    batch_loss = loss.item()
                     batch_metrics = compute_batch_metrics(
                         outputs, targets, batch_loss, task_type
                     )
@@ -377,17 +377,15 @@ class Trainer:
                     }
 
                     # Push step event
-                    step_msg = {
-                        "type": "step_metrics",
-                        "run_id": self.run_id,
-                        "epoch": epoch,
-                        "step": global_step,
-                        "metrics": step_metrics,
-                    }
-                    self._push_event(step_msg)
-
-                    # Yield CPU control to avoid event loop starvation (GIL yielding)
-                    time.sleep(0.001)
+                    if global_step % 20 == 0 or (batch_idx == len(self.train_loader) - 1):
+                        step_msg = {
+                            "type": "step_metrics",
+                            "run_id": self.run_id,
+                            "epoch": epoch,
+                            "step": global_step,
+                            "metrics": step_metrics,
+                        }
+                        self._push_event(step_msg)
 
                 if self.is_stopped:
                     break

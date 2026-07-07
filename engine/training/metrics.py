@@ -25,32 +25,28 @@ def compute_batch_metrics(
     Returns:
         Dict[str, float]: Batch-level metrics.
     """
-    outputs_detached = outputs.detach().cpu()
-    targets_detached = targets.detach().cpu()
-
     metrics = {"loss": float(loss_val)}
 
-    if task_type == "classification":
-        preds = outputs_detached.argmax(dim=1)
-        acc = (preds == targets_detached).float().mean().item() * 100.0
-        metrics["accuracy"] = float(acc)
-    elif task_type == "multi_label":
-        # Check if outputs are logits or probabilities
-        is_logit = torch.any(outputs_detached < 0.0) or torch.any(
-            outputs_detached > 1.0
-        )
-        preds = (
-            (outputs_detached > 0.0).float()
-            if is_logit
-            else (outputs_detached > 0.5).float()
-        )
-        acc = (preds == targets_detached.float()).float().mean().item() * 100.0
-        metrics["accuracy"] = float(acc)
-    elif task_type == "regression":
-        mse = torch.mean((outputs_detached - targets_detached) ** 2).item()
-        mae = torch.mean(torch.abs(outputs_detached - targets_detached)).item()
-        metrics["mse"] = float(mse)
-        metrics["mae"] = float(mae)
+    with torch.no_grad():
+        if task_type == "classification":
+            preds = outputs.argmax(dim=1)
+            acc = (preds == targets).float().mean().item() * 100.0
+            metrics["accuracy"] = float(acc)
+        elif task_type == "multi_label":
+            # Check if outputs are logits or probabilities
+            is_logit = torch.any(outputs < 0.0) or torch.any(outputs > 1.0)
+            preds = (
+                (outputs > 0.0).float()
+                if is_logit
+                else (outputs > 0.5).float()
+            )
+            acc = (preds == targets.float()).float().mean().item() * 100.0
+            metrics["accuracy"] = float(acc)
+        elif task_type == "regression":
+            mse = torch.mean((outputs - targets) ** 2).item()
+            mae = torch.mean(torch.abs(outputs - targets)).item()
+            metrics["mse"] = float(mse)
+            metrics["mae"] = float(mae)
 
     return metrics
 

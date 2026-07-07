@@ -338,19 +338,27 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
 
   // Event Dispatchers called by the SSE client hook
   addLog: (log) => {
-    set((state) => ({
-      trainingLogs: [...state.trainingLogs, log]
-    }));
+    set((state) => {
+      const logs = [...state.trainingLogs, log];
+      if (logs.length > 1000) logs.shift();
+      return { trainingLogs: logs };
+    });
   },
 
   addStepMetric: (event) => {
     const metrics = event.metrics || {};
     const loss = metrics.train_loss ?? metrics.loss ?? event.loss;
     const lossVal = loss !== undefined && loss !== null ? loss.toFixed(4) : 'N/A';
-    set((state) => ({
-      stepMetrics: [...state.stepMetrics, event],
-      trainingLogs: [...state.trainingLogs, `[Step ${event.step}] Loss: ${lossVal}`]
-    }));
+    set((state) => {
+      const nextSteps = [...state.stepMetrics, event];
+      if (nextSteps.length > 500) nextSteps.shift();
+      const logs = [...state.trainingLogs, `[Step ${event.step}] Loss: ${lossVal}`];
+      if (logs.length > 1000) logs.shift();
+      return {
+        stepMetrics: nextSteps,
+        trainingLogs: logs
+      };
+    });
   },
 
   addEpochMetric: (event) => {
@@ -368,32 +376,44 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     }
     const accStr = displayAcc !== undefined && displayAcc !== null ? `, Acc: ${displayAcc.toFixed(2)}%` : '';
 
-    set((state) => ({
-      epochMetrics: [...state.epochMetrics, event],
-      trainingLogs: [
+    set((state) => {
+      const logs = [
         ...state.trainingLogs,
         `=== Epoch ${event.epoch} Complete === ${lossStr}${accStr}`
-      ]
-    }));
+      ];
+      if (logs.length > 1000) logs.shift();
+      return {
+        epochMetrics: [...state.epochMetrics, event],
+        trainingLogs: logs
+      };
+    });
   },
 
   completeTraining: (bestEpoch, bestValLoss) => {
-    set((state) => ({
-      isTraining: false,
-      trainingStatus: 'completed',
-      trainingLogs: [
+    set((state) => {
+      const logs = [
         ...state.trainingLogs,
         `🎉 Training completed successfully! Best Epoch: ${bestEpoch}, Best Val Loss: ${bestValLoss.toFixed(4)}`
-      ]
-    }));
+      ];
+      if (logs.length > 1000) logs.shift();
+      return {
+        isTraining: false,
+        trainingStatus: 'completed',
+        trainingLogs: logs
+      };
+    });
   },
 
   failTraining: (error) => {
-    set((state) => ({
-      isTraining: false,
-      trainingStatus: 'failed',
-      trainingLogs: [...state.trainingLogs, `❌ Training aborted: ${error}`]
-    }));
+    set((state) => {
+      const logs = [...state.trainingLogs, `❌ Training aborted: ${error}`];
+      if (logs.length > 1000) logs.shift();
+      return {
+        isTraining: false,
+        trainingStatus: 'failed',
+        trainingLogs: logs
+      };
+    });
   },
 
   setConnectionState: (state) => {

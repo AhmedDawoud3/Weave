@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { LayerNode } from "@/components/LayerNode";
+import { useWeaveStore } from "@/store/useWeaveStore";
 
 // Mock reactflow Handle and Position since they are DOM-drawing primitives
 vi.mock("reactflow", () => ({
@@ -29,7 +30,26 @@ describe("LayerNode", () => {
 
   it("displays the output shape badge when provided", () => {
     render(<LayerNodeAny id="test-2" data={baseData} />);
-    expect(screen.getByText("[1, 16, 32, 32]")).toBeInTheDocument();
+    expect(screen.getByText("1×16×32×32")).toBeInTheDocument();
+  });
+
+  it("hides the output shape badge when connected (has outgoing edges)", () => {
+    act(() => {
+      // Inject edges into the store to simulate a connected node
+      useWeaveStore.setState({
+        edges: [
+          { id: "e1", source: "test-connected", target: "other-node" }
+        ]
+      });
+    });
+
+    render(<LayerNodeAny id="test-connected" data={baseData} />);
+    expect(screen.queryByText("1×16×32×32")).not.toBeInTheDocument();
+
+    act(() => {
+      // Reset store state
+      useWeaveStore.setState({ edges: [] });
+    });
   });
 
   it("does not render shape badge if not provided", () => {

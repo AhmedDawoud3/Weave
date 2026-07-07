@@ -83,6 +83,10 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const isInputNode  = data.type === 'InputNode';
   const isOutputNode = data.type === 'OutputNode';
 
+  const isOutputConnected = isOutputNode
+    ? incomingEdgesCount > 0
+    : edges.some(e => e.source === id);
+
   // Hover / expansion state
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -91,14 +95,31 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const nodeRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (dragging) {
       if (enterTimer.current) clearTimeout(enterTimer.current);
       if (leaveTimer.current) clearTimeout(leaveTimer.current);
       setIsHovered(false);
-      setIsExpanded(false);
     }
   }, [dragging]);
+
+  useEffect(() => {
+    if (!nodeRef.current) return;
+    const wrapper = nodeRef.current.closest('.react-flow__node');
+    if (wrapper) {
+      if (dragging) {
+        (wrapper as HTMLElement).style.zIndex = '';
+      } else if (isHovered) {
+        (wrapper as HTMLElement).style.zIndex = '1010';
+      } else if (isExpanded) {
+        (wrapper as HTMLElement).style.zIndex = '1000';
+      } else {
+        (wrapper as HTMLElement).style.zIndex = '';
+      }
+    }
+  }, [isHovered, isExpanded, dragging]);
 
   const onMouseEnter = useCallback(() => {
     if (dragging) return;
@@ -301,6 +322,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
 
   return (
     <div
+      ref={nodeRef}
       className="relative group select-none"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -373,14 +395,16 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
           </div>
 
           {/* Output Shape Badge */}
-          {shape ? (
-            <div className="text-[7.5px] font-mono text-[#2DD4BF] mt-0.5 font-semibold">
-              {shape.join('×')}
-            </div>
-          ) : (
-            <div className="text-[7px] text-muted-foreground/40 mt-0.5 font-mono">
-              no shape
-            </div>
+          {!isOutputConnected && (
+            shape ? (
+              <div className="text-[7.5px] font-mono text-[#2DD4BF] mt-0.5 font-semibold">
+                {shape.join('×')}
+              </div>
+            ) : (
+              <div className="text-[7px] text-muted-foreground/40 mt-0.5 font-mono">
+                no shape
+              </div>
+            )
           )}
         </div>
 
