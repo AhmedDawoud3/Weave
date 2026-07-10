@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from 'reactflow';
+import { type EdgeProps, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { useWeaveStore } from '../store/useWeaveStore';
 

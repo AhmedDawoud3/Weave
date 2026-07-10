@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Node, Edge, Connection, addEdge, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from 'reactflow';
+import { type Node, type Edge, type Connection, addEdge, applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } from '@xyflow/react';
 import { api } from '../services/api';
 import { Project, SubGraph, NodeData, LayerType, LayerParams, DatasetConfig, TransformConfig, DataLoaderConfig } from '../types';
 
@@ -754,7 +754,7 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
 
     onNodesChange: (changes) => {
       set((state) => ({
-        nodes: applyNodeChanges(changes, state.nodes)
+        nodes: applyNodeChanges(changes, state.nodes as any) as Node<NodeData>[]
       }));
       get().saveActiveSubGraph();
     },

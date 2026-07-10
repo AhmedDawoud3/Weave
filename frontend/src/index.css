@@ -1,25 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/figtree";
-@import "@fontsource-variable/geist";
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Geist:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
-/* إعدادات الصفحة الأساسية لضمان الخلفية الغامقة */
+/* Basic page settings for dark default */
 html, body, #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   background-color: var(--background);
-  color: oklch(0.985 0 0);
+  color: #F1F5F9;
   color-scheme: dark;
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Geist', 'Geist Variable', 'Figtree', sans-serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Mono Variable', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -66,7 +66,7 @@ html, body, #root {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* إجبار الثيم على الدارك مود وتعريف المتغيرات الأساسية للمشروع */
+/* Enforcing Weave Dark Theme */
 :root {
   /* Weave Brand Colors */
   --weave-violet: #6C3CE1;
@@ -76,87 +76,55 @@ html, body, #root {
   --weave-teal: #2DD4BF;
   --weave-amber: #F97316;
 
-  /* Default theme values (mapped to cyberpunk style) */
-  --background: #070709;
-  --foreground: oklch(0.985 0 0);
+  /* Theme color mapping (Weave Dark Theme) */
+  --background: #0F1117;
+  --foreground: #F1F5F9;
 
-  /* خلي الكارت شفاف شوية عشان تأثير الـ Glassmorphism */
-  --card: rgba(15, 17, 23, 0.65); 
-  --card-foreground: oklch(0.985 0 0);
-  
-  /* اللون البنفسجي الأساسي (الـ Primary) */
-  --primary: var(--weave-violet); 
-  --primary-foreground: oklch(100% 0 0);
+  --card: rgba(20, 22, 30, 0.65);
+  --card-foreground: #F1F5F9;
 
-  /* اللون الثانوي (الـ Secondary) */
-  --secondary: var(--weave-blue);
-  --secondary-foreground: var(--weave-slate);
+  --popover: #131622;
+  --popover-foreground: #F1F5F9;
 
-  /* اللون التنبيهي المساعد (الـ Accent) */
-  --accent: var(--weave-teal);
-  --accent-foreground: oklch(100% 0 0);
-
-  /* الحدود والمدخلات */
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.08);
-  
-  --radius: 0.75rem; /* كبرنا الـ Radius شوية لشكل ألطف */
-
-  /* ألوان السايد بار */
-  --sidebar: #0f111a;
-  --sidebar-border: rgba(255, 255, 255, 0.05);
-}
-
-/* 1. Cyberpunk Neon Theme (Default) */
-[data-theme='cyberpunk'] {
-  --background: #070709;
-  --foreground: oklch(0.985 0 0);
-  --card: rgba(15, 17, 23, 0.65);
-  --border: rgba(255, 255, 255, 0.1);
+  /* Primary (Weave Violet) */
   --primary: var(--weave-violet);
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary (Weave Blue) */
   --secondary: var(--weave-blue);
+  --secondary-foreground: #0D0F1A;
+
+  /* Accent (Weave Teal) */
   --accent: var(--weave-teal);
-  --sidebar: #0f111a;
-  --sidebar-border: rgba(255, 255, 255, 0.05);
-}
+  --accent-foreground: #FFFFFF;
 
-/* 2. Weave Dark Theme */
-[data-theme='weave-dark'] {
-  --background: #0d0f1a;
-  --foreground: oklch(0.98 0 0);
-  --card: #131625;
+  /* Warning / Amber */
+  --warning: var(--weave-amber);
+
+  /* Muted text and backgrounds */
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: #94A3B8;
+
+  /* Borders & Inputs */
   --border: rgba(255, 255, 255, 0.08);
-  --primary: #6366f1;
-  --secondary: #3b82f6;
-  --accent: #10b981;
-  --sidebar: #0a0b12;
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: var(--weave-violet);
+
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar: #0B0C12;
   --sidebar-border: rgba(255, 255, 255, 0.04);
-}
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: var(--weave-violet);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(255, 255, 255, 0.04);
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-ring: var(--weave-violet);
 
-/* 3. Midnight Slate Theme */
-[data-theme='midnight-slate'] {
-  --background: #090a0f;
-  --foreground: oklch(0.97 0 0);
-  --card: #111218;
-  --border: rgba(255, 255, 255, 0.07);
-  --primary: #6b7280;
-  --secondary: #374151;
-  --accent: #f59e0b;
-  --sidebar: #050608;
-  --sidebar-border: rgba(255, 255, 255, 0.03);
-}
-
-/* 4. Dracula Theme */
-[data-theme='dracula'] {
-  --background: #282a36;
-  --foreground: #f8f8f2;
-  --card: #1e1f29;
-  --border: rgba(248, 248, 242, 0.1);
-  --primary: #bd93f9;
-  --secondary: #ff79c6;
-  --accent: #50fa7b;
-  --sidebar: #21222c;
-  --sidebar-border: rgba(248, 248, 242, 0.05);
+  /* Destructive */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
 }
 
 @layer base {
@@ -171,30 +139,24 @@ html, body, #root {
   }
 }
 
-/* تحسين شكل الـ React Flow Grid عشان يظهر زي الاستوديو الحقيقي */
+/* React Flow background styling */
 .react-flow__background {
   background-color: var(--background) !important;
 }
 
-.react-flow__edge-path {
-  stroke: oklch(0.922 0 0 / 30%);
-  stroke-width: 2;
-}
-
-/* تحسين شكل الخطوط الواصلة بين الـ Layers لتستخدم التيل المضيء */
+/* React Flow connection lines using brand teal */
 .react-flow__edge-path {
   stroke: var(--weave-teal) !important;
   stroke-opacity: 0.7;
   stroke-width: 2.5;
 }
 
-/* تخلي النقط في الخلفية واضحة بس مش مزعجة */
+/* Make grid pattern visible but subtle */
 .react-flow__background pattern circle {
-  fill: oklch(1 0 0 / 8%) !important;
+  fill: rgba(255, 255, 255, 0.06) !important;
 }
 
-
-/* تأثير احترافي للأزرار الجانبية */
+/* Professional sidebar button style */
 .sidebar-button {
   @apply flex items-center justify-start px-4 py-2 rounded-md 
          bg-secondary/40 border border-primary/10 
@@ -202,9 +164,15 @@ html, body, #root {
          hover:bg-primary/20 hover:border-primary/40 hover:translate-x-1;
 }
 
-/* تحسين شكل الـ Scrollbar عشان يليق مع الدارك مود */
+/* Monospace text custom styling for code */
+.code-block {
+  font-family: var(--font-mono);
+}
+
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--background);
@@ -215,6 +183,16 @@ html, body, #root {
   opacity: 0.5;
 }
 
+/* Utility to hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Connection line data-flow animation */
 @keyframes flow-animation {
   from {
     stroke-dashoffset: 24;
@@ -227,4 +205,25 @@ html, body, #root {
 .animate-flow-path {
   stroke-dasharray: 8, 4;
   animation: flow-animation var(--flow-speed, 1.5s) linear infinite;
+}
+
+/* Skeleton loader shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
 }

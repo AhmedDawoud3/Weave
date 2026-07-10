@@ -1,70 +1,96 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LandingPage } from './pages/LandingPage';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { StudioPage } from './pages/StudioPage';
-import { PrivacyPage } from './pages/PrivacyPage';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import { ThemeProvider } from './context/ThemeContext';
+import { Toaster } from './components/ui/toaster';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load page chunks for bundle optimization & code splitting
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const StudioPage = lazy(() => import('./pages/StudioPage').then(m => ({ default: m.StudioPage })));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+
+function PageLoader() {
+  return (
+    <div className="h-screen w-full bg-background flex flex-col items-center justify-center select-none">
+      <Loader2 className="animate-spin text-primary mb-4" size={32} />
+    </div>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* Privacy Policy Page */}
+        <Route path="/privacy" element={<PrivacyPage />} />
+        
+        {/* Login Screen (Unauthenticated Only) */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Signin/Register Screen (Unauthenticated Only) */}
+        <Route
+          path="/signin"
+          element={
+            <PublicRoute>
+              <LoginPage defaultIsRegister={true} />
+            </PublicRoute>
+          }
+        />
+        
+        {/* Dashboard (Protected) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Studio (Protected) */}
+        <Route
+          path="/project/:id"
+          element={
+            <ProtectedRoute>
+              <StudioPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Catch-all Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
 
 export default function App() {
   return (
     <ThemeProvider>
+      <Toaster />
       <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
         <BrowserRouter>
-          <Routes>
-          {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* Privacy Policy Page */}
-          <Route path="/privacy" element={<PrivacyPage />} />
-          
-          {/* Login Screen (Unauthenticated Only) */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-
-          {/* Signin/Register Screen (Unauthenticated Only) */}
-          <Route
-            path="/signin"
-            element={
-              <PublicRoute>
-                <LoginPage defaultIsRegister={true} />
-              </PublicRoute>
-            }
-          />
-          
-          {/* Dashboard (Protected) */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Studio (Protected) */}
-          <Route
-            path="/project/:id"
-            element={
-              <ProtectedRoute>
-                <StudioPage />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Catch-all Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </div>
+          <Suspense fallback={<PageLoader />}>
+            <AnimatedRoutes />
+          </Suspense>
+        </BrowserRouter>
+      </div>
     </ThemeProvider>
   );
 }
-

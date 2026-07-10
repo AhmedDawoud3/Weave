@@ -1,17 +1,19 @@
 import { useState, useCallback, useEffect, DragEvent } from 'react';
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   Controls,
   MiniMap,
-  ReactFlowInstance,
-  Connection,
+  type ReactFlowInstance,
+  type Connection,
   MarkerType,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Terminal, Code2, RefreshCw, Plus, Search, Loader2 } from 'lucide-react';
+import { Terminal, Code2, RefreshCw, Plus, Search, Loader2, Sliders, HelpCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { toast } from '../components/ui/toaster';
 import { LayerPalette } from '../components/LayerPalette';
 import { DatasetWorkspace } from '../components/DatasetWorkspace';
 
@@ -23,8 +25,8 @@ import { useWeaveStore } from '../store/useWeaveStore';
 import { useTrainingStore } from '../store/useTrainingStore';
 import { LayerType } from '../types';
 
-const nodeTypes = { layer: LayerNode };
-const edgeTypes = { weave: WeaveEdge };
+const nodeTypes = { layer: LayerNode as any };
+const edgeTypes = { weave: WeaveEdge as any };
 
 const ALL_LAYER_TYPES: LayerType[] = [
   'InputNode', 'OutputNode',
@@ -85,7 +87,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           await selectProjectById(id);
         } catch (err: any) {
           console.error("Failed to load project:", err);
-          alert(err.message || "Project not found or you don't have access. Redirecting to dashboard.");
+          toast.error(err.message || "Project not found or access denied.");
           navigate('/dashboard');
         } finally {
           setIsInitialLoading(false);
@@ -141,8 +143,6 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       setShapeInput(activeInputShape.join(', '));
     }
   };
-
-
 
   // Handle adding node from the command palette
   const handleAddNodeFromPalette = useCallback((type: LayerType) => {
@@ -200,7 +200,6 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     }
   }, [enterSubGraph]);
 
-
   const onConnect = useCallback((connection: Connection) => {
     connectEdges(connection);
   }, [connectEdges]);
@@ -212,7 +211,6 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
     addNode(type, position);
   }, [reactFlowInstance, addNode]);
-
 
   const handleAddInputNode = useCallback(() => {
     const inCount = nodes.filter(n => n.data?.type === 'InputNode').length;
@@ -234,11 +232,11 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
   if (isInitialLoading) {
     return (
-      <div className="h-screen w-full bg-[#070709] flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(30,143,211,0.05),transparent_60%)]" />
+      <div className="h-screen w-full bg-background flex flex-col items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.05),transparent_60%)]" />
         <div className="flex flex-col items-center relative z-10">
-          <Loader2 className="animate-spin text-[#40d3b6] mb-4" size={48} />
-          <h3 className="text-lg font-black uppercase tracking-widest text-white">Loading Workspace</h3>
+          <Loader2 className="animate-spin text-primary mb-4" size={48} />
+          <h3 className="text-base font-black uppercase tracking-widest text-white">Loading Workspace</h3>
           <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Synchronizing graph and dependencies...</p>
         </div>
       </div>
@@ -250,24 +248,38 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       key="main"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="dark w-full h-screen bg-[#070709] text-white flex flex-col overflow-hidden relative"
+      className="dark w-full h-screen bg-background text-white flex flex-col overflow-hidden relative font-sans"
     >
+      {/* Mobile Blocking Overlay */}
+      <div className="md:hidden fixed inset-0 z-[2000] bg-background flex flex-col items-center justify-center p-8 text-center select-none">
+        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 text-primary shadow-glow animate-pulse">
+          <Sliders size={28} />
+        </div>
+        <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">Desktop View Required</h3>
+        <p className="text-xs text-muted-foreground max-w-xs leading-relaxed mb-6">
+          The Neural Design Studio requires a larger viewport to visually build, parameter-tune, and trace model architectures. Please access this page on a desktop browser.
+        </p>
+        <Button onClick={handleNavigateDashboard} className="bg-primary text-primary-foreground font-black px-6 h-11 rounded-xl">
+          Return to Dashboard
+        </Button>
+      </div>
+
       {/* Studio Header Toolbar */}
-      <div className="h-16 border-b border-primary/10 bg-card/15 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-35">
+      <div className="h-16 border-b border-border bg-card/40 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-35">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
-            <span className="text-[9px] text-[#40d3b6] font-black uppercase tracking-widest">Active Workspace</span>
-            <span className="text-sm font-black text-white uppercase truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
+            <span className="text-[10px] text-primary font-black uppercase tracking-widest">Active Workspace</span>
+            <span className="text-xs font-black text-white uppercase truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
           </div>
 
-          <div className="h-8 w-px bg-primary/10" />
+          <div className="h-8 w-px bg-border" />
 
           {/* Workspace Switcher */}
-          <div className="flex bg-black/40 border border-primary/10 rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
+          <div className="flex bg-black/40 border border-border rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
             <button
               onClick={() => setActiveTab('canvas')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'canvas'
-                  ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'canvas'
+                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
                   : 'text-muted-foreground hover:text-white'
                 }`}
             >
@@ -275,8 +287,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             </button>
             <button
               onClick={() => setActiveTab('dataset')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'dataset'
-                  ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(64,211,182,0.1)]'
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'dataset'
+                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
                   : 'text-muted-foreground hover:text-white'
                 }`}
             >
@@ -284,14 +296,14 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             </button>
           </div>
 
-          <div className="h-8 w-px bg-primary/10" />
+          <div className="h-8 w-px bg-border" />
 
           {/* SubGraph Selector or Breadcrumbs Navigation */}
           {navigationStack.length > 0 ? (
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <button
                 onClick={() => exitSubGraph(-1)}
-                className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold"
+                className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold cursor-pointer"
               >
                 Root
               </button>
@@ -302,7 +314,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     <span>/</span>
                     <button
                       onClick={() => exitSubGraph(index)}
-                      className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold max-w-[100px] truncate"
+                      className="hover:text-primary transition-all uppercase tracking-wide hover:underline font-extrabold max-w-[100px] truncate cursor-pointer"
                       title={sub.name}
                     >
                       {sub.name}
@@ -325,10 +337,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     const sub = activeSubGraphs.find(s => s.id === e.target.value);
                     if (sub) selectSubGraph(sub);
                   }}
-                  className="bg-primary/5 border border-primary/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-primary transition-all uppercase font-bold"
+                  className="bg-primary/5 border border-border rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-primary transition-all uppercase font-bold cursor-pointer"
                 >
                   {activeSubGraphs.map(s => (
-                    <option key={s.id} value={s.id} className="bg-[#0e0e11]">{s.name}</option>
+                    <option key={s.id} value={s.id} className="bg-card">{s.name}</option>
                   ))}
                 </select>
               ) : (
@@ -339,7 +351,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSubGraphPrompt(true)}
-                className="hover:bg-primary/15 hover:text-[#40d3b6] text-muted-foreground rounded-xl"
+                className="hover:bg-primary/15 hover:text-primary rounded-xl h-8 w-8 cursor-pointer"
                 title="Create New SubGraph"
               >
                 <Plus size={16} />
@@ -355,56 +367,56 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             className="flex items-center select-none nodrag cursor-help relative group px-1"
             title={isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
           >
-            <span className={`w-2 h-2 rounded-full ${isKernelConnected ? 'bg-[#40d3b6] animate-pulse shadow-[0_0_8px_#40d3b6]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-            <span className="absolute top-7 left-1/2 -translate-x-1/2 bg-[#0c0d14] border border-white/5 text-[8.5px] font-black uppercase text-white rounded px-2 py-0.5 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            <span className={`w-2.5 h-2.5 rounded-full ${isKernelConnected ? 'bg-weave-teal animate-pulse shadow-[0_0_8px_#2dd4bf]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+            <span className="absolute top-7 left-1/2 -translate-x-1/2 bg-card border border-border text-[9px] font-black uppercase text-white rounded-lg px-2 py-0.5 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
               {isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
             </span>
           </div>
 
-          <div className="h-6 w-px bg-primary/10" />
+          <div className="h-6 w-px bg-border" />
 
           {/* Autosave status indicator */}
           <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground select-none">
             <span className={`w-2 h-2 rounded-full ${isSavingGraph ? 'bg-yellow-400 animate-pulse' : 'bg-primary'}`} />
-            <span>{isSavingGraph ? 'Autosaving...' : 'Saved to Cloud'}</span>
+            <span>{isSavingGraph ? 'Saving...' : 'Saved'}</span>
           </div>
 
-          <div className="h-6 w-px bg-primary/10" />
+          <div className="h-6 w-px bg-border" />
 
           {/* Input Shape Editor */}
-          <div className="flex items-center gap-2 bg-primary/5 border border-primary/10 rounded-xl px-2.5 py-1.5 h-10 select-none">
-            <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider">Shape:</span>
+          <div className="flex items-center gap-2 bg-background border border-border rounded-xl px-2.5 py-1.5 h-10 select-none">
+            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Shape:</span>
             <input
               type="text"
               value={shapeInput}
               onChange={(e) => setShapeInput(e.target.value)}
               onBlur={handleShapeSubmit}
               onKeyDown={(e) => { if (e.key === 'Enter') handleShapeSubmit(); }}
-              className="bg-transparent text-xs font-mono font-bold text-[#40d3b6] focus:outline-none w-28 text-center"
+              className="bg-transparent text-xs font-mono font-bold text-primary focus:outline-none w-28 text-center"
               placeholder="e.g. 32, 3, 224, 224"
             />
           </div>
 
-          <div className="h-6 w-px bg-primary/10" />
+          <div className="h-6 w-px bg-border" />
 
           {/* Compile check manually triggers pipeline shape checker */}
           <Button
             variant="ghost"
             onClick={() => validatePipeline()}
-            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 ${validationStatus === 'success'
+            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 cursor-pointer ${validationStatus === 'success'
                 ? 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                 : validationStatus === 'error'
                   ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                  : 'border-primary/15 text-muted-foreground hover:bg-primary/10'
+                  : 'border-border text-muted-foreground hover:bg-white/5'
               }`}
           >
             <RefreshCw size={14} className={`mr-1.5 ${validationStatus === 'idle' ? 'animate-spin' : ''}`} />
-            {validationStatus === 'success' ? 'GRAPH VALIDATED' : validationStatus === 'error' ? 'COMPILE ERROR' : 'VALIDATING...'}
+            {validationStatus === 'success' ? 'VALID' : validationStatus === 'error' ? 'ERROR' : 'VALIDATING...'}
           </Button>
 
           <Button
             onClick={() => setShowExportModal(true)}
-            className="bg-primary/10 border border-primary/20 hover:bg-primary text-white hover:text-black font-extrabold text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5"
+            className="bg-primary hover:brightness-110 text-primary-foreground font-black text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-glow"
           >
             <Code2 size={16} /> EXPORT
           </Button>
@@ -415,27 +427,27 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             }}
             className={`${
               isTraining
-                ? 'bg-[#1e8fd3]/25 border-[#1e8fd3]/50 ring-1 ring-[#1e8fd3]/30'
-                : 'bg-[#1e8fd3]/10 border-[#1e8fd3]/25'
-            } border hover:bg-[#1e8fd3] text-white hover:text-black font-extrabold text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5`}
+                ? 'bg-primary/20 border-primary/50 text-white ring-1 ring-primary/30'
+                : 'bg-primary/10 border-primary/20 text-primary'
+            } border hover:bg-primary hover:text-primary-foreground font-black text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer`}
           >
             {isTraining ? (
               <span className="relative flex h-2.5 w-2.5 mr-0.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#40d3b6] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#40d3b6]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-weave-teal opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-weave-teal" />
               </span>
             ) : (
               <Terminal size={16} />
             )}
-            {isTraining ? 'TRAINING ACTIVE' : 'TRAINING CONSOLE'}
+            {isTraining ? 'ACTIVE' : 'TRAIN'}
           </Button>
 
           <Button
             variant="ghost"
             onClick={handleNavigateDashboard}
-            className="border border-primary/5 hover:bg-primary/15 text-muted-foreground hover:text-white rounded-xl h-10 px-4 transition-all"
+            className="border border-border hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl h-10 px-4 transition-all cursor-pointer"
           >
-            EXIT STUDIO
+            EXIT
           </Button>
         </div>
       </div>
@@ -447,7 +459,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             <LayerPalette onNavigateDashboard={handleNavigateDashboard} />
 
             {/* Canvas Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-[#070709] relative">
+            <div className="flex-1 flex flex-col min-w-0 bg-background relative">
 
               <div className="flex-1 relative min-h-0 min-w-0">
                 {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
@@ -457,7 +469,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
                       <Button
                         onClick={handleAddInputNode}
-                        className="bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg border border-emerald-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg border border-emerald-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200 cursor-pointer"
                       >
                         <Plus size={14} strokeWidth={3} />
                         ADD INPUT NODE
@@ -468,7 +480,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
                       <Button
                         onClick={handleAddOutputNode}
-                        className="bg-amber-600/90 hover:bg-amber-500 text-white rounded-full font-bold shadow-lg border border-amber-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200"
+                        className="bg-amber-600 hover:bg-amber-500 text-white rounded-full font-bold shadow-lg border border-amber-400/20 px-4 py-2 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 duration-200 cursor-pointer"
                       >
                         <Plus size={14} strokeWidth={3} />
                         ADD OUTPUT NODE
@@ -479,11 +491,21 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
                 {/* validation Warning float */}
                 {validationStatus === 'error' && validationMessage && (
-                  <div className="absolute left-6 top-6 max-w-sm bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-xl z-20 flex items-start gap-2.5 text-xs text-red-400 select-text">
+                  <div className="absolute left-6 top-6 max-w-sm bg-red-500/10 border border-red-500/25 p-4 rounded-xl shadow-xl z-20 flex items-start gap-2.5 text-xs text-red-400 select-text leading-relaxed">
                     <span className="shrink-0 mt-0.5">⚠️</span>
-                    <p className="leading-relaxed font-semibold">{validationMessage}</p>
+                    <p className="font-semibold">{validationMessage}</p>
                   </div>
                 )}
+
+                {/* Keyboard Shortcuts Hint */}
+                <div className="absolute bottom-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg text-[10px] text-muted-foreground flex flex-col gap-1.5 select-none pointer-events-none">
+                  <div className="flex items-center gap-2 font-bold text-white uppercase tracking-wider mb-0.5">
+                    <HelpCircle size={12} className="text-primary animate-pulse" /> Shortcuts
+                  </div>
+                  <div className="flex justify-between gap-4"><span>Spawn Node:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">Space</kbd></div>
+                  <div className="flex justify-between gap-4"><span>Focus Search:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">/</kbd></div>
+                  <div className="flex justify-between gap-4"><span>Delete Layer:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">Backspace</kbd></div>
+                </div>
 
                 <ReactFlow
                   nodes={nodes}
@@ -504,20 +526,20 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     type: 'weave',
                     markerEnd: {
                       type: MarkerType.ArrowClosed,
-                      color: '#40d3b6',
+                      color: 'var(--primary)',
                     }
                   }}
                   snapToGrid={true}
                   snapGrid={[15, 15]}
                   fitView
                 >
-                  <Background color="#1a1a1f" gap={20} />
-                  <Controls className="bg-[#0e0e11]/80 border border-primary/10 rounded-xl overflow-hidden [&>button]:border-primary/5 [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-primary/20 [&>svg]:fill-white" />
+                  <Background color="var(--border)" gap={20} size={1} />
+                  <Controls className="bg-card border border-border rounded-xl overflow-hidden [&>button]:border-border [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-white/5 [&>svg]:fill-white" />
                   <MiniMap
-                    className="!bg-[#0e0e11]/90 border border-primary/10 rounded-xl overflow-hidden shadow-2xl !bottom-24 !left-6 !w-[150px] !h-[100px]"
+                    className="!bg-card border border-border rounded-xl overflow-hidden shadow-2xl !bottom-4 !left-4 !w-[150px] !h-[100px]"
                     nodeColor="#1a1a24"
                     maskColor="rgba(0, 0, 0, 0.4)"
-                    nodeStrokeColor="#40d3b6"
+                    nodeStrokeColor="var(--primary)"
                     nodeBorderRadius={4}
                   />
                 </ReactFlow>
@@ -559,7 +581,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-[400px] bg-card/85 backdrop-blur-2xl border border-primary/20 p-6 rounded-2xl shadow-2xl relative"
+              className="w-full max-w-[400px] bg-card border border-border p-6 rounded-2xl shadow-2xl relative"
             >
               <h2 className="text-xl font-black mb-1 text-white uppercase">New Graph variant</h2>
               <p className="text-xs text-muted-foreground mb-4">Initialize a new subgraph revision/variant for model mapping.</p>
@@ -571,7 +593,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   value={newSubGraphName}
                   onChange={(e) => setNewSubGraphName(e.target.value)}
                   required
-                  className="w-full h-11 bg-background/50 border border-primary/10 p-3 text-sm rounded-xl outline-none focus:border-primary text-white"
+                  className="w-full h-11 bg-background border border-border p-3 text-sm rounded-xl outline-none focus:border-primary text-white"
                 />
 
                 <div className="flex gap-3 pt-2">
@@ -579,13 +601,13 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     type="button"
                     variant="outline"
                     onClick={() => setShowSubGraphPrompt(false)}
-                    className="flex-1 h-11 border-primary/10 rounded-xl"
+                    className="flex-1 h-11 border-border rounded-xl cursor-pointer"
                   >
                     CANCEL
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-11 bg-gradient-to-r from-primary to-[#1e8fd3] text-black font-extrabold uppercase rounded-xl transition-all"
+                    className="flex-1 h-11 bg-primary text-primary-foreground font-extrabold uppercase rounded-xl transition-all cursor-pointer"
                   >
                     CREATE
                   </Button>
@@ -608,10 +630,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[480px] bg-[#0c0c0e]/95 backdrop-blur-2xl border border-primary/20 rounded-2xl shadow-[0_0_50px_rgba(64,211,182,0.08)] overflow-hidden flex flex-col max-h-[380px]"
+              className="w-full max-w-[480px] bg-card border border-border rounded-2xl shadow-glow overflow-hidden flex flex-col max-h-[380px]"
             >
               {/* Search input header */}
-              <div className="p-4 border-b border-primary/10 flex items-center gap-3">
+              <div className="p-4 border-b border-border flex items-center gap-3">
                 <Search className="text-primary/60 shrink-0 animate-pulse" size={18} />
                 <input
                   type="text"
@@ -643,13 +665,13 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   <button
                     key={type}
                     onClick={() => handleAddNodeFromPalette(type)}
-                    className="w-full p-2.5 hover:bg-primary/10 rounded-xl transition-all text-left text-xs font-bold text-white/85 hover:text-white uppercase flex items-center justify-between group"
+                    className="w-full p-2.5 hover:bg-primary/10 rounded-xl transition-all text-left text-xs font-bold text-white/85 hover:text-white uppercase flex items-center justify-between group cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
                       <span>{type}</span>
                     </div>
-                    <span className="text-[9px] text-muted-foreground/60 group-hover:text-primary transition-all font-black tracking-widest">
+                    <span className="text-[10px] text-muted-foreground/60 group-hover:text-primary transition-all font-black tracking-widest">
                       INSERT LAYER
                     </span>
                   </button>

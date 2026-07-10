@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Handle, Position, type NodeProps, useUpdateNodeInternals } from 'reactflow';
-import { Network, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Handle, Position, type NodeProps, type Node, useUpdateNodeInternals } from '@xyflow/react';
+import { Network, ChevronDown, ChevronUp, Trash2, ShieldAlert } from 'lucide-react';
 import type { NodeData } from '../types';
 import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
 
@@ -61,7 +61,92 @@ const FULL_FIELDS: Partial<Record<string, FieldDef[]>> = {
   Slice:            [{ label: 'Dim', key: 'dim', type: 'number' }, { label: 'Index', key: 'index', type: 'number' }],
 };
 
-export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> & { selected?: boolean }) {
+const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput: boolean, isError: boolean, selected: boolean) => {
+  if (isError) {
+    return {
+      topBar: 'bg-red-500',
+      text: 'text-red-400',
+      border: selected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-red-500/30 hover:border-red-500/50',
+      badge: 'bg-red-500/10 text-red-400 border-red-500/20',
+      handle: '!bg-red-500',
+      icon: 'text-red-400',
+    };
+  }
+  if (isInput) {
+    return {
+      topBar: 'bg-emerald-500',
+      text: 'text-emerald-400',
+      border: selected ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-emerald-500/20 hover:border-emerald-500/40',
+      badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      handle: '!bg-emerald-500',
+      icon: 'text-emerald-400',
+    };
+  }
+  if (isOutput) {
+    return {
+      topBar: 'bg-amber-500',
+      text: 'text-amber-400',
+      border: selected ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'border-amber-500/20 hover:border-amber-500/40',
+      badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      handle: '!bg-amber-500',
+      icon: 'text-amber-400',
+    };
+  }
+  if (isBlock) {
+    return {
+      topBar: 'bg-indigo-500',
+      text: 'text-indigo-400',
+      border: selected ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.35)]' : 'border-indigo-500/30 hover:border-indigo-500/50',
+      badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      handle: '!bg-indigo-500',
+      icon: 'text-indigo-400',
+    };
+  }
+  
+  let color = 'blue';
+  if (['Add','Concat','Multiply'].includes(type)) color = 'yellow';
+  else if (['BatchNorm2d','LayerNorm','GroupNorm'].includes(type)) color = 'teal';
+  else if (['ReLU','GELU','Sigmoid','Tanh','Softmax'].includes(type)) color = 'emerald';
+
+  const colorMap: Record<string, any> = {
+    blue: {
+      topBar: 'bg-weave-blue',
+      text: 'text-weave-blue',
+      border: selected ? 'border-weave-blue shadow-[0_0_15px_rgba(26,188,254,0.3)]' : 'border-border hover:border-weave-blue/40',
+      badge: 'bg-weave-blue/10 text-weave-blue border-weave-blue/20',
+      handle: '!bg-weave-blue',
+      icon: 'text-weave-blue',
+    },
+    yellow: {
+      topBar: 'bg-yellow-500',
+      text: 'text-yellow-400',
+      border: selected ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-border hover:border-yellow-500/40',
+      badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+      handle: '!bg-yellow-500',
+      icon: 'text-yellow-400',
+    },
+    teal: {
+      topBar: 'bg-weave-teal',
+      text: 'text-weave-teal',
+      border: selected ? 'border-weave-teal shadow-[0_0_15px_rgba(45,212,191,0.3)]' : 'border-border hover:border-weave-teal/40',
+      badge: 'bg-weave-teal/10 text-weave-teal border-weave-teal/20',
+      handle: '!bg-weave-teal',
+      icon: 'text-weave-teal',
+    },
+    emerald: {
+      topBar: 'bg-emerald-500',
+      text: 'text-emerald-400',
+      border: selected ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-border hover:border-emerald-500/40',
+      badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      handle: '!bg-emerald-500',
+      icon: 'text-emerald-400',
+    }
+  };
+
+  return colorMap[color];
+};
+
+export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeData>> & { selected?: boolean }) {
   const shape = data.outputShape;
   const isError = !!data.error;
 
@@ -87,21 +172,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     ? incomingEdgesCount > 0
     : edges.some(e => e.source === id);
 
-  // Hover / expansion state
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState<string>(data.label ?? '');
-  const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const leaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (dragging) {
-      if (enterTimer.current) clearTimeout(enterTimer.current);
-      if (leaveTimer.current) clearTimeout(leaveTimer.current);
       setIsHovered(false);
+      setIsExpanded(false);
     }
   }, [dragging]);
 
@@ -111,28 +192,13 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     if (wrapper) {
       if (dragging) {
         (wrapper as HTMLElement).style.zIndex = '';
-      } else if (isHovered) {
-        (wrapper as HTMLElement).style.zIndex = '1010';
-      } else if (isExpanded) {
+      } else if (isHovered || isExpanded) {
         (wrapper as HTMLElement).style.zIndex = '1000';
       } else {
         (wrapper as HTMLElement).style.zIndex = '';
       }
     }
   }, [isHovered, isExpanded, dragging]);
-
-  const onMouseEnter = useCallback(() => {
-    if (dragging) return;
-    if (leaveTimer.current) clearTimeout(leaveTimer.current);
-    enterTimer.current = setTimeout(() => setIsHovered(true), 350);
-  }, [dragging]);
-
-  const onMouseLeave = useCallback(() => {
-    if (enterTimer.current) clearTimeout(enterTimer.current);
-    leaveTimer.current = setTimeout(() => {
-      if (!isExpanded) setIsHovered(false);
-    }, 200);
-  }, [isExpanded]);
 
   const commitLabel = () => {
     if (labelDraft.trim()) updateNodeLabel(id, labelDraft.trim());
@@ -188,38 +254,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     updateNodeInternals(id);
   }, [id, targetCount, rankKey, updateNodeInternals]);
 
-  // Color themes
-  let typeColor  = 'text-purple-400/90';
-  let borderCls  = selected ? 'border-primary shadow-[0_0_15px_rgba(108,60,225,0.35)]' : 'border-white/10 hover:border-white/20';
-  let handleCls  = '!bg-primary';
-  let bgCls      = 'bg-[#0f111a]';
-
-  if (isInputNode) {
-    typeColor = 'text-emerald-400';
-    borderCls = selected ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)]' : 'border-emerald-500/20 hover:border-emerald-500/40';
-    handleCls = '!bg-emerald-500';
-    bgCls     = 'bg-[#0d1411]';
-  } else if (isOutputNode) {
-    typeColor = 'text-amber-400';
-    borderCls = selected ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.25)]' : 'border-amber-500/20 hover:border-amber-500/40';
-    handleCls = '!bg-amber-500';
-    bgCls     = 'bg-[#14100d]';
-  } else if (isBlock) {
-    typeColor = 'text-indigo-400';
-    borderCls = selected ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'border-indigo-500/30 hover:border-indigo-500/50';
-    handleCls = '!bg-indigo-500';
-    bgCls     = 'bg-[#11121d]';
-  } else {
-    if      (['Add','Concat','Multiply'].includes(data.type))                              typeColor = 'text-yellow-400/90';
-    else if (['BatchNorm2d','LayerNorm','GroupNorm'].includes(data.type))                  typeColor = 'text-teal-400/90';
-    else if (['Linear','Flatten','Reshape','Permute','Dropout','Dropout2d'].includes(data.type)) typeColor = 'text-blue-400/90';
-    else if (['ReLU','GELU','Sigmoid','Tanh','Softmax'].includes(data.type))               typeColor = 'text-emerald-400/90';
-  }
-
-  if (isError) {
-    borderCls = 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
-    bgCls     = 'bg-[#1a0c0c]';
-  }
+  // Fetch colors based on themes
+  const theme = getNodeTheme(data.type, isBlock, isInputNode, isOutputNode, isError, !!selected);
 
   // Key parameter compact summary
   const keyParamDefs = KEY_PARAMS[data.type] || [];
@@ -243,20 +279,20 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     const inducedVal = getInducedValue(f.key);
     const isInduced = inducedVal !== null;
     const raw = isInduced ? inducedVal : data.params?.[f.key];
-    const inputCls = `nodrag w-full bg-background border rounded-md px-2 py-1 text-[10px] focus:outline-none transition-colors ${
+    const inputCls = `nodrag w-full bg-background border rounded-lg px-2 py-1 text-xs focus:outline-none transition-colors ${
       isInduced 
         ? 'opacity-65 cursor-not-allowed border-primary/30 text-primary font-bold font-mono' 
-        : 'border-white/5 text-white focus:border-primary/50'
+        : 'border-border text-white focus:border-primary/50'
     }`;
 
     if (f.type === 'boolean') {
       return (
-        <div key={f.key} className="flex items-center justify-between py-1">
-          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
+        <div key={f.key} className="flex items-center justify-between py-1 bg-white/[0.01] px-1.5 rounded-md">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
           <button
             type="button"
-            className={`nodrag text-[9px] px-2 py-0.5 rounded font-bold border transition-all cursor-pointer ${
-              raw !== false ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-neutral-400'
+            className={`nodrag text-[10px] px-2.5 py-0.5 rounded font-bold border transition-all cursor-pointer ${
+              raw !== false ? 'bg-primary/20 border-primary/45 text-primary shadow-[0_0_8px_rgba(108,60,225,0.15)]' : 'bg-white/5 border-border text-neutral-400 hover:bg-white/10'
             }`}
             onClick={(e) => { e.stopPropagation(); handleParamChange(f.key, raw !== false ? false : true); }}
           >
@@ -269,8 +305,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     if (f.type === 'json') {
       const display = Array.isArray(raw) ? raw.join(', ') : (raw ?? '');
       return (
-        <div key={f.key} className="space-y-0.5 py-1">
-          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
+        <div key={f.key} className="space-y-1 py-1">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
           <input
             className={inputCls}
             defaultValue={display}
@@ -290,11 +326,11 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
     }
 
     return (
-      <div key={f.key} className="space-y-0.5 py-1">
+      <div key={f.key} className="space-y-1 py-1">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-[#64748b] font-bold uppercase">{f.label}</span>
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
           {isInduced && (
-            <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-[#2DD4BF] bg-[#2DD4BF]/10 px-1 py-0.2 rounded border border-[#2DD4BF]/20">
+            <span className="text-[8px] font-extrabold uppercase tracking-wider text-weave-teal bg-weave-teal/10 px-1 py-0.5 rounded border border-weave-teal/20">
               🔒 Induced
             </span>
           )}
@@ -316,16 +352,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
   };
 
   const fullFields = FULL_FIELDS[data.type] || [];
-  const baseW = isBlock ? 'w-44' : 'w-36';
-  const expandedW = 'w-52';
-  const cardW = isExpanded ? expandedW : baseW;
+  const baseW = isBlock ? 'w-[100px]' : 'w-[80px]';
+  const hoveredW = isBlock ? 'w-[130px]' : 'w-[110px]';
+  const expandedW = 'w-[190px]';
+  const cardW = isExpanded ? expandedW : isHovered ? hoveredW : baseW;
 
   return (
     <div
       ref={nodeRef}
-      className="relative group select-none"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      className="relative select-none group"
+      onMouseEnter={() => { if (!dragging) setIsHovered(true); }}
+      onMouseLeave={() => { setIsHovered(false); setIsExpanded(false); }}
     >
       {/* Target Handles (Inputs) */}
       {Array.from({ length: targetCount }).map((_, i) => {
@@ -338,46 +375,43 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
             position={Position.Top}
             id={`input_${i}`}
             style={targetCount > 1 ? { left: `${leftPercent}%` } : undefined}
-            className={`w-2 h-2 ${handleCls} border border-[#070709] !z-50 rounded-full`}
+            className={`!w-2.5 !h-2.5 ${theme.handle} border-2 border-background !z-50 rounded-full hover:scale-125 transition-transform`}
           />
         );
       })}
 
-      {/* Delete Badge */}
-      <button
-        onClick={(e) => { e.stopPropagation(); removeNode(id); }}
-        className="absolute -top-2 -right-2 w-4.5 h-4.5 rounded-full bg-[#1c0c0c] border border-red-500/30 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity z-50 cursor-pointer shadow-md select-none"
-        title="Delete Layer"
-      >
-        ✕
-      </button>
-
-      {/* Expandable Node Content Area */}
-      <div className={`backdrop-blur-md border ${bgCls} ${borderCls} ${cardW} rounded-lg shadow-xl overflow-hidden transition-all duration-200`}>
+      {/* Node Container Card */}
+      <div className={`bg-card/90 backdrop-blur-md border ${theme.border} ${cardW} rounded-lg shadow-xl overflow-hidden transition-all duration-200 relative pt-1`}>
         
-        {/* Error Flag */}
-        {isError && (
-          <div className="absolute right-2 top-1 text-red-500 text-[8px] animate-pulse" title={data.error || 'Layer Error'}>
-            ⚠️
-          </div>
-        )}
+        {/* Colorful top strip */}
+        <div className={`h-1.5 w-full absolute top-0 left-0 ${theme.topBar}`} />
 
-        {/* Resting Content Row */}
-        <div className="py-2 px-3 text-center flex flex-col items-center justify-center">
-          {/* Node Type Header */}
-          <div className={`text-[7px] font-black ${typeColor} tracking-wider uppercase mb-0.5`}>
+        {/* Delete Button (Visible on Hover) */}
+        <button
+          onClick={(e) => { e.stopPropagation(); removeNode(id); }}
+          className="absolute top-1.5 right-1.5 p-0.5 text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-all opacity-0 group-hover:opacity-100 z-30 cursor-pointer select-none"
+          title="Delete Layer"
+        >
+          <Trash2 size={11} />
+        </button>
+
+        {/* Node Body */}
+        <div className="py-2 px-2.5 flex flex-col items-center justify-center text-center">
+          
+          {/* Node Type Tag */}
+          <span className={`text-[8.5px] font-extrabold tracking-wider ${theme.text} uppercase`}>
             {data.type}
-          </div>
+          </span>
 
-          {/* Node Label (Editable directly on click) */}
-          <div className="flex items-center justify-center gap-1 w-full">
-            {isBlock && <Network size={8} className="text-indigo-400 shrink-0" />}
+          {/* Node Label (Inline Click-to-Edit) */}
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            {isBlock && <Network size={10} className="text-indigo-400 shrink-0" />}
             
             {editingLabel ? (
-              <div className="flex gap-1 items-center nodrag">
+              <div className="flex gap-1 items-center nodrag w-full">
                 <input
                   autoFocus
-                  className="w-20 bg-background border border-white/10 rounded px-1 text-[9px] text-white focus:outline-none"
+                  className="w-full bg-background border border-border rounded px-1.5 py-0.5 text-xs text-white text-center focus:outline-none focus:border-primary/50"
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
                   onBlur={commitLabel}
@@ -387,64 +421,74 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
             ) : (
               <span
                 onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
-                className="text-[10px] font-bold text-white uppercase truncate max-w-[100px] cursor-pointer hover:underline"
+                className={`text-[10px] font-bold text-white uppercase truncate cursor-pointer hover:underline ${
+                  isHovered || isExpanded ? 'max-w-[100px]' : 'max-w-[60px]'
+                }`}
               >
-                {data.label}
+                {data.label || data.type}
               </span>
             )}
           </div>
 
-          {/* Output Shape Badge */}
-          {!isOutputConnected && (
+          {/* Output Shape Badge — visible on hover or expanded */}
+          {(isHovered || isExpanded) && !isOutputConnected && (
             shape ? (
-              <div className="text-[7.5px] font-mono text-[#2DD4BF] mt-0.5 font-semibold">
-                {shape.join('×')}
+              <div className="text-[8px] font-mono text-weave-teal font-semibold mt-1 bg-weave-teal/5 px-1 py-0 border border-weave-teal/10 rounded">
+                {shape.join(' × ')}
               </div>
             ) : (
-              <div className="text-[7px] text-muted-foreground/40 mt-0.5 font-mono">
-                no shape
+              <div className="text-[8px] text-muted-foreground/30 mt-1 font-mono select-none">
+                no dimensions
               </div>
             )
           )}
+
+          {/* Error Message Flag */}
+          {isError && (
+            <div className="flex items-center gap-1 mt-2 text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/25 py-0.5 px-2 rounded-full animate-pulse max-w-full">
+              <ShieldAlert size={11} className="shrink-0" />
+              <span className="truncate" title={data.error || 'Configuration error'}>{data.error}</span>
+            </div>
+          )}
         </div>
 
-        {/* Expanded Parameters Panel (Visible on Hover/Expand) */}
-        {(isHovered || isExpanded) && !isInputNode && !isOutputNode && (
-          <div className="border-t border-white/5 px-3 pb-2 pt-1.5 bg-black/10 select-none">
+        {/* Configurations & Connections Drawer — visible on hover or expanded */}
+        {!isInputNode && !isOutputNode && (isHovered || isExpanded) && (
+          <div className="border-t border-border bg-black/15 select-none">
             
-            {/* Key stats summary line */}
+            {/* Short compact parameter summary */}
             {keyParamLine && !isExpanded && (
-              <div className="text-[8px] text-neutral-300 font-mono tracking-tight text-center leading-tight py-1 select-none">
+              <div className="text-[8px] text-muted-foreground/80 font-mono tracking-tight text-center leading-tight py-1 select-none border-b border-border/5">
                 {keyParamLine}
               </div>
             )}
 
-            {/* Complete field configurations */}
+            {/* Complete parameters editing block */}
             {isExpanded && (
-              <div className="space-y-1 mt-1 text-left">
+              <div className="p-3.5 space-y-1.5 text-left border-b border-border/5">
                 {fullFields.map(renderField)}
                 {fullFields.length === 0 && (
-                  <p className="text-[8px] text-neutral-500 italic text-center py-1">No configurations</p>
+                  <p className="text-[10px] text-muted-foreground italic text-center py-2">No configuration inputs</p>
                 )}
 
-                {/* Connections list */}
+                {/* Internal Connections list */}
                 {incomingEdges.length > 0 && (
-                  <div className="space-y-1 border-t border-white/5 pt-2 mt-2 select-none">
-                    <span className="text-[7.5px] text-[#64748b] font-black uppercase tracking-wider block mb-1">Incoming Links</span>
-                    <div className="space-y-1">
+                  <div className="space-y-1.5 border-t border-border pt-3 mt-3 select-none">
+                    <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider block mb-1">Incoming Links</span>
+                    <div className="space-y-1.5">
                       {incomingEdges.map((edge) => {
                         const sourceNode = allNodes.find(n => n.id === edge.source);
                         const handleNum = edge.targetHandle ? edge.targetHandle.split('_')[1] : '0';
                         const handleLabel = targetCount > 1 ? `Port ${Number(handleNum) + 1}` : 'Port';
                         return (
-                          <div key={edge.id} className="flex items-center justify-between bg-background border border-white/5 rounded px-1.5 py-0.5 text-[8px] font-mono gap-1">
-                            <span className="text-primary text-[7.5px] font-black">{handleLabel}:</span>
-                            <span className="text-white/60 truncate max-w-[80px] flex-1">{sourceNode?.data?.label || edge.source}</span>
+                          <div key={edge.id} className="flex items-center justify-between bg-background border border-border rounded-lg px-2 py-1 text-[10px] font-mono gap-1.5">
+                            <span className="text-primary font-black">{handleLabel}:</span>
+                            <span className="text-white/60 truncate flex-1">{sourceNode?.data?.label || edge.source}</span>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removeEdge(edge.id); }}
-                              className="nodrag w-3.5 h-3.5 rounded bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors cursor-pointer text-[7px] font-bold"
-                              title="Disconnect"
+                              className="nodrag p-1 rounded bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors cursor-pointer text-[8px] font-bold"
+                              title="Disconnect Link"
                             >
                               ✕
                             </button>
@@ -457,24 +501,24 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
               </div>
             )}
 
-            {/* Expand toggle chevron button */}
+            {/* Toggle Drawer Chevron Button */}
             <button
               type="button"
-              className="nodrag w-full flex items-center justify-center gap-0.5 text-[8px] text-muted-foreground hover:text-white transition-colors py-1 mt-1 cursor-pointer border-t border-white/5"
-              onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); if (isExpanded) setIsHovered(true); }}
+              className="nodrag w-full flex items-center justify-center gap-1 text-[8.5px] text-muted-foreground hover:text-white transition-colors py-1 cursor-pointer focus:outline-none"
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); }}
             >
               {isExpanded ? (
-                <><ChevronUp size={10} /><span>Collapse</span></>
+                <><ChevronUp size={12} /><span>COLLAPSE</span></>
               ) : (
-                <><ChevronDown size={10} /><span>Edit Params</span></>
+                <><ChevronDown size={12} /><span>EDIT PARAMETERS</span></>
               )}
             </button>
           </div>
         )}
 
-        {/* Double-click nested block help text */}
+        {/* Double-click nested block help tag */}
         {isBlock && !isExpanded && (
-          <div className="text-[5.5px] text-indigo-400/40 uppercase tracking-wider text-center pb-1 font-bold">
+          <div className="text-[6px] text-indigo-400/40 uppercase tracking-widest text-center pb-1.5 font-black">
             2× Click Inside
           </div>
         )}
@@ -488,7 +532,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<NodeData> 
           position={Position.Bottom}
           id={`output_${i}`}
           style={sourceCount > 1 ? { left: `${((i + 1) * 100) / (sourceCount + 1)}%` } : undefined}
-          className={`w-2 h-2 ${handleCls} border border-[#070709] !z-50 rounded-full`}
+          className={`!w-2.5 !h-2.5 ${theme.handle} border-2 border-background !z-50 rounded-full hover:scale-125 transition-transform`}
         />
       ))}
     </div>

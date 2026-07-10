@@ -86,7 +86,7 @@ export function InferencePanel() {
       {/* Input Config Panel */}
       <div className="space-y-4 text-left overflow-y-auto pr-2">
         <h3 className="text-xs text-primary font-black uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Sparkles size={13} className="text-[#40d3b6]" /> Predict Input Parameters
+          <Sparkles size={13} className="text-primary" /> Predict Input Parameters
         </h3>
 
         <div className="space-y-1.5 flex flex-col">
@@ -95,7 +95,7 @@ export function InferencePanel() {
             type="text"
             value={checkpointPath}
             onChange={(e) => setCheckpointPath(e.target.value)}
-            className="bg-background/40 border-primary/10 rounded-xl h-10 text-xs text-white"
+            className="bg-background border border-border rounded-xl h-10 text-xs text-white"
             placeholder="e.g. data/checkpoints/best.pt"
           />
         </div>
@@ -103,7 +103,7 @@ export function InferencePanel() {
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <Label className="text-[10px] text-muted-foreground uppercase font-bold">Input Values (2D JSON or CSV)</Label>
-            <span className="text-[9px] text-[#40d3b6] font-mono">
+            <span className="text-[10px] text-primary font-mono">
               Expected shape: {inferredDatasetShape ? `[1, ${inferredDatasetShape.join(', ')}]` : 'Any'}
             </span>
           </div>
@@ -111,7 +111,7 @@ export function InferencePanel() {
             value={inferenceInput}
             onChange={(e) => setInferenceInput(e.target.value)}
             rows={4}
-            className="w-full text-xs font-mono bg-[#050508]/80 border border-primary/10 rounded-xl p-3.5 focus:outline-none focus:border-[#40d3b6] text-white nodrag"
+            className="w-full text-xs font-mono bg-background border border-border rounded-xl p-3.5 focus:outline-none focus:border-primary text-white nodrag"
             placeholder="[[1.0, 1.0, 1.0...]] or comma-separated numbers"
           />
 
@@ -119,19 +119,19 @@ export function InferencePanel() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => generatePresetInput('random')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/15 hover:bg-primary/20 text-[#40d3b6] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               🎲 Random Noise
             </button>
             <button
               onClick={() => generatePresetInput('zeros')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/15 hover:bg-primary/20 text-[#40d3b6] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               All Zeros
             </button>
             <button
               onClick={() => generatePresetInput('ones')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/15 hover:bg-primary/20 text-[#40d3b6] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               All Ones
             </button>
@@ -141,7 +141,7 @@ export function InferencePanel() {
         <Button
           onClick={handleRunInference}
           disabled={inferenceLoading}
-          className="w-full mt-4 bg-gradient-to-r from-[#40d3b6] to-primary hover:opacity-95 text-black font-extrabold px-6 rounded-xl flex items-center justify-center gap-2 h-11"
+          className="w-full mt-4 bg-primary hover:brightness-110 text-primary-foreground font-black px-6 rounded-xl flex items-center justify-center gap-2 h-11 cursor-pointer shadow-glow"
         >
           {inferenceLoading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
           RUN PREDICTIVE INFERENCE
@@ -154,7 +154,7 @@ export function InferencePanel() {
           <BarChart2 size={13} /> Evaluation Output
         </h3>
 
-        <div className="bg-[#050508]/40 border border-primary/10 rounded-xl p-4 min-h-[200px] flex flex-col justify-center select-text">
+        <div className="bg-background border border-border rounded-xl p-4 min-h-[200px] flex flex-col justify-center select-text">
           {inferenceError && (
             <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-lg leading-relaxed font-mono">
               ❌ Evaluation Error:
@@ -165,14 +165,14 @@ export function InferencePanel() {
 
           {inferenceResult && (
             <div className="space-y-3 font-mono text-xs">
-              <div className="flex justify-between items-center text-[10px] text-muted-foreground uppercase font-black tracking-wider border-b border-primary/10 pb-1.5">
+              <div className="flex justify-between items-center text-[10px] text-muted-foreground uppercase font-black tracking-wider border-b border-border pb-1.5">
                 <span>Status: {inferenceResult.status}</span>
                 <span>Output Shape: [{inferenceResult.output_shape?.join(', ')}]</span>
               </div>
 
               <div className="space-y-2">
-                <div className="text-[10px] font-bold text-[#40d3b6] uppercase tracking-wider">Predictions:</div>
-                <pre className="p-3 bg-black/40 border border-primary/5 rounded-xl text-[10px] overflow-x-auto text-white leading-relaxed max-h-[160px] overflow-y-auto">
+                <div className="text-[10px] font-bold text-weave-teal uppercase tracking-wider">Predictions:</div>
+                <pre className="p-3 bg-black/40 border border-border rounded-xl text-[10px] overflow-x-auto text-white leading-relaxed max-h-[160px] overflow-y-auto">
                   {JSON.stringify(inferenceResult.prediction, null, 2)}
                 </pre>
               </div>

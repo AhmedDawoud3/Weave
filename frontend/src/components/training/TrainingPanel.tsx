@@ -87,13 +87,13 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
   };
 
   return (
-    <div className="bg-card/30 backdrop-blur-2xl border-t border-primary/10 flex flex-col h-[380px] select-none text-white overflow-hidden relative">
+    <div className="bg-card/90 backdrop-blur-2xl border-t border-border flex flex-col h-[380px] select-none text-white overflow-hidden relative">
       {/* Tab Header */}
-      <div className="flex justify-between items-center px-6 border-b border-primary/10 shrink-0 h-14 bg-[#09090b]">
+      <div className="flex justify-between items-center px-6 border-b border-border shrink-0 h-14 bg-background/50">
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab('config')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
               activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -101,7 +101,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           </button>
           <button
             onClick={() => setActiveTab('metrics')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
               activeTab === 'metrics' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -109,7 +109,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           </button>
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
               activeTab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -117,11 +117,11 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           </button>
           <button
             onClick={() => setActiveTab('inference')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
               activeTab === 'inference' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
-            <Sparkles size={14} className="text-[#40d3b6]" /> Inference Tester
+            <Sparkles size={14} className="text-primary animate-pulse" /> Inference Tester
           </button>
         </div>
 
@@ -144,13 +144,13 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             <>
               <Button
                 onClick={() => controlTraining('pause')}
-                className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <Pause size={14} /> PAUSE
               </Button>
               <Button
                 onClick={() => controlTraining('stop')}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                className="bg-red-600 hover:bg-red-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <Square size={14} /> ABORT
               </Button>
@@ -159,13 +159,13 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             <>
               <Button
                 onClick={() => controlTraining('resume')}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <Play size={14} /> RESUME
               </Button>
               <Button
                 onClick={() => controlTraining('stop')}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                className="bg-red-600 hover:bg-red-500 text-white font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <Square size={14} /> ABORT
               </Button>
@@ -174,7 +174,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             <Button
               onClick={handleStartRun}
               disabled={validationStatus !== 'success' || isTraining || !isDatasetReady}
-              className="bg-gradient-to-r from-[#40d3b6] to-[#1e8fd3] text-black font-extrabold h-9 px-6 rounded-xl flex items-center gap-1.5"
+              className="bg-primary hover:brightness-110 text-primary-foreground font-black h-9 px-6 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-glow"
             >
               {isTraining ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
               START TRAINING
@@ -185,7 +185,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             <Button
               variant="ghost"
               onClick={onClose}
-              className="text-muted-foreground hover:text-white border border-primary/5 hover:bg-primary/10 rounded-xl h-9 px-3 text-xs font-bold"
+              className="text-muted-foreground hover:text-white border border-border hover:bg-white/5 rounded-xl h-9 px-3 text-xs font-bold cursor-pointer"
             >
               CLOSE
             </Button>
@@ -194,7 +194,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
       </div>
 
       {/* Tab Panels */}
-      <div className="flex-1 p-6 overflow-y-auto min-h-0 bg-[#09090b]">
+      <div className="flex-1 p-6 overflow-y-auto min-h-0 bg-background">
         {activeTab === 'config' && (
           <TrainingSetup
             optimizer={optimizer}

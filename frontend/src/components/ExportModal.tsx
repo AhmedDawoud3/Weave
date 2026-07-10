@@ -4,6 +4,9 @@ import { Copy, Check, Download, Code2, X, Terminal, Loader2, Sparkles } from 'lu
 import { Button } from "@/components/ui/button";
 import { useWeaveStore } from '../store/useWeaveStore';
 import { api } from '../services/api';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-python';
+import 'prismjs/themes/prism-tomorrow.css';
 
 interface ExportModalProps {
   onClose: () => void;
@@ -35,6 +38,13 @@ export function ExportModal({ onClose }: ExportModalProps) {
       fetchPyTorch();
     }
   }, [activeTab]);
+
+  // Trigger Prism highlighting when code updates
+  useEffect(() => {
+    if (activeTab === 'pytorch' && code) {
+      Prism.highlightAll();
+    }
+  }, [code, activeTab]);
 
   const fetchPyTorch = async () => {
     setLoading(true);
@@ -108,12 +118,12 @@ export function ExportModal({ onClose }: ExportModalProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-3xl h-[550px] bg-card/85 backdrop-blur-2xl border border-primary/20 p-8 rounded-2xl shadow-2xl relative flex flex-col justify-between overflow-hidden text-white"
+        className="w-full max-w-3xl h-[550px] bg-card border border-border p-8 rounded-2xl shadow-2xl relative flex flex-col justify-between overflow-hidden text-white"
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-white rounded-lg transition-all"
+          className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-white rounded-lg transition-all cursor-pointer"
         >
           <X size={18} />
         </button>
@@ -121,7 +131,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
         {/* Modal Header */}
         <div className="flex flex-col gap-1 mb-6 shrink-0">
           <div className="flex items-center gap-1.5">
-            <Sparkles size={14} className="text-[#40d3b6]" />
+            <Sparkles size={14} className="text-primary animate-pulse" />
             <span className="text-[10px] text-primary font-black uppercase tracking-widest">Model Exporter</span>
           </div>
           <h2 className="text-2xl font-black uppercase text-white tracking-wide">Export Compiled Artifacts</h2>
@@ -129,10 +139,10 @@ export function ExportModal({ onClose }: ExportModalProps) {
         </div>
 
         {/* Export Tabs */}
-        <div className="flex gap-4 border-b border-primary/10 mb-6 shrink-0">
+        <div className="flex gap-4 border-b border-border mb-6 shrink-0">
           <button
             onClick={() => setActiveTab('pytorch')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all cursor-pointer ${
               activeTab === 'pytorch' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -140,7 +150,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
           </button>
           <button
             onClick={() => setActiveTab('onnx')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all cursor-pointer ${
               activeTab === 'onnx' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -148,7 +158,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
           </button>
           <button
             onClick={() => setActiveTab('torchscript')}
-            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all ${
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all cursor-pointer ${
               activeTab === 'torchscript' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -158,15 +168,15 @@ export function ExportModal({ onClose }: ExportModalProps) {
 
         {/* Compilation Input Shape Configuration */}
         {activeTab !== 'pytorch' && (
-          <div className="flex items-center gap-3 bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl mb-4 shrink-0 text-xs select-none">
-            <span className="font-extrabold uppercase text-[#40d3b6] tracking-wider text-[10px] shrink-0">
+          <div className="flex items-center gap-3 bg-background border border-border px-4 py-2.5 rounded-xl mb-4 shrink-0 text-xs select-none">
+            <span className="font-extrabold uppercase text-primary tracking-wider text-[10px] shrink-0">
               Compilation Shape:
             </span>
             <input
               type="text"
               value={compileShape}
               onChange={(e) => setCompileShape(e.target.value)}
-              className="flex-1 bg-black/40 border border-primary/20 rounded-lg px-2.5 py-1 text-white font-mono focus:outline-none focus:border-[#40d3b6] nodrag"
+              className="flex-1 bg-black/40 border border-border rounded-lg px-2.5 py-1 text-white font-mono focus:outline-none focus:border-primary nodrag"
               placeholder="e.g. 1, 3, 224, 224"
             />
             <span className="text-[10px] text-muted-foreground italic">
@@ -176,7 +186,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
         )}
 
         {/* Content Box */}
-        <div className="flex-1 min-h-0 bg-[#09090b] rounded-xl border border-primary/10 p-4 font-mono text-xs overflow-y-auto mb-6 relative">
+        <div className="flex-1 min-h-0 bg-background rounded-xl border border-border p-4 font-mono text-xs overflow-y-auto mb-6 relative">
           {activeTab === 'pytorch' ? (
             loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -184,11 +194,13 @@ export function ExportModal({ onClose }: ExportModalProps) {
                 <p className="text-[10px] font-bold uppercase tracking-widest">Synthesizing PyTorch Module...</p>
               </div>
             ) : (
-              <pre className="text-foreground/90 leading-relaxed whitespace-pre-wrap select-text">{code}</pre>
+              <pre className="language-python text-foreground/90 leading-relaxed whitespace-pre-wrap select-text p-0 m-0 bg-transparent">
+                <code className="language-python">{code}</code>
+              </pre>
             )
           ) : activeTab === 'onnx' ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto">
-              <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center border border-primary/10">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
                 <Terminal size={24} className="text-primary/70" />
               </div>
               <div>
@@ -203,7 +215,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
               )}
 
               {onnxStatus === 'success' && (
-                <div className="text-[10px] uppercase font-bold text-emerald-400">
+                <div className="text-[10px] uppercase font-bold text-weave-teal">
                   🎉 Graph successfully compiled & download initiated!
                 </div>
               )}
@@ -217,14 +229,14 @@ export function ExportModal({ onClose }: ExportModalProps) {
               <Button
                 onClick={handleDownloadONNX}
                 disabled={onnxStatus === 'compiling'}
-                className="mt-2 bg-[#40d3b6] hover:bg-[#40d3b6]/80 text-black font-extrabold px-6 rounded-xl flex items-center gap-2"
+                className="mt-2 bg-primary hover:brightness-110 text-primary-foreground font-extrabold px-6 rounded-xl flex items-center gap-2 cursor-pointer"
               >
                 <Download size={14} /> GENERATE & DOWNLOAD ONNX
               </Button>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto">
-              <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center border border-primary/10">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
                 <Terminal size={24} className="text-primary/70" />
               </div>
               <div>
@@ -239,7 +251,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
               )}
 
               {tsStatus === 'success' && (
-                <div className="text-[10px] uppercase font-bold text-emerald-400">
+                <div className="text-[10px] uppercase font-bold text-weave-teal">
                   🎉 Model successfully traced & download initiated!
                 </div>
               )}
@@ -253,7 +265,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
               <Button
                 onClick={handleDownloadTorchScript}
                 disabled={tsStatus === 'compiling'}
-                className="mt-2 bg-[#40d3b6] hover:bg-[#40d3b6]/80 text-black font-extrabold px-6 rounded-xl flex items-center gap-2"
+                className="mt-2 bg-primary hover:brightness-110 text-primary-foreground font-extrabold px-6 rounded-xl flex items-center gap-2 cursor-pointer"
               >
                 <Download size={14} /> GENERATE & DOWNLOAD TORCHSCRIPT
               </Button>
@@ -266,7 +278,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
           <Button
             variant="outline"
             onClick={onClose}
-            className="border-primary/20 hover:bg-primary/10 text-muted-foreground hover:text-white rounded-xl px-6 h-11 text-xs font-bold"
+            className="border-border hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl px-6 h-11 text-xs font-bold cursor-pointer"
           >
             CLOSE
           </Button>
@@ -274,7 +286,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
             <Button
               onClick={handleCopy}
               disabled={loading}
-              className="bg-gradient-to-r from-primary to-emerald-400 text-black font-extrabold rounded-xl px-6 h-11 text-xs uppercase flex items-center gap-2"
+              className="bg-primary hover:brightness-110 text-primary-foreground font-extrabold rounded-xl px-6 h-11 text-xs uppercase flex items-center gap-2 cursor-pointer"
             >
               {copied ? (
                 <>
