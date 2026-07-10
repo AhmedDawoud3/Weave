@@ -87,3 +87,5 @@ htmlcov/
 .pytype/
 .ruff_cache/
 .uv-cache
+
+.agents
