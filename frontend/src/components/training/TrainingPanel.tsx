@@ -82,19 +82,19 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
       case 'error':
         return 'bg-red-500/10 text-red-400 border border-red-500/20';
       default:
-        return 'bg-white/5 text-muted-foreground border border-white/10';
+        return 'bg-foreground/5 text-muted-foreground border border-foreground/10';
     }
   };
 
   return (
-    <div className="bg-card/90 backdrop-blur-2xl border-t border-border flex flex-col h-[380px] select-none text-white overflow-hidden relative">
+    <div className="bg-card/90 backdrop-blur-2xl border-t border-border flex flex-col h-[380px] select-none text-foreground overflow-hidden relative">
       {/* Tab Header */}
       <div className="flex justify-between items-center px-6 border-b border-border shrink-0 h-14 bg-background/50">
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab('config')}
             className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+              activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             <BookOpen size={14} /> Training Setup
@@ -102,7 +102,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           <button
             onClick={() => setActiveTab('metrics')}
             className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'metrics' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+              activeTab === 'metrics' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             <BarChart2 size={14} /> Metrics Real-Time
@@ -110,7 +110,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           <button
             onClick={() => setActiveTab('logs')}
             className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+              activeTab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             <Terminal size={14} /> stdout Console
@@ -118,7 +118,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           <button
             onClick={() => setActiveTab('inference')}
             className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider py-4 border-b-2 transition-all cursor-pointer ${
-              activeTab === 'inference' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'
+              activeTab === 'inference' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             <Sparkles size={14} className="text-primary animate-pulse" /> Inference Tester
@@ -185,7 +185,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             <Button
               variant="ghost"
               onClick={onClose}
-              className="text-muted-foreground hover:text-white border border-border hover:bg-white/5 rounded-xl h-9 px-3 text-xs font-bold cursor-pointer"
+              className="text-muted-foreground hover:text-foreground border border-border hover:bg-foreground/5 rounded-xl h-9 px-3 text-xs font-bold cursor-pointer"
             >
               CLOSE
             </Button>

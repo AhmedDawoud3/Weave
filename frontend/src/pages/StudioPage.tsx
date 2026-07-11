@@ -11,7 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Terminal, Code2, RefreshCw, Plus, Search, Loader2, Sliders, HelpCircle } from 'lucide-react';
+import { Terminal, Code2, RefreshCw, Plus, Search, Loader2, Sliders, HelpCircle, Sun, Moon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from '../components/ui/toaster';
 import { LayerPalette } from '../components/LayerPalette';
@@ -24,6 +24,7 @@ import { ExportModal } from '../components/ExportModal';
 import { useWeaveStore } from '../store/useWeaveStore';
 import { useTrainingStore } from '../store/useTrainingStore';
 import { LayerType } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 const nodeTypes = { layer: LayerNode as any };
 const edgeTypes = { weave: WeaveEdge as any };
@@ -76,6 +77,16 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     setActiveTab,
     selectProjectById
   } = useWeaveStore();
+
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    if (activeProject?.name) {
+      document.title = `Weave | Studio - ${activeProject.name}`;
+    } else {
+      document.title = "Weave | Studio";
+    }
+  }, [activeProject?.name]);
 
   const { isTraining, trainingStatus, checkActiveRuns } = useTrainingStore();
 
@@ -236,7 +247,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.05),transparent_60%)]" />
         <div className="flex flex-col items-center relative z-10">
           <Loader2 className="animate-spin text-primary mb-4" size={48} />
-          <h3 className="text-base font-black uppercase tracking-widest text-white">Loading Workspace</h3>
+          <h3 className="text-base font-black uppercase tracking-widest text-foreground">Loading Workspace</h3>
           <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">Synchronizing graph and dependencies...</p>
         </div>
       </div>
@@ -248,14 +259,14 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       key="main"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="dark w-full h-screen bg-background text-white flex flex-col overflow-hidden relative font-sans"
+      className="w-full h-screen bg-background text-foreground flex flex-col overflow-hidden relative font-sans"
     >
       {/* Mobile Blocking Overlay */}
       <div className="md:hidden fixed inset-0 z-[2000] bg-background flex flex-col items-center justify-center p-8 text-center select-none">
         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 text-primary shadow-glow animate-pulse">
           <Sliders size={28} />
         </div>
-        <h3 className="text-lg font-black text-white uppercase tracking-wider mb-2">Desktop View Required</h3>
+        <h3 className="text-lg font-black text-foreground uppercase tracking-wider mb-2">Desktop View Required</h3>
         <p className="text-xs text-muted-foreground max-w-xs leading-relaxed mb-6">
           The Neural Design Studio requires a larger viewport to visually build, parameter-tune, and trace model architectures. Please access this page on a desktop browser.
         </p>
@@ -267,20 +278,23 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       {/* Studio Header Toolbar */}
       <div className="h-16 border-b border-border bg-card/40 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-35">
         <div className="flex items-center gap-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-primary font-black uppercase tracking-widest">Active Workspace</span>
-            <span className="text-xs font-black text-white uppercase truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
+          <div className="flex items-center gap-2.5">
+            <img src="/logo_icon.svg" alt="Weave Icon" className="h-6 w-6" />
+            <div className="flex flex-col">
+              <span className="text-[10px] text-primary font-black uppercase tracking-widest">Active Workspace</span>
+              <span className="text-xs font-black text-foreground uppercase truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
+            </div>
           </div>
 
           <div className="h-8 w-px bg-border" />
 
           {/* Workspace Switcher */}
-          <div className="flex bg-black/40 border border-border rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
+          <div className="flex bg-foreground/40 border border-border rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
             <button
               onClick={() => setActiveTab('canvas')}
               className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'canvas'
                   ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
-                  : 'text-muted-foreground hover:text-white'
+                  : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
               Model Canvas
@@ -289,7 +303,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
               onClick={() => setActiveTab('dataset')}
               className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'dataset'
                   ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
-                  : 'text-muted-foreground hover:text-white'
+                  : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
               Dataset Workspace
@@ -323,7 +337,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                 );
               })}
               <span>/</span>
-              <span className="text-white uppercase tracking-wide max-w-[120px] truncate font-black" title={activeSubGraph?.name}>
+              <span className="text-foreground uppercase tracking-wide max-w-[120px] truncate font-black" title={activeSubGraph?.name}>
                 {activeSubGraph?.name}
               </span>
             </div>
@@ -337,7 +351,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     const sub = activeSubGraphs.find(s => s.id === e.target.value);
                     if (sub) selectSubGraph(sub);
                   }}
-                  className="bg-primary/5 border border-border rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-primary transition-all uppercase font-bold cursor-pointer"
+                  className="bg-primary/5 border border-border rounded-xl px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary transition-all uppercase font-bold cursor-pointer"
                 >
                   {activeSubGraphs.map(s => (
                     <option key={s.id} value={s.id} className="bg-card">{s.name}</option>
@@ -368,7 +382,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             title={isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
           >
             <span className={`w-2.5 h-2.5 rounded-full ${isKernelConnected ? 'bg-weave-teal animate-pulse shadow-[0_0_8px_#2dd4bf]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-            <span className="absolute top-7 left-1/2 -translate-x-1/2 bg-card border border-border text-[9px] font-black uppercase text-white rounded-lg px-2 py-0.5 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            <span className="absolute top-7 left-1/2 -translate-x-1/2 bg-card border border-border text-[9px] font-black uppercase text-foreground rounded-lg px-2 py-0.5 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
               {isKernelConnected ? 'Kernel Online' : 'Kernel Offline'}
             </span>
           </div>
@@ -403,11 +417,11 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           <Button
             variant="ghost"
             onClick={() => validatePipeline()}
-            className={`rounded-xl border hover:text-white transition-all text-xs font-bold h-10 cursor-pointer ${validationStatus === 'success'
+            className={`rounded-xl border hover:text-foreground transition-all text-xs font-bold h-10 cursor-pointer ${validationStatus === 'success'
                 ? 'border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
                 : validationStatus === 'error'
                   ? 'border-red-500/20 text-red-400 hover:bg-red-500/10'
-                  : 'border-border text-muted-foreground hover:bg-white/5'
+                  : 'border-border text-muted-foreground hover:bg-foreground/5'
               }`}
           >
             <RefreshCw size={14} className={`mr-1.5 ${validationStatus === 'idle' ? 'animate-spin' : ''}`} />
@@ -427,7 +441,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             }}
             className={`${
               isTraining
-                ? 'bg-primary/20 border-primary/50 text-white ring-1 ring-primary/30'
+                ? 'bg-primary/20 border-primary/50 text-foreground ring-1 ring-primary/30'
                 : 'bg-primary/10 border-primary/20 text-primary'
             } border hover:bg-primary hover:text-primary-foreground font-black text-xs h-10 px-4 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer`}
           >
@@ -444,8 +458,17 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
           <Button
             variant="ghost"
+            onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
+            className="border border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl h-10 w-10 flex items-center justify-center cursor-pointer p-0"
+            title="Toggle Theme"
+          >
+            {theme === 'weave-dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </Button>
+
+          <Button
+            variant="ghost"
             onClick={handleNavigateDashboard}
-            className="border border-border hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl h-10 px-4 transition-all cursor-pointer"
+            className="border border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl h-10 px-4 transition-all cursor-pointer"
           >
             EXIT
           </Button>
@@ -499,12 +522,12 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
 
                 {/* Keyboard Shortcuts Hint */}
                 <div className="absolute bottom-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg text-[10px] text-muted-foreground flex flex-col gap-1.5 select-none pointer-events-none">
-                  <div className="flex items-center gap-2 font-bold text-white uppercase tracking-wider mb-0.5">
+                  <div className="flex items-center gap-2 font-bold text-foreground uppercase tracking-wider mb-0.5">
                     <HelpCircle size={12} className="text-primary animate-pulse" /> Shortcuts
                   </div>
-                  <div className="flex justify-between gap-4"><span>Spawn Node:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">Space</kbd></div>
-                  <div className="flex justify-between gap-4"><span>Focus Search:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">/</kbd></div>
-                  <div className="flex justify-between gap-4"><span>Delete Layer:</span><kbd className="bg-white/5 border border-border px-1.5 py-0.2 rounded font-mono">Backspace</kbd></div>
+                  <div className="flex justify-between gap-4"><span>Spawn Node:</span><kbd className="bg-foreground/5 border border-border px-1.5 py-0.2 rounded font-mono">Space</kbd></div>
+                  <div className="flex justify-between gap-4"><span>Focus Search:</span><kbd className="bg-foreground/5 border border-border px-1.5 py-0.2 rounded font-mono">/</kbd></div>
+                  <div className="flex justify-between gap-4"><span>Delete Layer:</span><kbd className="bg-foreground/5 border border-border px-1.5 py-0.2 rounded font-mono">Backspace</kbd></div>
                 </div>
 
                 <ReactFlow
@@ -534,7 +557,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   fitView
                 >
                   <Background color="var(--border)" gap={20} size={1} />
-                  <Controls className="bg-card border border-border rounded-xl overflow-hidden [&>button]:border-border [&>button]:text-white [&>button]:bg-transparent hover:[&>button]:bg-white/5 [&>svg]:fill-white" />
+                  <Controls className="bg-card border border-border rounded-xl overflow-hidden [&>button]:border-border [&>button]:text-foreground [&>button]:bg-transparent hover:[&>button]:bg-foreground/5 [&>svg]:fill-white" />
                   <MiniMap
                     className="!bg-card border border-border rounded-xl overflow-hidden shadow-2xl !bottom-4 !left-4 !w-[150px] !h-[100px]"
                     nodeColor="#1a1a24"
@@ -583,7 +606,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-[400px] bg-card border border-border p-6 rounded-2xl shadow-2xl relative"
             >
-              <h2 className="text-xl font-black mb-1 text-white uppercase">New Graph variant</h2>
+              <h2 className="text-xl font-black mb-1 text-foreground uppercase">New Graph variant</h2>
               <p className="text-xs text-muted-foreground mb-4">Initialize a new subgraph revision/variant for model mapping.</p>
 
               <form onSubmit={handleCreateSubGraph} className="space-y-4">
@@ -593,7 +616,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   value={newSubGraphName}
                   onChange={(e) => setNewSubGraphName(e.target.value)}
                   required
-                  className="w-full h-11 bg-background border border-border p-3 text-sm rounded-xl outline-none focus:border-primary text-white"
+                  className="w-full h-11 bg-background border border-border p-3 text-sm rounded-xl outline-none focus:border-primary text-foreground"
                 />
 
                 <div className="flex gap-3 pt-2">
@@ -641,7 +664,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
-                  className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-muted-foreground/50"
+                  className="w-full bg-transparent border-none outline-none text-sm text-foreground placeholder-muted-foreground/50"
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
                       setShowSearchPalette(false);
@@ -665,7 +688,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   <button
                     key={type}
                     onClick={() => handleAddNodeFromPalette(type)}
-                    className="w-full p-2.5 hover:bg-primary/10 rounded-xl transition-all text-left text-xs font-bold text-white/85 hover:text-white uppercase flex items-center justify-between group cursor-pointer border-none bg-transparent"
+                    className="w-full p-2.5 hover:bg-primary/10 rounded-xl transition-all text-left text-xs font-bold text-foreground/85 hover:text-foreground uppercase flex items-center justify-between group cursor-pointer border-none bg-transparent"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />

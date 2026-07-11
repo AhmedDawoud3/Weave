@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ChevronRight, Layers, Code2, Zap, ArrowRight,
   Workflow, Database, Play, Download, GitBranch,
-  Blocks, BarChart3, Sparkles
+  Blocks, BarChart3, Sparkles, Sun, Moon
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ReactFlow, Background, Handle, Position, type Node, type Edge } from '@xyflow/react';
@@ -11,13 +11,15 @@ import '@xyflow/react/dist/style.css';
 import { useCallback } from 'react';
 import { useWeaveStore } from '../store/useWeaveStore';
 import { GridBackground } from '../components/ui/GridBackground';
+import { useTheme } from '../context/ThemeContext';
+import { useEffect } from 'react';
 
 /* ─────────────── Features Workflow React Flow (large section) ─────────────── */
 const WorkflowNode = ({ data }: { data: any }) => (
   <div className={`group relative px-5 py-4 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.03] cursor-default ${data.colorClass}`}
     style={{ minWidth: 200 }}
   >
-    <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-white/80 !border-2 !border-white/30" />
+    <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-white/80 !border-2 !border-foreground/30" />
     <div className="flex items-center gap-3 mb-2">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${data.iconBg}`}>
         {data.icon}
@@ -26,15 +28,15 @@ const WorkflowNode = ({ data }: { data: any }) => (
         <div className="text-[9px] font-black tracking-[0.2em] uppercase opacity-50">
           {data.step}
         </div>
-        <div className="text-sm font-bold text-white leading-tight">
+        <div className="text-sm font-bold text-foreground leading-tight">
           {data.label}
         </div>
       </div>
     </div>
-    <p className="text-[11px] text-white/50 leading-relaxed pl-[52px]">
+    <p className="text-[11px] text-foreground/50 leading-relaxed pl-[52px]">
       {data.description}
     </p>
-    <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-white/80 !border-2 !border-white/30" />
+    <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-white/80 !border-2 !border-foreground/30" />
   </div>
 );
 
@@ -131,6 +133,13 @@ const FEATURES = [
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useWeaveStore();
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    document.title = "Weave | Visual Neural Network Studio";
+  }, []);
+
+  const logoSrc = theme === 'weave-light' ? '/logo_horizontal_light.svg' : '/logo_horizontal_dark.svg';
 
   const handleLogin = () => {
     navigate('/login');
@@ -152,26 +161,26 @@ export function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-weave-violet to-weave-blue/20 flex items-center justify-center shadow-lg border border-weave-violet/20">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="var(--weave-teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M2 17L12 22L22 17" stroke="var(--weave-blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M2 12L12 17L22 12" stroke="var(--weave-teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="text-white font-black tracking-widest uppercase text-sm">Weave</span>
+          <div className="flex items-center">
+            <img src={logoSrc} alt="Weave Logo" className="h-8 w-auto" />
           </div>
           <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#workflow" className="hover:text-white transition-colors">Workflow</a>
-            <a href="#samples" className="hover:text-white transition-colors">Samples</a>
+            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+            <a href="#workflow" className="hover:text-foreground transition-colors">Workflow</a>
+            <a href="#samples" className="hover:text-foreground transition-colors">Samples</a>
           </div>
           <div className="flex items-center gap-4 text-xs">
+            <button
+              onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-lg hover:bg-foreground/5 border border-transparent hover:border-border h-9 w-9 flex items-center justify-center"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'weave-dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             {isAuthenticated ? (
               <>
                 <span className="text-muted-foreground font-medium hidden sm:inline">
-                  Welcome back, <span className="text-white font-bold">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
+                  Welcome back, <span className="text-foreground font-bold">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                 </span>
                 <Button
                   onClick={() => navigate('/dashboard')}
@@ -184,7 +193,7 @@ export function LandingPage() {
               <>
                 <button
                   onClick={handleLogin}
-                  className="font-bold uppercase tracking-wider text-white hover:text-weave-blue transition-colors cursor-pointer"
+                  className="font-bold uppercase tracking-wider text-foreground hover:text-weave-blue transition-colors cursor-pointer"
                 >
                   Login
                 </button>
@@ -218,7 +227,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl md:text-7xl font-black text-white tracking-tight mb-6"
+            className="text-4xl md:text-7xl font-black text-foreground tracking-tight mb-6"
           >
             Design the Architecture.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue">
@@ -242,14 +251,14 @@ export function LandingPage() {
             {isAuthenticated ? (
               <Button
                 onClick={() => navigate('/dashboard')}
-                className="bg-white text-background hover:bg-zinc-200 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                className="bg-foreground text-background hover:opacity-90 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 Go to Dashboard <ChevronRight size={18} />
               </Button>
             ) : (
               <Button
                 onClick={handleGetStarted}
-                className="bg-white text-background hover:bg-zinc-200 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                className="bg-foreground text-background hover:opacity-90 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 Launch Workspace <ChevronRight size={18} />
               </Button>
@@ -257,7 +266,7 @@ export function LandingPage() {
             <Button
               variant="outline"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="border-border bg-white/5 hover:bg-white/10 text-white font-bold uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto"
+              className="border-border bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto"
             >
               Explore Features
             </Button>
@@ -279,7 +288,7 @@ export function LandingPage() {
                 <Sparkles size={12} />
                 Platform Capabilities
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-4">
                 Everything You Need. <span className="text-weave-teal">Nothing You Don't.</span>
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -298,10 +307,10 @@ export function LandingPage() {
                 transition={{ duration: 0.5, delay: i * 0.08 }}
                 className="group bg-card border border-border p-8 rounded-2xl hover:border-weave-violet/30 transition-all duration-300 hover:shadow-glow"
               >
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-bold text-white mb-3">{feature.title}</h3>
+                <h3 className="text-lg font-bold text-foreground mb-3">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
@@ -324,7 +333,7 @@ export function LandingPage() {
                 <Workflow size={12} />
                 How It Works
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+              <h2 className="text-3xl md:text-5xl font-black text-foreground tracking-tight mb-4">
                 From Concept to <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue">Production</span>
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg">
@@ -355,12 +364,12 @@ export function LandingPage() {
                       <div className="text-[9px] font-black tracking-[0.2em] uppercase opacity-50">
                         {node.data.step}
                       </div>
-                      <div className="text-sm font-bold text-white leading-tight">
+                      <div className="text-sm font-bold text-foreground leading-tight">
                         {node.data.label}
                       </div>
                     </div>
                   </div>
-                  <p className="text-[11px] text-white/50 leading-relaxed pl-[52px]">
+                  <p className="text-[11px] text-foreground/50 leading-relaxed pl-[52px]">
                     {node.data.description}
                   </p>
                 </div>
@@ -404,7 +413,7 @@ export function LandingPage() {
         <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_at_center,rgba(26,188,254,0.06),transparent_60%)] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-16">
           <div className="lg:w-1/2">
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">
+            <h2 className="text-3xl md:text-5xl font-black text-foreground tracking-tight mb-6">
               A Premium IDE for <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-blue to-weave-teal">Machine Learning.</span>
             </h2>
@@ -461,15 +470,13 @@ export function LandingPage() {
       <footer className="bg-background py-12 border-t border-border">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="var(--weave-violet)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/logo_icon.svg" alt="Weave Icon" className="h-4.5 w-auto" />
             <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Weave © 2026</span>
           </div>
           <div className="flex gap-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            <a href="/docs" className="hover:text-white transition-colors">Documentation</a>
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="/docs" className="hover:text-foreground transition-colors">Documentation</a>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
           </div>
         </div>
       </footer>

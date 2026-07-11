@@ -120,9 +120,9 @@ export function WeaveEdge({
             <div
               className={`
                 px-[5px] py-[2px] rounded-full
-                bg-slate-950/85 border border-weave-teal/20
-                backdrop-blur-sm
-                text-weave-teal/80 font-mono font-semibold text-[7.5px] tracking-tight
+                bg-background/85 border border-weave-teal/30
+                backdrop-blur-sm shadow-sm
+                text-weave-teal font-mono font-bold text-[7.5px] tracking-tight
                 whitespace-nowrap select-none
                 transition-opacity duration-150
                 ${showDelete ? 'opacity-20' : 'opacity-100'}
@@ -145,7 +145,7 @@ export function WeaveEdge({
           >
             <button
               onClick={onEdgeClick}
-              className="w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center border border-[#070709] shadow-lg transition-transform hover:scale-110 active:scale-95 duration-200"
+              className="w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center border border-border shadow-lg transition-transform hover:scale-110 active:scale-95 duration-200"
               title="Delete Connection"
             >
               <X size={10} strokeWidth={3.5} />

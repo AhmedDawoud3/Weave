@@ -333,28 +333,28 @@ export function DatasetWorkspace() {
           <div className="w-16 h-16 bg-primary/5 rounded-3xl flex items-center justify-center border border-border mb-5 shadow-glow">
             <Database className="w-8 h-8 text-[#40d3b6]" />
           </div>
-          <h3 className="text-base font-black text-white uppercase tracking-wider">Initialize Dataset Pipeline</h3>
+          <h3 className="text-base font-black text-foreground uppercase tracking-wider">Initialize Dataset Pipeline</h3>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
             Choose a data ingestion strategy to supply samples, manage augmentation pipelines, and propagate tensor shapes to the visual model.
           </p>
           <div className="grid grid-cols-3 gap-3 w-full mt-8">
             <button
               onClick={() => setDatasetSource('predefined')}
-              className="p-4 rounded-2xl border border-border bg-black/10 hover:bg-black/20 hover:border-primary/20 text-xs font-black uppercase text-white hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
+              className="p-4 rounded-2xl border border-border bg-foreground/10 hover:bg-foreground/20 hover:border-primary/20 text-xs font-black uppercase text-foreground hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
             >
               <Sparkles size={18} className="text-primary" />
               Predefined
             </button>
             <button
               onClick={() => setDatasetSource('image_folder')}
-              className="p-4 rounded-2xl border border-border bg-black/10 hover:bg-black/20 hover:border-primary/20 text-xs font-black uppercase text-white hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
+              className="p-4 rounded-2xl border border-border bg-foreground/10 hover:bg-foreground/20 hover:border-primary/20 text-xs font-black uppercase text-foreground hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
             >
               <ImageIcon size={18} className="text-sky-400" />
               Img Folder
             </button>
             <button
               onClick={() => setDatasetSource('custom')}
-              className="p-4 rounded-2xl border border-border bg-black/10 hover:bg-black/20 hover:border-primary/20 text-xs font-black uppercase text-white hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
+              className="p-4 rounded-2xl border border-border bg-foreground/10 hover:bg-foreground/20 hover:border-primary/20 text-xs font-black uppercase text-foreground hover:text-[#40d3b6] transition-all flex flex-col items-center gap-2 cursor-pointer"
             >
               <Sliders size={18} className="text-[#40d3b6]" />
               Custom
@@ -368,7 +368,7 @@ export function DatasetWorkspace() {
   const { source } = datasetConfig;
 
   return (
-    <div className="flex-1 flex overflow-hidden min-h-0 bg-background w-full text-white">
+    <div className="flex-1 flex overflow-hidden min-h-0 bg-background w-full text-foreground">
       
       {/* COLUMN 1: INGESTION CONFIG */}
       <div className="w-[380px] shrink-0 border-r border-sidebar-border flex flex-col bg-sidebar overflow-y-auto no-scrollbar">
@@ -388,7 +388,7 @@ export function DatasetWorkspace() {
           {/* Source Tabs */}
           <div className="space-y-1.5">
             <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Ingestion Method</span>
-            <div className="grid grid-cols-3 gap-1 bg-black/40 p-1 border border-border rounded-xl">
+            <div className="grid grid-cols-3 gap-1 bg-foreground/40 p-1 border border-border rounded-xl">
               {(['predefined', 'image_folder', 'custom'] as const).map((src) => {
                 const labelMap = {
                   predefined: 'Predefined',
@@ -403,7 +403,7 @@ export function DatasetWorkspace() {
                     className={`py-2 text-[10px] font-black uppercase transition-all rounded-lg cursor-pointer ${
                       isActive 
                         ? 'bg-primary/20 text-[#40d3b6] border border-primary/30' 
-                        : 'text-muted-foreground hover:text-white'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     {labelMap[src]}
@@ -442,10 +442,10 @@ export function DatasetWorkspace() {
 
           {/* DataLoader Panel */}
           <Separator className="bg-border" />
-          <div className="bg-black/10 border border-border rounded-2xl overflow-hidden">
+          <div className="bg-foreground/10 border border-border rounded-2xl overflow-hidden">
             <button
               onClick={() => setShowDataLoader(!showDataLoader)}
-              className="w-full flex items-center justify-between p-4 text-xs font-black uppercase text-white hover:bg-white/[0.02] transition-colors focus:outline-none cursor-pointer"
+              className="w-full flex items-center justify-between p-4 text-xs font-black uppercase text-foreground hover:bg-white/[0.02] transition-colors focus:outline-none cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <Sliders size={14} className="text-[#40d3b6]" />
@@ -455,7 +455,7 @@ export function DatasetWorkspace() {
             </button>
 
             {showDataLoader && (
-              <div className="p-4 pt-0 space-y-3 bg-black/10">
+              <div className="p-4 pt-0 space-y-3 bg-foreground/10">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="flex flex-col gap-1">
                     <span className="text-[10px] text-muted-foreground uppercase font-bold">Batch Size</span>
@@ -463,7 +463,7 @@ export function DatasetWorkspace() {
                       type="number"
                       value={datasetConfig.dataloader?.batch_size ?? 32}
                       onChange={(e) => setDataLoaderConfig({ batch_size: parseInt(e.target.value) || 32 })}
-                      className="text-xs bg-black/40 border border-border rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                      className="text-xs bg-foreground/40 border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -472,7 +472,7 @@ export function DatasetWorkspace() {
                       type="number"
                       value={datasetConfig.dataloader?.num_workers ?? 4}
                       onChange={(e) => setDataLoaderConfig({ num_workers: parseInt(e.target.value) || 4 })}
-                      className="text-xs bg-black/40 border border-border rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                      className="text-xs bg-foreground/40 border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                     />
                   </div>
                 </div>
@@ -500,7 +500,7 @@ export function DatasetWorkspace() {
           </Button>
 
           {validationResult && (
-            <div className="text-[10px] font-mono p-3 bg-black/10 border border-border rounded-xl space-y-1 select-text">
+            <div className="text-[10px] font-mono p-3 bg-foreground/10 border border-border rounded-xl space-y-1 select-text">
               <div className="flex items-center gap-1.5 font-extrabold uppercase mb-1">
                 {validationResult.valid ? (
                   <span className="text-[#40d3b6]">✔️ Schema Valid</span>

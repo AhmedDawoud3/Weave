@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut } from 'lucide-react';
+import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut, Sun, Moon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Project } from '../types';
 import { TEMPLATES } from '../config/templates';
 import { toast } from '../components/ui/toaster';
 import { Skeleton } from '../components/ui/skeleton';
+import { useTheme } from '../context/ThemeContext';
 
 interface DashboardPageProps {
   onOpenProject?: () => void;
@@ -28,6 +29,12 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
     logout,
     user
   } = useWeaveStore();
+
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    document.title = "Weave | Dashboard";
+  }, []);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -126,10 +133,10 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 pb-8 border-b border-border">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-primary animate-pulse" />
+              <img src="/logo_icon.svg" alt="Weave Icon" className="h-4 w-4 animate-pulse" />
               <p className="text-primary font-black tracking-widest text-[10px] uppercase">Neural Design Studio</p>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight mt-2 uppercase text-white">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight mt-2 uppercase text-foreground">
               Workspace Hub
             </h1>
           </div>
@@ -138,10 +145,20 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
             {/* User Profile Info */}
             {user && (
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-white uppercase">{user.name || user.email.split('@')[0]}</p>
+                <p className="text-xs font-bold text-foreground uppercase">{user.name || user.email.split('@')[0]}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             )}
+
+            {/* Theme Toggle Button */}
+            <Button
+              variant="outline"
+              onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
+              className="border-border bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-xl h-10 w-10 flex items-center justify-center cursor-pointer p-0"
+              title="Toggle Theme"
+            >
+              {theme === 'weave-dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </Button>
 
             {/* Logout */}
             <Button
@@ -157,7 +174,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
 
         {/* Dashboard Actions Toolbar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-white">Your Models</h2>
+          <h2 className="text-xl font-bold uppercase tracking-wide text-foreground">Your Models</h2>
           <Button
             onClick={() => setShowCreateModal(true)}
             className="bg-primary text-primary-foreground hover:brightness-110 active:scale-95 font-black px-6 h-12 rounded-xl transition-all shadow-glow cursor-pointer flex items-center gap-2 text-xs uppercase tracking-wider self-stretch sm:self-auto justify-center"
@@ -182,11 +199,11 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
           </div>
         ) : projects.length === 0 ? (
           <div className="h-80 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-6 p-8 bg-card backdrop-blur-sm">
-            <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center border border-border">
+            <div className="w-14 h-14 rounded-full bg-foreground/5 flex items-center justify-center border border-border">
               <Cpu size={24} className="text-primary/40" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-bold text-white">No Projects Found</h3>
+              <h3 className="text-lg font-bold text-foreground">No Projects Found</h3>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">Create your first deep learning project to start visually constructing and shape-validating network pipelines.</p>
             </div>
             <Button
@@ -223,7 +240,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                     </button>
 
                     {/* Small visual neural design vector */}
-                    <svg className="w-20 h-10 text-white/10" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg className="w-20 h-10 text-foreground/10" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="15" cy="25" r="4" fill="var(--primary)" fillOpacity="0.4" />
                       <line x1="15" y1="25" x2="50" y2="10" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                       <line x1="15" y1="25" x2="50" y2="40" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
@@ -237,7 +254,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
 
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="text-base font-bold mb-1.5 group-hover:text-primary transition-colors uppercase leading-snug line-clamp-1 text-white">
+                      <h3 className="text-base font-bold mb-1.5 group-hover:text-primary transition-colors uppercase leading-snug line-clamp-1 text-foreground">
                         {p.name}
                       </h3>
                       
@@ -260,7 +277,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
 
                       <Button
                         onClick={() => handleOpenProject(p)}
-                        className="w-full bg-white/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        className="w-full bg-foreground/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer"
                       >
                         OPEN IN STUDIO <ChevronRight size={14} />
                       </Button>
@@ -280,7 +297,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
             <Sparkles size={14} className="text-primary animate-pulse" />
             <p className="text-primary font-black tracking-widest text-[10px] uppercase">Interactive Neural Templates</p>
           </div>
-          <h2 className="text-2xl font-black tracking-tight mt-2 uppercase text-white mb-6">
+          <h2 className="text-2xl font-black tracking-tight mt-2 uppercase text-foreground mb-6">
             Import Example Architectures
           </h2>
           
@@ -294,7 +311,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                 
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="text-base font-bold mb-1 uppercase text-white leading-tight line-clamp-1">
+                    <h3 className="text-base font-bold mb-1 uppercase text-foreground leading-tight line-clamp-1">
                       {tpl.name}
                     </h3>
                     <p className="text-xs text-muted-foreground/80 mb-2 line-clamp-2 min-h-[32px]">
@@ -303,14 +320,14 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                   </div>
                   
                   <div>
-                    <div className="inline-block bg-white/5 border border-border rounded-md px-2 py-0.5 text-[10px] font-bold text-primary font-mono mb-4 uppercase tracking-wider">
+                    <div className="inline-block bg-foreground/5 border border-border rounded-md px-2 py-0.5 text-[10px] font-bold text-primary font-mono mb-4 uppercase tracking-wider">
                       INPUT: [{tpl.inputShape.join(', ')}]
                     </div>
                     
                     <Button
                       onClick={() => handleImportTemplate(tpl)}
                       disabled={importingTemplate !== null}
-                      className="w-full bg-white/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer relative z-10"
+                      className="w-full bg-foreground/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer relative z-10"
                     >
                       {importingTemplate === tpl.name ? 'IMPORTING...' : 'IMPORT & OPEN'}
                     </Button>
@@ -336,12 +353,12 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
             >
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-white rounded-lg transition-all cursor-pointer"
+                className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer"
               >
                 <X size={18} />
               </button>
 
-              <h2 className="text-xl font-black mb-1 uppercase text-white tracking-wide">New Model Sandbox</h2>
+              <h2 className="text-xl font-black mb-1 uppercase text-foreground tracking-wide">New Model Sandbox</h2>
               <p className="text-xs text-muted-foreground mb-6">Initialize a neural model environment to map subgraphs and stream training metrics.</p>
 
               <form onSubmit={handleCreateProject} className="space-y-5">
@@ -362,7 +379,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                     placeholder="Brief details about datasets, shape layers, or targeted compile metrics..."
                     value={newProjectDesc}
                     onChange={(e) => setNewProjectDesc(e.target.value)}
-                    className="w-full h-24 bg-background/50 border border-border p-3 text-sm rounded-xl outline-none focus:border-primary transition-colors text-white resize-none"
+                    className="w-full h-24 bg-background/50 border border-border p-3 text-sm rounded-xl outline-none focus:border-primary transition-colors text-foreground resize-none"
                   />
                 </div>
 
@@ -371,7 +388,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                     type="button"
                     variant="outline"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 h-12 border-border hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
+                    className="flex-1 h-12 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
                   >
                     CANCEL
                   </Button>
@@ -400,15 +417,15 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-card border border-border rounded-2xl p-6 max-w-md w-full relative z-10 shadow-2xl"
             >
-              <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-2">Delete Project</h3>
+              <h3 className="text-lg font-bold text-foreground uppercase tracking-wider mb-2">Delete Project</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Are you sure you want to delete <span className="text-white font-bold">{projectToDelete.name}</span>? This action is permanent and cannot be undone.
+                Are you sure you want to delete <span className="text-foreground font-bold">{projectToDelete.name}</span>? This action is permanent and cannot be undone.
               </p>
               <div className="flex gap-4">
                 <Button
                   variant="outline"
                   onClick={() => setProjectToDelete(null)}
-                  className="flex-1 h-12 border-border hover:bg-white/5 text-muted-foreground hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
+                  className="flex-1 h-12 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
                 >
                   Cancel
                 </Button>

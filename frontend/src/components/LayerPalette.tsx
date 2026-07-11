@@ -133,13 +133,9 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
       
       {/* Brand Header */}
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateDashboard}>
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center border border-primary/20">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span className="text-sm font-black text-white tracking-wider">WEAVE</span>
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={onNavigateDashboard}>
+          <img src="/logo_icon.svg" alt="Weave Icon" className="h-7 w-7" />
+          <span className="text-sm font-black text-foreground tracking-wider">WEAVE</span>
         </div>
         <button
           onClick={onNavigateDashboard}
@@ -157,7 +153,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
         </div>
         
         {!datasetConfig ? (
-          <div className="p-3 border border-dashed border-sidebar-border bg-black/10 rounded-xl text-center space-y-2 select-none">
+          <div className="p-3 border border-dashed border-sidebar-border bg-foreground/10 rounded-xl text-center space-y-2 select-none">
             <p className="text-[10px] text-muted-foreground leading-normal">
               No dataset is configured.
             </p>
@@ -169,9 +165,9 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
             </Button>
           </div>
         ) : (
-          <div className="bg-black/15 border border-sidebar-border rounded-xl p-3 space-y-2 select-none">
+          <div className="bg-foreground/[0.15] border border-sidebar-border rounded-xl p-3 space-y-2 select-none">
             <div className="flex justify-between items-center text-xs gap-2">
-              <span className="text-white font-bold truncate flex-1 leading-tight uppercase tracking-wide">
+              <span className="text-foreground font-bold truncate flex-1 leading-tight uppercase tracking-wide">
                 {datasetConfig.source === 'predefined' ? datasetConfig.name : 'Custom Dataset'}
               </span>
               <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5 font-black font-mono shrink-0">
@@ -180,7 +176,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
             </div>
             <Button
               onClick={() => setActiveTab('dataset')}
-              className="w-full bg-white/5 border border-sidebar-border hover:bg-primary text-white hover:text-primary-foreground font-bold text-[9px] uppercase tracking-wider h-6.5 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer"
+              className="w-full bg-foreground/5 border border-sidebar-border hover:bg-primary text-white hover:text-primary-foreground font-bold text-[9px] uppercase tracking-wider h-6.5 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer"
             >
               Edit config <Sliders size={10} className="ml-0.5" />
             </Button>
@@ -204,7 +200,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
             placeholder="Search layers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-sidebar-border pl-8 pr-3 h-8.5 rounded-lg text-xs text-white focus:outline-none focus:border-primary transition-all placeholder-muted-foreground/40"
+            className="w-full bg-background border border-sidebar-border pl-8 pr-3 h-8.5 rounded-lg text-xs text-foreground focus:outline-none focus:border-primary transition-all placeholder-muted-foreground/40"
           />
         </div>
       </div>
@@ -246,7 +242,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
               <div key={cat.name} className="space-y-1">
                 <button
                   onClick={() => toggleCategory(cat.name)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-black uppercase text-left text-muted-foreground hover:bg-sidebar-accent hover:text-white transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-black uppercase text-left text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
                 >
                   <div className="flex items-center gap-2">
                     <Icon size={12} className="opacity-75" />

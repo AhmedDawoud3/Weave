@@ -1,16 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, Database, FileText } from 'lucide-react';
+import { useEffect } from 'react';
 
 export function PrivacyPage() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = "Weave | Privacy Policy";
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-y-auto selection:bg-primary/30 selection:text-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background text-foreground overflow-y-auto selection:bg-primary/30 selection:text-foreground py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() => navigate('/')}
-          className="group mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-white transition-colors duration-200 cursor-pointer"
+          className="group mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
         >
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-200" />
           Back to Home
@@ -22,7 +27,7 @@ export function PrivacyPage() {
             <div className="p-2 bg-primary/10 text-primary rounded-lg border border-primary/20">
               <Shield size={32} />
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
               Privacy Policy
             </h1>
           </div>
@@ -35,7 +40,7 @@ export function PrivacyPage() {
         <div className="space-y-10">
           {/* Introduction */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <FileText size={20} className="text-primary" />
               <h2>1. Introduction</h2>
             </div>
@@ -49,7 +54,7 @@ export function PrivacyPage() {
 
           {/* Information We Collect */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <Eye size={20} className="text-primary" />
               <h2>2. Information We Collect</h2>
             </div>
@@ -58,7 +63,7 @@ export function PrivacyPage() {
             </p>
             <div className="grid md:grid-cols-2 gap-4 mt-2">
               <div className="p-5 rounded-2xl bg-background-alt border border-border space-y-2">
-                <h3 className="text-white font-medium">Account & Profile Information</h3>
+                <h3 className="text-foreground font-medium">Account & Profile Information</h3>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                   <li>Email address (for account verification and identity)</li>
                   <li>Display name (to label your workspace and projects)</li>
@@ -66,7 +71,7 @@ export function PrivacyPage() {
                 </ul>
               </div>
               <div className="p-5 rounded-2xl bg-background-alt border border-border space-y-2">
-                <h3 className="text-white font-medium">Workspace & Project Data</h3>
+                <h3 className="text-foreground font-medium">Workspace & Project Data</h3>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                   <li>Network graph topologies (node structures and parameters)</li>
                   <li>Dataset configurations, custom loaders, and transforms</li>
@@ -78,7 +83,7 @@ export function PrivacyPage() {
 
           {/* How We Use Your Information */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <Database size={20} className="text-primary" />
               <h2>3. How We Use Your Information</h2>
             </div>
@@ -95,7 +100,7 @@ export function PrivacyPage() {
 
           {/* OAuth Providers */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <Lock size={20} className="text-primary" />
               <h2>4. OAuth Authentication Providers (Google & Facebook)</h2>
             </div>
@@ -112,7 +117,7 @@ export function PrivacyPage() {
 
           {/* Data Storage & Security */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <Shield size={20} className="text-primary" />
               <h2>5. Data Storage and Security</h2>
             </div>
@@ -128,7 +133,7 @@ export function PrivacyPage() {
 
           {/* User Rights */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-white font-semibold text-xl">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xl">
               <Database size={20} className="text-primary" />
               <h2>6. Your Rights & Data Deletion</h2>
             </div>

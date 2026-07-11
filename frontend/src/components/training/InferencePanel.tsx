@@ -95,7 +95,7 @@ export function InferencePanel() {
             type="text"
             value={checkpointPath}
             onChange={(e) => setCheckpointPath(e.target.value)}
-            className="bg-background border border-border rounded-xl h-10 text-xs text-white"
+            className="bg-background border border-border rounded-xl h-10 text-xs text-foreground"
             placeholder="e.g. data/checkpoints/best.pt"
           />
         </div>
@@ -111,7 +111,7 @@ export function InferencePanel() {
             value={inferenceInput}
             onChange={(e) => setInferenceInput(e.target.value)}
             rows={4}
-            className="w-full text-xs font-mono bg-background border border-border rounded-xl p-3.5 focus:outline-none focus:border-primary text-white nodrag"
+            className="w-full text-xs font-mono bg-background border border-border rounded-xl p-3.5 focus:outline-none focus:border-primary text-foreground nodrag"
             placeholder="[[1.0, 1.0, 1.0...]] or comma-separated numbers"
           />
 
@@ -119,19 +119,19 @@ export function InferencePanel() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => generatePresetInput('random')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-foreground transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               🎲 Random Noise
             </button>
             <button
               onClick={() => generatePresetInput('zeros')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-foreground transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               All Zeros
             </button>
             <button
               onClick={() => generatePresetInput('ones')}
-              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-white transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary hover:text-foreground transition-all text-[9px] font-black uppercase tracking-wider cursor-pointer"
             >
               All Ones
             </button>
@@ -172,7 +172,7 @@ export function InferencePanel() {
 
               <div className="space-y-2">
                 <div className="text-[10px] font-bold text-weave-teal uppercase tracking-wider">Predictions:</div>
-                <pre className="p-3 bg-black/40 border border-border rounded-xl text-[10px] overflow-x-auto text-white leading-relaxed max-h-[160px] overflow-y-auto">
+                <pre className="p-3 bg-foreground/40 border border-border rounded-xl text-[10px] overflow-x-auto text-foreground leading-relaxed max-h-[160px] overflow-y-auto">
                   {JSON.stringify(inferenceResult.prediction, null, 2)}
                 </pre>
               </div>

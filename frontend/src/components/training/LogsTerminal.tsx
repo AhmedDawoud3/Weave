@@ -55,7 +55,7 @@ export function LogsTerminal() {
       ) : (
         <>
           {trainingLogs.map((log, idx) => (
-            <div key={idx} className="leading-relaxed break-all font-mono text-white/90">
+            <div key={idx} className="leading-relaxed break-all font-mono text-foreground/90">
               <span className="text-primary select-none mr-2 font-black">&gt;</span>
               {colorCodeLog(log)}
             </div>

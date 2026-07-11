@@ -5,15 +5,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Basic page settings for dark default */
+/* Basic page settings for default background and foreground */
 html, body, #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   background-color: var(--background);
-  color: #F1F5F9;
-  color-scheme: dark;
+  color: var(--foreground);
 }
 
 @theme inline {
@@ -51,6 +50,7 @@ html, body, #root {
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
   --color-weave-violet: var(--weave-violet);
   --color-weave-blue: var(--weave-blue);
   --color-weave-slate: var(--weave-slate);
@@ -78,6 +78,7 @@ html, body, #root {
 
   /* Theme color mapping (Weave Dark Theme) */
   --background: #0F1117;
+  --background-alt: #0B0C12;
   --foreground: #F1F5F9;
 
   --card: rgba(20, 22, 30, 0.65);
@@ -127,6 +128,56 @@ html, body, #root {
   --destructive-foreground: #FFFFFF;
 }
 
+/* Weave Light Theme overrides */
+[data-theme='weave-light'] {
+  /* Theme color mapping (Weave Light Theme) */
+  --background: #F8FAFC;
+  --background-alt: #F1F5F9;
+  --foreground: #0F172A;
+
+  --card: rgba(255, 255, 255, 0.8);
+  --card-foreground: #0F172A;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+
+  /* Primary (Weave Violet) */
+  --primary: var(--weave-violet);
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary (Weave Blue) */
+  --secondary: #0284C7;
+  --secondary-foreground: #FFFFFF;
+
+  /* Accent (Weave Teal) */
+  --accent: #0D9488;
+  --accent-foreground: #FFFFFF;
+
+  /* Warning / Amber */
+  --warning: #EA580C;
+
+  /* Muted text and backgrounds */
+  --muted: rgba(15, 23, 42, 0.05);
+  --muted-foreground: #475569;
+
+  /* Borders & Inputs */
+  --border: rgba(15, 23, 42, 0.08);
+  --input: rgba(15, 23, 42, 0.06);
+  --ring: var(--weave-violet);
+
+  /* Sidebar */
+  --sidebar: #F1F5F9;
+  --sidebar-border: rgba(15, 23, 42, 0.06);
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: var(--weave-violet);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(15, 23, 42, 0.04);
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-ring: var(--weave-violet);
+
+  color-scheme: light;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -153,7 +204,7 @@ html, body, #root {
 
 /* Make grid pattern visible but subtle */
 .react-flow__background pattern circle {
-  fill: rgba(255, 255, 255, 0.06) !important;
+  fill: var(--border) !important;
 }
 
 /* Professional sidebar button style */

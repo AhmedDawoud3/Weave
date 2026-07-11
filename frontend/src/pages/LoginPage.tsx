@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail, User, ShieldAlert, Cpu, Terminal, Sparkles, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ShieldAlert, Cpu, Terminal, Sparkles, ChevronRight, Sun, Moon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWeaveStore } from '../store/useWeaveStore';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
+import { useTheme } from '../context/ThemeContext';
 
 // Read Client IDs from environment variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "unconfigured-client-id";
@@ -62,7 +63,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
       {localError && <div className="text-xs text-red-400 text-center">{localError}</div>}
       <div className="relative my-4 text-center">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-        <span className="relative px-3 bg-[#0F1117] text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+        <span className="relative px-3 bg-background text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
           Or continue with
         </span>
       </div>
@@ -72,7 +73,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
           type="button"
           disabled={isAuthenticating}
           onClick={handleGoogleClick}
-          className="bg-muted border border-border hover:bg-muted/80 hover:border-border/60 hover:text-white text-muted-foreground font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+          className="bg-muted border border-border hover:bg-muted/80 hover:border-border/60 hover:text-foreground text-muted-foreground font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -106,15 +107,17 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
   );
 }
 
-interface LoginPageProps {
-  onLogin?: () => void;
-  defaultIsRegister?: boolean;
-}
-
-export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps) {
+export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: () => void, defaultIsRegister?: boolean }) {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isRegister, setIsRegister] = useState(defaultIsRegister);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    document.title = isRegister ? "Weave | Register" : "Weave | Login";
+  }, [isRegister]);
+
+  const logoSrc = theme === 'weave-light' ? '/logo_horizontal_light.svg' : '/logo_horizontal_dark.svg';
   
   // Input fields
   const [email, setEmail] = useState('');
@@ -193,17 +196,12 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
         className="min-h-screen w-full bg-background flex flex-col md:flex-row overflow-y-auto md:overflow-hidden font-sans"
       >
         {/* Left Pane - Live Glowing Neural Network Visuals */}
-        <div className="hidden md:flex w-1/2 flex-col justify-between p-12 bg-[#0B0C12] border-r border-border relative overflow-hidden">
+        <div className="hidden md:flex w-1/2 flex-col justify-between p-12 bg-card border-r border-border relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(108,60,225,0.08),transparent_50%)] pointer-events-none" />
           
           {/* Logo Brand */}
           <div className="flex items-center gap-3 relative z-10">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-weave-violet to-weave-blue/20 flex items-center justify-center shadow-lg border border-weave-violet/20">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="var(--weave-teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="text-white font-black tracking-widest uppercase text-sm">Weave Studio</span>
+            <img src={logoSrc} alt="Weave Logo" className="h-9 w-auto" />
           </div>
 
           {/* Glowing Neural Network Layout SVG */}
@@ -246,7 +244,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
             </svg>
 
             {/* Fake PyTorch Terminal */}
-            <div className="w-full max-w-[420px] bg-[#0B0C12] border border-border rounded-2xl p-4 mt-8 font-mono text-[11px] text-muted-foreground leading-relaxed shadow-xl">
+            <div className="w-full max-w-[420px] bg-card border border-border rounded-2xl p-4 mt-8 font-mono text-[11px] text-muted-foreground leading-relaxed shadow-xl">
               <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                 <div className="flex items-center gap-1.5">
                   <Terminal size={14} className="text-weave-teal" />
@@ -280,14 +278,20 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 relative min-h-screen">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(108,60,225,0.06),transparent_50%)] pointer-events-none" />
 
+          {/* Floating Theme Toggle in Right Pane */}
+          <div className="absolute top-6 right-6 z-20">
+            <button
+              onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-lg hover:bg-foreground/5 border border-transparent hover:border-border h-9 w-9 flex items-center justify-center"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'weave-dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+
           {/* Mobile Header Logo */}
           <div className="flex md:hidden items-center gap-2 mb-8 self-center">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-weave-violet to-weave-blue/20 flex items-center justify-center border border-weave-violet/20">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="var(--weave-teal)" strokeWidth="2" />
-              </svg>
-            </div>
-            <span className="text-white font-black tracking-widest uppercase text-sm">Weave Studio</span>
+            <img src={logoSrc} alt="Weave Logo" className="h-9 w-auto" />
           </div>
 
           <div className="w-full max-w-[400px] p-8 bg-card backdrop-blur-xl border border-border shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-2xl relative z-10">
@@ -295,7 +299,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/10 flex items-center justify-center border border-primary/20 mb-4 shadow-lg">
                 <Sparkles className="text-primary" size={20} />
               </div>
-              <h2 className="text-2xl font-black text-center text-white tracking-wider uppercase">
+              <h2 className="text-2xl font-black text-center text-foreground tracking-wider uppercase">
                 {isRegister ? 'Create Account' : 'Welcome Back'}
               </h2>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center">
@@ -371,7 +375,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: LoginPageProps
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                 </button>

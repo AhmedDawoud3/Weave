@@ -108,7 +108,7 @@ export function TrainingSetup({
             <SelectTrigger className="bg-background border border-border rounded-xl h-10 cursor-pointer">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border border-border text-white">
+            <SelectContent className="bg-card border border-border text-foreground">
               <SelectItem value="AdamW">AdamW (Recommended)</SelectItem>
               <SelectItem value="Adam">Adam</SelectItem>
               <SelectItem value="SGD">SGD</SelectItem>
@@ -144,7 +144,7 @@ export function TrainingSetup({
             <SelectTrigger className="bg-background border border-border rounded-xl h-10 cursor-pointer">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border border-border text-white">
+            <SelectContent className="bg-card border border-border text-foreground">
               <SelectItem value="CosineAnnealingLR">Cosine Annealing</SelectItem>
               <SelectItem value="StepLR">Step Decay</SelectItem>
               <SelectItem value="None">Static Rate</SelectItem>
@@ -165,7 +165,7 @@ export function TrainingSetup({
             <SelectTrigger className="bg-background border border-border rounded-xl h-10 cursor-pointer">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-card border border-border text-white">
+            <SelectContent className="bg-card border border-border text-foreground">
               <SelectItem value="CrossEntropyLoss">CrossEntropyLoss</SelectItem>
               <SelectItem value="MSELoss">MSELoss (Regression)</SelectItem>
               <SelectItem value="BCELoss">BCELoss (Binary)</SelectItem>
@@ -212,7 +212,7 @@ export function TrainingSetup({
             <div className="p-3 bg-background border border-border rounded-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                  <span className="text-[11px] font-black text-foreground uppercase tracking-wider">
                     {datasetConfig.source === 'predefined' ? (datasetConfig as any).name : `${datasetConfig.source} source`}
                   </span>
                   <span className="text-[10px] text-muted-foreground">

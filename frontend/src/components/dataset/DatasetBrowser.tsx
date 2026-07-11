@@ -39,7 +39,7 @@ export function DatasetBrowser({
           Predefined Datasets
         </label>
         {categories.length > 1 && (
-          <div className="flex gap-1 bg-black/45 p-0.5 border border-border rounded-lg">
+          <div className="flex gap-1 bg-foreground/[0.45] p-0.5 border border-border rounded-lg">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -47,7 +47,7 @@ export function DatasetBrowser({
                 className={`px-2 py-0.5 text-[10px] font-black uppercase rounded-md transition-all ${
                   activePredefinedCategory === cat 
                     ? 'bg-primary/25 text-[#40d3b6] font-extrabold shadow-[0_0_8px_rgba(108,60,225,0.15)]' 
-                    : 'text-muted-foreground hover:text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {cat}
@@ -70,12 +70,12 @@ export function DatasetBrowser({
                 className={`p-3 rounded-xl border cursor-pointer flex flex-col justify-between h-20 transition-all ${
                   isSelected 
                     ? 'border-accent/60 bg-accent/5 shadow-glow' 
-                    : 'border-border bg-black/10 hover:bg-black/20'
+                    : 'border-border bg-foreground/10 hover:bg-foreground/20'
                 }`}
               >
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center justify-between gap-1.5">
-                    <span className="text-[10px] font-black text-white">{dataset.name}</span>
+                    <span className="text-[10px] font-black text-foreground">{dataset.name}</span>
                     {dsStatus === 'downloaded' && (
                       <span className="px-1 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Downloaded</span>
                     )}
@@ -105,12 +105,12 @@ export function DatasetBrowser({
       </div>
 
       {selectedName && (
-        <div className="p-4 rounded-xl border border-border bg-black/10 space-y-4">
+        <div className="p-4 rounded-xl border border-border bg-foreground/10 space-y-4">
           {selectedDatasetEntry && (
-            <div className="bg-black/20 border border-border rounded-xl p-3 space-y-2.5">
+            <div className="bg-foreground/20 border border-border rounded-xl p-3 space-y-2.5">
               <div className="flex justify-between items-start">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-black text-white">{selectedDatasetEntry.name}</span>
+                  <span className="text-xs font-black text-foreground">{selectedDatasetEntry.name}</span>
                   <p className="text-[10px] text-muted-foreground leading-normal">{selectedDatasetEntry.description}</p>
                 </div>
                 <span className="text-[10px] bg-accent/15 text-accent border border-accent/20 rounded-md px-1.5 py-0.5 font-bold uppercase tracking-wider">
@@ -121,15 +121,15 @@ export function DatasetBrowser({
               <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-[10px] font-mono">
                 <div className="flex flex-col">
                   <span className="text-muted-foreground text-[8px] uppercase font-sans">Input Shape</span>
-                  <span className="text-white font-bold">{selectedDatasetEntry.shape?.join('×') || 'N/A'}</span>
+                  <span className="text-foreground font-bold">{selectedDatasetEntry.shape?.join('×') || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted-foreground text-[8px] uppercase font-sans">Classes</span>
-                  <span className="text-white font-bold">{selectedDatasetEntry.num_classes || 'N/A'}</span>
+                  <span className="text-foreground font-bold">{selectedDatasetEntry.num_classes || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted-foreground text-[8px] uppercase font-sans">Size</span>
-                  <span className="text-white font-bold">{selectedDatasetEntry.size || 'N/A'}</span>
+                  <span className="text-foreground font-bold">{selectedDatasetEntry.size || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -140,7 +140,7 @@ export function DatasetBrowser({
               <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                 Download Status
               </span>
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 {status === 'downloaded' && (
                   <>
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
@@ -172,7 +172,7 @@ export function DatasetBrowser({
               <Button
                 onClick={() => onDownloadDataset(selectedName)}
                 size="sm"
-                className="h-8 text-xs bg-accent hover:bg-accent/90 text-white font-bold px-3 rounded-lg shadow-glow"
+                className="h-8 text-xs bg-accent hover:bg-accent/90 text-foreground font-bold px-3 rounded-lg shadow-glow"
               >
                 Download Dataset
               </Button>
@@ -191,7 +191,7 @@ export function DatasetBrowser({
 
           {(status === 'downloading' || status === 'starting') && progress && (
             <div className="space-y-1.5">
-              <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden border border-border">
+              <div className="w-full bg-foreground/5 rounded-full h-1.5 overflow-hidden border border-border">
                 <div 
                   className="bg-blue-400 h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${progress.percent}%` }}
@@ -212,7 +212,7 @@ export function DatasetBrowser({
 
       <div className="flex flex-col gap-1.5 mt-4">
         <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Split</span>
-        <div className="grid grid-cols-2 gap-1 bg-black/40 p-1 border border-border rounded-xl w-36">
+        <div className="grid grid-cols-2 gap-1 bg-foreground/40 p-1 border border-border rounded-xl w-36">
           {(['train', 'test'] as const).map((split) => (
             <button
               key={split}
@@ -220,7 +220,7 @@ export function DatasetBrowser({
               className={`py-1 text-[10px] font-black uppercase rounded-md transition-all ${
                 datasetConfig.split === split 
                   ? 'bg-primary/20 text-[#40d3b6] font-bold shadow-[0_0_8px_rgba(108,60,225,0.15)]' 
-                  : 'text-muted-foreground hover:text-white'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {split}

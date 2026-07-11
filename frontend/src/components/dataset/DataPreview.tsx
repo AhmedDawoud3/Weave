@@ -60,7 +60,7 @@ export function DataPreview({
         {!previewLoading && !previewError && previewResult && (
           <div className="space-y-4">
             {previewResult.samples.length === 0 ? (
-              <div className="p-8 text-center text-[10px] text-muted-foreground italic bg-black/10 border border-border rounded-xl">
+              <div className="p-8 text-center text-[10px] text-muted-foreground italic bg-foreground/10 border border-border rounded-xl">
                 No preview samples returned. Verify paths or configurations.
               </div>
             ) : (
@@ -71,12 +71,12 @@ export function DataPreview({
                 return (
                   <div className="space-y-4 select-text">
                     {/* Pagination Selector */}
-                    <div className="flex items-center justify-between bg-black/40 border border-border rounded-xl px-3 py-1.5">
+                    <div className="flex items-center justify-between bg-foreground/40 border border-border rounded-xl px-3 py-1.5">
                       <Button
                         disabled={previewSampleIndex === 0}
                         onClick={() => setPreviewSampleIndex(prev => prev - 1)}
                         size="sm"
-                        className="h-5 w-5 p-0 bg-white/5 hover:bg-white/10 rounded-md border border-border"
+                        className="h-5 w-5 p-0 bg-foreground/5 hover:bg-foreground/10 rounded-md border border-border"
                       >
                         <ChevronLeft size={12} />
                       </Button>
@@ -87,14 +87,14 @@ export function DataPreview({
                         disabled={previewSampleIndex === previewResult.samples.length - 1}
                         onClick={() => setPreviewSampleIndex(prev => prev + 1)}
                         size="sm"
-                        className="h-5 w-5 p-0 bg-white/5 hover:bg-white/10 rounded-md border border-border"
+                        className="h-5 w-5 p-0 bg-foreground/5 hover:bg-foreground/10 rounded-md border border-border"
                       >
                         <ChevronRight size={12} />
                       </Button>
                     </div>
 
                     {/* Sample Card */}
-                    <div className="bg-black/10 border border-border rounded-2xl overflow-hidden p-4 space-y-4 shadow-lg">
+                    <div className="bg-foreground/10 border border-border rounded-2xl overflow-hidden p-4 space-y-4 shadow-lg">
                       {/* Card Header showing Label */}
                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
                         <span>Sample details</span>
@@ -113,7 +113,7 @@ export function DataPreview({
                           </div>
                           
                           {previewResult.modality === 'image' && (
-                            <div className="aspect-square bg-black/40 border border-border rounded-xl flex items-center justify-center overflow-hidden p-2 relative max-w-[240px] mx-auto">
+                            <div className="aspect-square bg-foreground/40 border border-border rounded-xl flex items-center justify-center overflow-hidden p-2 relative max-w-[240px] mx-auto">
                               {sample.raw.thumbnail ? (
                                 <img src={sample.raw.thumbnail} alt="Raw image" className="max-h-full max-w-full object-contain rounded-lg shadow-md" />
                               ) : (
@@ -123,18 +123,18 @@ export function DataPreview({
                           )}
 
                           {previewResult.modality === 'text' && (
-                            <div className="bg-black/40 border border-border rounded-xl p-3 min-h-[70px] text-xs leading-relaxed text-white/90 font-sans break-words whitespace-pre-wrap select-all">
+                            <div className="bg-foreground/40 border border-border rounded-xl p-3 min-h-[70px] text-xs leading-relaxed text-foreground/90 font-sans break-words whitespace-pre-wrap select-all">
                               {sample.raw.text || <span className="text-muted-foreground italic">No text content</span>}
                             </div>
                           )}
 
                           {previewResult.modality === 'tabular' && (
-                            <div className="bg-black/40 border border-border rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-white/95 space-y-1 overflow-y-auto max-h-[120px] no-scrollbar select-all">
+                            <div className="bg-foreground/40 border border-border rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-foreground/95 space-y-1 overflow-y-auto max-h-[120px] no-scrollbar select-all">
                               {sample.raw.features && typeof sample.raw.features === 'object' ? (
                                 Object.entries(sample.raw.features).map(([k, v]: [string, any]) => (
                                   <div key={k} className="flex justify-between border-b border-border/20 pb-0.5">
                                     <span className="text-muted-foreground truncate mr-2">{k}:</span>
-                                    <span className="text-white truncate font-bold">{typeof v === 'number' ? v.toFixed(3) : String(v)}</span>
+                                    <span className="text-foreground truncate font-bold">{typeof v === 'number' ? v.toFixed(3) : String(v)}</span>
                                   </div>
                                 ))
                               ) : (
@@ -144,8 +144,8 @@ export function DataPreview({
                           )}
 
                           {previewResult.modality === 'audio' && (
-                            <div className="bg-black/40 border border-border rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-muted-foreground space-y-1 select-all">
-                              <div className="text-white font-extrabold uppercase text-[9px] flex items-center gap-1.5"><Music size={11} /> Waveform Stats</div>
+                            <div className="bg-foreground/40 border border-border rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-muted-foreground space-y-1 select-all">
+                              <div className="text-foreground font-extrabold uppercase text-[9px] flex items-center gap-1.5"><Music size={11} /> Waveform Stats</div>
                               <div className="space-y-0.5 bg-[#050507] border border-border rounded p-1 text-[10px]">
                                 <div className="flex justify-between"><span className="text-muted-foreground">Mean Power:</span><span>{sample.raw.mean?.toFixed(4) || '0'}</span></div>
                                 <div className="flex justify-between"><span className="text-muted-foreground">Min Amp:</span><span>{sample.raw.min?.toFixed(4) || '0'}</span></div>
@@ -169,7 +169,7 @@ export function DataPreview({
                           </div>
 
                           {previewResult.modality === 'image' && (
-                            <div className="aspect-square bg-black/40 border border-[#40d3b6]/20 rounded-xl flex items-center justify-center overflow-hidden p-2 relative max-w-[240px] mx-auto">
+                            <div className="aspect-square bg-foreground/40 border border-[#40d3b6]/20 rounded-xl flex items-center justify-center overflow-hidden p-2 relative max-w-[240px] mx-auto">
                               {sample.transformed.thumbnail ? (
                                 <img src={sample.transformed.thumbnail} alt="Transformed image" className="max-h-full max-w-full object-contain rounded-lg shadow-md" />
                               ) : (
@@ -179,7 +179,7 @@ export function DataPreview({
                           )}
 
                           {previewResult.modality === 'text' && (
-                            <div className="bg-black/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-xs leading-relaxed text-[#40d3b6] font-mono break-words whitespace-pre-wrap select-all">
+                            <div className="bg-foreground/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-xs leading-relaxed text-[#40d3b6] font-mono break-words whitespace-pre-wrap select-all">
                               {Array.isArray(sample.transformed.tokens) 
                                 ? sample.transformed.tokens.join(', ') 
                                 : (sample.transformed.text || <span className="text-muted-foreground italic">No tokens</span>)}
@@ -187,7 +187,7 @@ export function DataPreview({
                           )}
 
                           {previewResult.modality === 'tabular' && (
-                            <div className="bg-black/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-[#40d3b6] space-y-1 overflow-y-auto max-h-[120px] no-scrollbar select-all">
+                            <div className="bg-foreground/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-[#40d3b6] space-y-1 overflow-y-auto max-h-[120px] no-scrollbar select-all">
                               {sample.transformed.features ? (
                                 `[${sample.transformed.features.map((n: number) => n.toFixed(4)).join(', ')}]`
                               ) : (
@@ -197,7 +197,7 @@ export function DataPreview({
                           )}
 
                           {previewResult.modality === 'audio' && (
-                            <div className="bg-black/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-[#40d3b6] space-y-1.5 select-all">
+                            <div className="bg-foreground/40 border border-[#40d3b6]/20 rounded-xl p-3 min-h-[70px] text-[10px] font-mono text-[#40d3b6] space-y-1.5 select-all">
                               <div className="text-primary font-extrabold uppercase text-[9px] flex items-center justify-between">
                                 <span className="flex items-center gap-1.5"><Table size={11} /> Spectral Features</span>
                                 {sample.transformed.shape && (
@@ -217,7 +217,7 @@ export function DataPreview({
 
                     {/* Extra size/modality banner */}
                     <div className="text-[10px] text-muted-foreground font-mono bg-white/[0.02] border border-border p-2 rounded-xl text-center space-y-0.5">
-                      <div>Total Size: <strong className="text-white">{previewResult.total_size}</strong> samples</div>
+                      <div>Total Size: <strong className="text-foreground">{previewResult.total_size}</strong> samples</div>
                       <div>Modality: <strong className="text-[#40d3b6] uppercase font-black">{previewResult.modality}</strong></div>
                     </div>
                   </div>

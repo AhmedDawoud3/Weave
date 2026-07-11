@@ -36,7 +36,7 @@ export function CustomDatasetForm({
                 type="text"
                 value={datasetConfig.root || ''}
                 onChange={(e) => onConfigChange({ ...datasetConfig, root: e.target.value })}
-                className="flex-1 text-xs bg-black/45 border border-border rounded-xl px-3 py-2 focus:outline-none focus:border-primary text-white nodrag"
+                className="flex-1 text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-2 focus:outline-none focus:border-primary text-foreground nodrag"
                 placeholder="e.g. /home/datasets/images"
               />
               <Button 
@@ -89,7 +89,7 @@ export function CustomDatasetForm({
             <label className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
               Custom Modality
             </label>
-            <div className="grid grid-cols-4 gap-1 bg-black/40 p-1 border border-border rounded-xl">
+            <div className="grid grid-cols-4 gap-1 bg-foreground/40 p-1 border border-border rounded-xl">
               {(['image', 'text', 'tabular', 'audio'] as const).map((m) => {
                 const isActive = modality === m;
                 return (
@@ -99,7 +99,7 @@ export function CustomDatasetForm({
                     className={`py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${
                       isActive 
                         ? 'bg-primary/20 text-[#40d3b6] shadow-[0_0_8px_rgba(108,60,225,0.15)]' 
-                        : 'text-muted-foreground hover:text-white'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     {m}
@@ -118,7 +118,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.root || ''}
                     onChange={(e) => onConfigChange({ ...datasetConfig, root: e.target.value })}
-                    className="flex-1 text-xs bg-black/45 border border-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-primary nodrag"
+                    className="flex-1 text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-primary nodrag"
                     placeholder="Path to root folder"
                   />
                   <Button 
@@ -133,13 +133,13 @@ export function CustomDatasetForm({
 
               <div className="flex flex-col gap-1.5">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Labels Schema</span>
-                <div className="grid grid-cols-2 gap-1 bg-black/40 p-1 border border-border rounded-xl w-44">
+                <div className="grid grid-cols-2 gap-1 bg-foreground/40 p-1 border border-border rounded-xl w-44">
                   {(['folder', 'csv'] as const).map((src) => (
                     <button
                       key={src}
                       onClick={() => onConfigChange({ ...datasetConfig, label_source: src })}
                       className={`py-1 text-[10px] font-black uppercase rounded-md transition-all ${
-                        datasetConfig.label_source === src ? 'bg-primary/20 text-[#40d3b6]' : 'text-muted-foreground hover:text-white'
+                        datasetConfig.label_source === src ? 'bg-primary/20 text-[#40d3b6]' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       {src === 'folder' ? 'Subfolders' : 'CSV Index'}
@@ -156,7 +156,7 @@ export function CustomDatasetForm({
                       type="text"
                       value={datasetConfig.label_file || ''}
                       onChange={(e) => onConfigChange({ ...datasetConfig, label_file: e.target.value })}
-                      className="text-xs bg-black/45 border border-border rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                      className="text-xs bg-foreground/[0.45] border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                       placeholder="Path to annotations.csv"
                     />
                   </div>
@@ -167,7 +167,7 @@ export function CustomDatasetForm({
                         type="text"
                         value={datasetConfig.image_column || ''}
                         onChange={(e) => onConfigChange({ ...datasetConfig, image_column: e.target.value })}
-                        className="text-xs bg-black/45 border border-border rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                        className="text-xs bg-foreground/[0.45] border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                         placeholder="image_path"
                       />
                     </div>
@@ -177,7 +177,7 @@ export function CustomDatasetForm({
                         type="text"
                         value={datasetConfig.label_column || ''}
                         onChange={(e) => onConfigChange({ ...datasetConfig, label_column: e.target.value })}
-                        className="text-xs bg-black/45 border border-border rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                        className="text-xs bg-foreground/[0.45] border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                         placeholder="label"
                       />
                     </div>
@@ -191,7 +191,7 @@ export function CustomDatasetForm({
                   type="text"
                   value={datasetConfig.file_pattern || '*.jpg'}
                   onChange={(e) => onConfigChange({ ...datasetConfig, file_pattern: e.target.value })}
-                  className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white font-mono focus:outline-none focus:border-primary nodrag"
+                  className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground font-mono focus:outline-none focus:border-primary nodrag"
                 />
               </div>
             </div>
@@ -206,7 +206,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.file_path || ''}
                     onChange={(e) => onConfigChange({ ...datasetConfig, file_path: e.target.value })}
-                    className="flex-1 text-xs bg-black/45 border border-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-primary nodrag"
+                    className="flex-1 text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-primary nodrag"
                     placeholder="Path to CSV dataset"
                   />
                   <Button 
@@ -226,7 +226,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.text_column || 'text'}
                     onChange={(e) => onConfigChange({ ...datasetConfig, text_column: e.target.value })}
-                    className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                    className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -235,7 +235,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.label_column || 'label'}
                     onChange={(e) => onConfigChange({ ...datasetConfig, label_column: e.target.value })}
-                    className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                    className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   />
                 </div>
               </div>
@@ -249,7 +249,7 @@ export function CustomDatasetForm({
                       type="number"
                       value={datasetConfig.vocab_size || 30000}
                       onChange={(e) => onConfigChange({ ...datasetConfig, vocab_size: parseInt(e.target.value) })}
-                      className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                      className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -258,7 +258,7 @@ export function CustomDatasetForm({
                       type="number"
                       value={datasetConfig.max_length || 512}
                       onChange={(e) => onConfigChange({ ...datasetConfig, max_length: parseInt(e.target.value) })}
-                      className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                      className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                     />
                   </div>
                 </div>
@@ -268,7 +268,7 @@ export function CustomDatasetForm({
                   <button
                     type="button"
                     className={`nodrag text-[10px] px-2 py-0.5 rounded font-bold border transition-all cursor-pointer ${
-                      datasetConfig.lowercase !== false ? 'bg-primary/20 border-primary/45 text-primary' : 'bg-white/5 border-border text-neutral-400'
+                      datasetConfig.lowercase !== false ? 'bg-primary/20 border-primary/45 text-primary' : 'bg-foreground/5 border-border text-neutral-400'
                     }`}
                     onClick={() => onConfigChange({ ...datasetConfig, lowercase: datasetConfig.lowercase !== false ? false : true })}
                   >
@@ -288,7 +288,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.file_path || ''}
                     onChange={(e) => onConfigChange({ ...datasetConfig, file_path: e.target.value })}
-                    className="flex-1 text-xs bg-black/45 border border-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-primary nodrag"
+                    className="flex-1 text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-primary nodrag"
                     placeholder="Path to tabular file"
                   />
                   <Button 
@@ -307,7 +307,7 @@ export function CustomDatasetForm({
                   type="text"
                   value={datasetConfig.target_column || ''}
                   onChange={(e) => onConfigChange({ ...datasetConfig, target_column: e.target.value })}
-                  className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                  className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   placeholder="Column to predict"
                 />
               </div>
@@ -322,7 +322,7 @@ export function CustomDatasetForm({
                     const cols = val.split(',').map(s => s.trim()).filter(s => s !== '');
                     onConfigChange({ ...datasetConfig, feature_columns: cols });
                   }}
-                  className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                  className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   placeholder="Optional: col1, col2 (empty for all)"
                 />
               </div>
@@ -338,7 +338,7 @@ export function CustomDatasetForm({
                     type="text"
                     value={datasetConfig.root || ''}
                     onChange={(e) => onConfigChange({ ...datasetConfig, root: e.target.value })}
-                    className="flex-1 text-xs bg-black/45 border border-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-primary nodrag"
+                    className="flex-1 text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-primary nodrag"
                     placeholder="Path to audio root folder"
                   />
                   <Button 
@@ -358,7 +358,7 @@ export function CustomDatasetForm({
                     type="number"
                     value={datasetConfig.sample_rate || 16000}
                     onChange={(e) => onConfigChange({ ...datasetConfig, sample_rate: parseInt(e.target.value) })}
-                    className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                    className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -367,7 +367,7 @@ export function CustomDatasetForm({
                     type="number"
                     value={datasetConfig.max_duration || 5}
                     onChange={(e) => onConfigChange({ ...datasetConfig, max_duration: parseFloat(e.target.value) })}
-                    className="text-xs bg-black/45 border border-border rounded-xl px-3 py-1.5 text-white focus:outline-none focus:border-primary nodrag"
+                    className="text-xs bg-foreground/[0.45] border border-border rounded-xl px-3 py-1.5 text-foreground focus:outline-none focus:border-primary nodrag"
                   />
                 </div>
               </div>

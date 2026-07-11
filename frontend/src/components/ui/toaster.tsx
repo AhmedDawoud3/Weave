@@ -63,7 +63,7 @@ export function Toaster() {
           <span>{t.message}</span>
           <button
             onClick={() => toast.remove(t.id)}
-            className="text-muted-foreground hover:text-white transition-colors cursor-pointer text-xs font-black p-1"
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer text-xs font-black p-1"
           >
             ✕
           </button>

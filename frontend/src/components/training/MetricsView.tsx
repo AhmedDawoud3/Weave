@@ -57,18 +57,18 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : trainingStatus === 'paused'
                     ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    : 'bg-muted/20 text-white border border-border'
+                    : 'bg-muted/20 text-foreground border border-border'
               }`}>
                 {trainingStatus}
               </span>
             </div>
             <div>
               <span className="text-muted-foreground mr-2 text-[10px]">Epoch:</span>
-              <span className="text-white">0 / {epochs}</span>
+              <span className="text-foreground">0 / {epochs}</span>
             </div>
             <div>
               <span className="text-muted-foreground mr-2 text-[10px]">Active Steps:</span>
-              <span className="text-white">0</span>
+              <span className="text-foreground">0</span>
             </div>
           </div>
         )}
@@ -254,7 +254,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         <div className="flex justify-between items-center mb-2">
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Overall Training Progress</span>
-            <span className="text-xs font-black text-white uppercase mt-0.5">
+            <span className="text-xs font-black text-foreground uppercase mt-0.5">
               {currentStep ?? 0} / {totalSteps ?? 'Calculating...'} total steps
             </span>
           </div>
@@ -264,7 +264,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         </div>
 
         {/* Glowing Progress Bar */}
-        <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden border border-border relative">
+        <div className="w-full h-2.5 bg-foreground/60 rounded-full overflow-hidden border border-border relative">
           <div
             className="h-full bg-gradient-to-r from-primary to-[#40d3b6] shadow-glow transition-all duration-300"
             style={{ width: `${overallPercent}%` }}
@@ -284,7 +284,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Training Status</span>
           <div className="flex items-center gap-2 mt-1">
             {getStatusIcon()}
-            <span className="text-xs font-black uppercase tracking-wider text-white">
+            <span className="text-xs font-black uppercase tracking-wider text-foreground">
               {trainingStatus}
             </span>
           </div>
@@ -296,7 +296,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         {/* Elapsed time card */}
         <div className="bg-card border border-border rounded-xl p-3 flex flex-col justify-between h-18">
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Time Elapsed</span>
-          <span className="text-lg font-black font-mono text-white mt-0.5 leading-tight">
+          <span className="text-lg font-black font-mono text-foreground mt-0.5 leading-tight">
             {formatDuration(elapsedTime)}
           </span>
           <span className="text-[9px] text-muted-foreground/60 uppercase font-semibold">
@@ -307,7 +307,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         {/* Remaining time (ETA) card */}
         <div className="bg-card border border-border rounded-xl p-3 flex flex-col justify-between h-18">
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Estimated Time Left</span>
-          <span className="text-lg font-black font-mono text-white mt-0.5 leading-tight">
+          <span className="text-lg font-black font-mono text-foreground mt-0.5 leading-tight">
             {trainingStatus === 'running' ? formatDuration(etaSeconds) : '--:--'}
           </span>
           <span className="text-[9px] text-muted-foreground/60 uppercase font-semibold">
@@ -318,7 +318,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         {/* Training Speed card */}
         <div className="bg-card border border-border rounded-xl p-3 flex flex-col justify-between h-18">
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Processing Rate</span>
-          <span className="text-lg font-black font-mono text-white mt-0.5 leading-tight">
+          <span className="text-lg font-black font-mono text-foreground mt-0.5 leading-tight">
             {speedDisplay}
           </span>
           <span className="text-[9px] text-muted-foreground/60 uppercase font-semibold">
@@ -328,17 +328,17 @@ export function MetricsView({ epochs }: MetricsViewProps) {
       </div>
 
       {/* 3. CHART CONTROLS & VIEWER MODE TOGGLE */}
-      <div className="flex justify-between items-center bg-black/40 border border-border rounded-xl p-2.5">
+      <div className="flex justify-between items-center bg-foreground/40 border border-border rounded-xl p-2.5">
         <span className="text-xs font-black uppercase tracking-wider text-muted-foreground pl-1">Metrics Charts Visualization</span>
         
         {/* Toggle sliding button group */}
-        <div className="flex bg-black/60 border border-border rounded-lg p-0.5 h-8 items-center select-none text-[10px] font-black uppercase tracking-widest">
+        <div className="flex bg-foreground/60 border border-border rounded-lg p-0.5 h-8 items-center select-none text-[10px] font-black uppercase tracking-widest">
           <button
             onClick={() => setChartMode('steps')}
             className={`px-3 py-1 rounded transition-all cursor-pointer ${
               plotSteps
                 ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
-                : 'text-muted-foreground hover:text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Live Steps
@@ -348,7 +348,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
             className={`px-3 py-1 rounded transition-all cursor-pointer ${
               !plotSteps
                 ? 'bg-primary/20 text-[#40d3b6] border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
-                : 'text-muted-foreground hover:text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Epochs
@@ -363,7 +363,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between relative overflow-visible">
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">
-              <span className="text-xs font-black text-white uppercase tracking-wider">Loss Curve</span>
+              <span className="text-xs font-black text-foreground uppercase tracking-wider">Loss Curve</span>
               <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
                 {plotSteps ? 'Step-Level Training Loss' : 'Epoch-Level (Train & Val)'}
               </span>
@@ -446,18 +446,18 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                 className="absolute bg-card/95 border border-border rounded-lg p-2.5 shadow-2xl z-50 text-[10px] pointer-events-none space-y-1 backdrop-blur-md min-w-[110px]"
                 style={{ left: lossTooltipPos.x, top: lossTooltipPos.y }}
               >
-                <div className="font-extrabold text-white uppercase tracking-wider">
+                <div className="font-extrabold text-foreground uppercase tracking-wider">
                   {plotSteps ? `Step ${lossHoveredIdx + 1}` : `Epoch ${lossHoveredIdx + 1}`}
                 </div>
                 <div className="flex flex-col gap-0.5 text-muted-foreground font-mono">
                   <div className="flex items-center gap-1.5 justify-between">
                     <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#1e8fd3]" /> Train:</span>
-                    <span className="text-white font-bold">{lossesToPlot[lossHoveredIdx]?.toFixed(4)}</span>
+                    <span className="text-foreground font-bold">{lossesToPlot[lossHoveredIdx]?.toFixed(4)}</span>
                   </div>
                   {!plotSteps && valLossesToPlot[lossHoveredIdx] !== null && (
                     <div className="flex items-center gap-1.5 justify-between">
                       <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" /> Val:</span>
-                      <span className="text-white font-bold">{valLossesToPlot[lossHoveredIdx]?.toFixed(4)}</span>
+                      <span className="text-foreground font-bold">{valLossesToPlot[lossHoveredIdx]?.toFixed(4)}</span>
                     </div>
                   )}
                 </div>
@@ -470,7 +470,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between relative overflow-visible">
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">
-              <span className="text-xs font-black text-white uppercase tracking-wider">
+              <span className="text-xs font-black text-foreground uppercase tracking-wider">
                 {isRegression ? 'Mean Squared Error (MSE)' : 'Accuracy Curve'}
               </span>
               <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
@@ -566,13 +566,13 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                     className="absolute bg-card/95 border border-border rounded-lg p-2.5 shadow-2xl z-50 text-[10px] pointer-events-none space-y-1 backdrop-blur-md min-w-[110px]"
                     style={{ left: secTooltipPos.x, top: secTooltipPos.y }}
                   >
-                    <div className="font-extrabold text-white uppercase tracking-wider">
+                    <div className="font-extrabold text-foreground uppercase tracking-wider">
                       {plotSteps ? `Step ${secHoveredIdx + 1}` : `Epoch ${secHoveredIdx + 1}`}
                     </div>
                     <div className="flex flex-col gap-0.5 text-muted-foreground font-mono">
                       <div className="flex items-center gap-1.5 justify-between">
                         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Train:</span>
-                        <span className="text-white font-bold">
+                        <span className="text-foreground font-bold">
                           {isRegression
                             ? secondariesToPlot[secHoveredIdx]?.toFixed(4)
                             : `${((secondariesToPlot[secHoveredIdx] ?? 0) * 100).toFixed(1)}%`}
@@ -581,7 +581,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                       {!plotSteps && valSecondariesToPlot[secHoveredIdx] !== null && (
                         <div className="flex items-center gap-1.5 justify-between">
                           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" /> Val:</span>
-                          <span className="text-white font-bold">
+                          <span className="text-foreground font-bold">
                             {isRegression
                               ? (valSecondariesToPlot[secHoveredIdx] as number).toFixed(4)
                               : `${((valSecondariesToPlot[secHoveredIdx] as number) * 100).toFixed(1)}%`}

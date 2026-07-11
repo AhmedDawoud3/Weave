@@ -282,7 +282,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
     const inputCls = `nodrag w-full bg-background border rounded-lg px-2 py-1 text-xs focus:outline-none transition-colors ${
       isInduced 
         ? 'opacity-65 cursor-not-allowed border-primary/30 text-primary font-bold font-mono' 
-        : 'border-border text-white focus:border-primary/50'
+        : 'border-border text-foreground focus:border-primary/50'
     }`;
 
     if (f.type === 'boolean') {
@@ -292,7 +292,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
           <button
             type="button"
             className={`nodrag text-[10px] px-2.5 py-0.5 rounded font-bold border transition-all cursor-pointer ${
-              raw !== false ? 'bg-primary/20 border-primary/45 text-primary shadow-[0_0_8px_rgba(108,60,225,0.15)]' : 'bg-white/5 border-border text-neutral-400 hover:bg-white/10'
+              raw !== false ? 'bg-primary/20 border-primary/45 text-primary shadow-[0_0_8px_rgba(108,60,225,0.15)]' : 'bg-foreground/5 border-border text-neutral-400 hover:bg-foreground/10'
             }`}
             onClick={(e) => { e.stopPropagation(); handleParamChange(f.key, raw !== false ? false : true); }}
           >
@@ -411,7 +411,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
               <div className="flex gap-1 items-center nodrag w-full">
                 <input
                   autoFocus
-                  className="w-full bg-background border border-border rounded px-1.5 py-0.5 text-xs text-white text-center focus:outline-none focus:border-primary/50"
+                  className="w-full bg-background border border-border rounded px-1.5 py-0.5 text-xs text-foreground text-center focus:outline-none focus:border-primary/50"
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
                   onBlur={commitLabel}
@@ -421,7 +421,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
             ) : (
               <span
                 onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
-                className={`text-[10px] font-bold text-white uppercase truncate cursor-pointer hover:underline ${
+                className={`text-[10px] font-bold text-foreground uppercase truncate cursor-pointer hover:underline ${
                   isHovered || isExpanded ? 'max-w-[100px]' : 'max-w-[60px]'
                 }`}
               >
@@ -454,7 +454,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
 
         {/* Configurations & Connections Drawer — visible on hover or expanded */}
         {!isInputNode && !isOutputNode && (isHovered || isExpanded) && (
-          <div className="border-t border-border bg-black/15 select-none">
+          <div className="border-t border-border bg-foreground/[0.15] select-none">
             
             {/* Short compact parameter summary */}
             {keyParamLine && !isExpanded && (
@@ -483,7 +483,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
                         return (
                           <div key={edge.id} className="flex items-center justify-between bg-background border border-border rounded-lg px-2 py-1 text-[10px] font-mono gap-1.5">
                             <span className="text-primary font-black">{handleLabel}:</span>
-                            <span className="text-white/60 truncate flex-1">{sourceNode?.data?.label || edge.source}</span>
+                            <span className="text-foreground/70 truncate flex-1">{sourceNode?.data?.label || edge.source}</span>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removeEdge(edge.id); }}
@@ -504,7 +504,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
             {/* Toggle Drawer Chevron Button */}
             <button
               type="button"
-              className="nodrag w-full flex items-center justify-center gap-1 text-[8.5px] text-muted-foreground hover:text-white transition-colors py-1 cursor-pointer focus:outline-none"
+              className="nodrag w-full flex items-center justify-center gap-1 text-[8.5px] text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer focus:outline-none"
               onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); }}
             >
               {isExpanded ? (
