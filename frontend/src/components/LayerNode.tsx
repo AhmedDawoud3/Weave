@@ -133,7 +133,7 @@ const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput
   if (['Add','Concat','Multiply'].includes(type)) color = 'yellow';
   else if (['BatchNorm2d','LayerNorm','GroupNorm','BatchNorm1d'].includes(type)) color = 'teal';
   else if (['ReLU','GELU','Sigmoid','Tanh','Softmax','LeakyReLU','SiLU','ELU','PReLU'].includes(type)) color = 'emerald';
-  else if (['Conv1d','MaxPool1d','FlattenConsecutive'].includes(type)) color = 'fuchsia';
+  else if (['Conv2d','ConvTranspose2d','MaxPool2d','AvgPool2d','AdaptiveAvgPool2d','Conv1d','MaxPool1d','FlattenConsecutive'].includes(type)) color = 'violet';
   else if (['SelfAttention','PositionalEncoding','CausalMask','FeedForward'].includes(type)) color = 'indigo';
 
   const colorMap: Record<string, any> = {
@@ -144,6 +144,14 @@ const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput
       badge: 'bg-weave-blue/10 text-weave-blue border-weave-blue/20',
       handle: '!bg-weave-blue',
       icon: 'text-weave-blue',
+    },
+    violet: {
+      topBar: 'bg-weave-violet',
+      text: 'text-weave-violet',
+      border: selected ? 'border-weave-violet shadow-[0_0_15px_rgba(108,60,225,0.3)]' : 'border-border hover:border-weave-violet/40',
+      badge: 'bg-weave-violet/10 text-weave-violet border-weave-violet/20',
+      handle: '!bg-weave-violet',
+      icon: 'text-weave-violet',
     },
     yellow: {
       topBar: 'bg-yellow-500',
@@ -486,7 +494,10 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
       ref={nodeRef}
       className="relative select-none group"
       onMouseEnter={() => { if (!dragging) setIsHovered(true); }}
-      onMouseLeave={() => { setIsHovered(false); setIsExpanded(false); }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        // ponytail: Expansion state is tracked locally on the node and resets only when dragged. Upgradable by hoisting layout states to Zustand.
+      }}
     >
       {/* Target Handles (Inputs) */}
       {Array.from({ length: targetCount }).map((_, i) => {
@@ -554,11 +565,11 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
             )}
           </div>
 
-          {/* Output Shape Badge — visible on hover or expanded */}
-          {(isHovered || isExpanded) && !isOutputConnected && (
+          {/* Output Shape Badge — visible when not connected */}
+          {!isOutputConnected && (
             shape ? (
               <div className="text-[8px] font-mono text-weave-teal font-semibold mt-1 bg-weave-teal/5 px-1 py-0 border border-weave-teal/10 rounded">
-                {shape.join(' × ')}
+                {shape.join('×')}
               </div>
             ) : (
               <div className="text-[8px] text-muted-foreground/30 mt-1 font-mono select-none">
@@ -661,6 +672,23 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
           className={`!w-2.5 !h-2.5 ${theme.handle} border-2 border-background !z-50 rounded-full hover:scale-125 transition-transform`}
         />
       ))}
+
+      {/* Floating Hover Inspector Tooltip */}
+      {isHovered && !isExpanded && (
+        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 rounded-xl glass-panel text-[10px] text-slate-200 pointer-events-none min-w-[150px] shadow-2xl border border-white/15">
+          <p className={`font-extrabold uppercase ${theme.text} border-b border-white/5 pb-1 mb-1.5 tracking-wider`}>{data.type}</p>
+          <div className="space-y-1 font-mono text-[9px]">
+            {shape ? (
+              <p className="flex justify-between gap-4"><span className="text-slate-400">Dim:</span> <span className="text-weave-teal font-bold">{shape.join(' × ')}</span></p>
+            ) : (
+              <p className="text-slate-500 italic">No dimension data</p>
+            )}
+            {keyParamLine && (
+              <p className="text-slate-400 border-t border-white/5 pt-1.5 mt-1.5 leading-relaxed">{keyParamLine}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

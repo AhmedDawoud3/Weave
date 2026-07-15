@@ -4,10 +4,10 @@ import type { ComponentType } from "react";
 import { LayerNode } from "@/components/LayerNode";
 import { useWeaveStore } from "@/store/useWeaveStore";
 
-// Mock reactflow Handle and Position since they are DOM-drawing primitives
-vi.mock("reactflow", () => ({
+// Mock @xyflow/react Handle and Position since they are DOM-drawing primitives
+vi.mock("@xyflow/react", () => ({
   Handle: () => null,
-  Position: { Top: "top", Bottom: "bottom" },
+  Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
   useUpdateNodeInternals: () => vi.fn(),
 }));
 

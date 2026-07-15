@@ -81,7 +81,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     checkKernelConnection,
     activeTab,
     setActiveTab,
-    selectProjectById
+    selectProjectById,
+    saveActiveSubGraph
   } = useWeaveStore();
 
   const { theme, setTheme } = useTheme();
@@ -121,6 +122,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [newSubGraphName, setNewSubGraphName] = useState('');
   const [showSubGraphPrompt, setShowSubGraphPrompt] = useState(false);
+  const [showShortcutsTray, setShowShortcutsTray] = useState(false);
 
   const [showSearchPalette, setShowSearchPalette] = useState(false);
   const [searchPalettePosition, setSearchPalettePosition] = useState<{ x: number; y: number } | null>(null);
@@ -169,7 +171,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     setShowSearchPalette(false);
   }, [addNode, searchPalettePosition]);
 
-  // Open command palette with Space/Tab keys
+  // Open command palette with Space/Tab keys & support hotkeys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -178,6 +180,15 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
         activeEl.tagName === 'TEXTAREA' ||
         activeEl.getAttribute('contenteditable') === 'true'
       );
+
+      // Support saving regardless of focus (since Ctrl+S is global)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveActiveSubGraph();
+        toast.success("Sandbox saved successfully!");
+        return;
+      }
+
       if (isEditing) return;
 
       if (e.key === ' ' || e.key === 'Tab') {
@@ -191,11 +202,14 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           setSearchQuery('');
           setShowSearchPalette(true);
         }
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcutsTray(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, saveActiveSubGraph]);
 
   // Poll kernel online status every 5 seconds
   useEffect(() => {
@@ -536,7 +550,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                 )}
 
                 {/* Keyboard Shortcuts Hint */}
-                <div className="absolute bottom-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg text-[10px] text-muted-foreground flex flex-col gap-1.5 select-none pointer-events-none">
+                <div
+                  onClick={() => setShowShortcutsTray(true)}
+                  className="absolute bottom-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg text-[10px] text-muted-foreground flex flex-col gap-1.5 select-none cursor-pointer hover:border-primary/50 transition-colors pointer-events-auto"
+                >
                   <div className="flex items-center gap-2 font-bold text-foreground uppercase tracking-wider mb-0.5">
                     <HelpCircle size={12} className="text-primary animate-pulse" /> Shortcuts
                   </div>
@@ -544,6 +561,61 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                   <div className="flex justify-between gap-4"><span>Focus Search:</span><kbd className="bg-foreground/5 border border-border px-1.5 py-0.2 rounded font-mono">/</kbd></div>
                   <div className="flex justify-between gap-4"><span>Delete Layer:</span><kbd className="bg-foreground/5 border border-border px-1.5 py-0.2 rounded font-mono">Backspace</kbd></div>
                 </div>
+
+                {/* Detailed Shortcuts Overlay */}
+                <AnimatePresence>
+                  {showShortcutsTray && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-6"
+                      onClick={() => setShowShortcutsTray(false)}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="glass-panel p-8 rounded-3xl max-w-sm w-full relative"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                          <h3 className="text-md font-black uppercase text-slate-100 flex items-center gap-2">
+                            <HelpCircle className="text-weave-violet" size={16} /> Keyboard Shortcuts
+                          </h3>
+                          <button
+                            onClick={() => setShowShortcutsTray(false)}
+                            className="text-[10px] uppercase text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center text-xs py-1.5 border-b border-white/5">
+                            <span className="text-slate-400">Spawn Layer Palette</span>
+                            <kbd className="bg-white/5 border border-white/10 px-2.5 py-0.5 rounded font-mono text-[10px] text-weave-violet font-bold">Space / Tab</kbd>
+                          </div>
+                          <div className="flex justify-between items-center text-xs py-1.5 border-b border-white/5">
+                            <span className="text-slate-400">Save Active Sandbox</span>
+                            <kbd className="bg-white/5 border border-white/10 px-2.5 py-0.5 rounded font-mono text-[10px] text-weave-blue font-bold">Ctrl + S</kbd>
+                          </div>
+                          <div className="flex justify-between items-center text-xs py-1.5 border-b border-white/5">
+                            <span className="text-slate-400">Delete Selected Node</span>
+                            <kbd className="bg-white/5 border border-white/10 px-2.5 py-0.5 rounded font-mono text-[10px] text-weave-teal font-bold">Backspace / Del</kbd>
+                          </div>
+                          <div className="flex justify-between items-center text-xs py-1.5 border-b border-white/5">
+                            <span className="text-slate-400">Focus Search bar</span>
+                            <kbd className="bg-white/5 border border-white/10 px-2.5 py-0.5 rounded font-mono text-[10px] text-weave-amber font-bold">/</kbd>
+                          </div>
+                          <div className="flex justify-between items-center text-xs py-1.5">
+                            <span className="text-slate-400">Toggle this helper</span>
+                            <kbd className="bg-white/5 border border-white/10 px-2.5 py-0.5 rounded font-mono text-[10px] text-slate-300 font-bold">?</kbd>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <ReactFlow
                   nodes={nodes}

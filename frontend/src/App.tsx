@@ -12,6 +12,9 @@ const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const StudioPage = lazy(() => import('./pages/StudioPage').then(m => ({ default: m.StudioPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
+const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
+const GalleryPage = lazy(() => import('./pages/GalleryPage').then(m => ({ default: m.GalleryPage })));
 
 function PageLoader() {
   return (
@@ -30,6 +33,15 @@ function AnimatedRoutes() {
         {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
         
+        {/* Features Page */}
+        <Route path="/features" element={<FeaturesPage />} />
+
+        {/* Pricing Page */}
+        <Route path="/pricing" element={<PricingPage />} />
+
+        {/* Gallery Page */}
+        <Route path="/gallery" element={<GalleryPage />} />
+
         {/* Privacy Policy Page */}
         <Route path="/privacy" element={<PrivacyPage />} />
         

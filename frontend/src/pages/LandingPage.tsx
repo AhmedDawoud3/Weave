@@ -165,9 +165,9 @@ export function LandingPage() {
             <img src={logoSrc} alt="Weave Logo" className="h-8 w-auto" />
           </div>
           <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#workflow" className="hover:text-foreground transition-colors">Workflow</a>
-            <a href="#samples" className="hover:text-foreground transition-colors">Samples</a>
+            <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link to="/gallery" className="hover:text-foreground transition-colors">Gallery</Link>
+            <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </div>
           <div className="flex items-center gap-4 text-xs">
             <button

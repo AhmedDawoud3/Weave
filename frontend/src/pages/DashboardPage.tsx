@@ -11,6 +11,20 @@ import { TEMPLATES } from '../config/templates';
 import { toast } from '../components/ui/toaster';
 import { Skeleton } from '../components/ui/skeleton';
 import { useTheme } from '../context/ThemeContext';
+import { CompareRunsModal } from '../components/training/CompareRunsModal';
+
+const getMockRunsForProject = (projectName: string) => {
+  if (projectName.toLowerCase().includes('resnet') || projectName.toLowerCase().includes('cifar')) {
+    return [
+      { id: 'run-resnet-cifar10-a', metrics: { loss: [0.65, 0.45, 0.32, 0.21, 0.15], accuracy: [0.72, 0.81, 0.88, 0.92, 0.94], epochs: [1, 2, 3, 4, 5] }, accuracy: '94.2%' },
+      { id: 'run-resnet-cifar10-b', metrics: { loss: [0.72, 0.58, 0.45, 0.33, 0.25], accuracy: [0.68, 0.77, 0.84, 0.88, 0.91], epochs: [1, 2, 3, 4, 5] }, accuracy: '91.0%' }
+    ];
+  }
+  return [
+    { id: `run-${projectName.toLowerCase().replace(/\s+/g, '-')}-a`, metrics: { loss: [0.35, 0.18, 0.11, 0.08, 0.05], accuracy: [0.89, 0.95, 0.97, 0.98, 0.99], epochs: [1, 2, 3, 4, 5] }, accuracy: '99.0%' },
+    { id: `run-${projectName.toLowerCase().replace(/\s+/g, '-')}-b`, metrics: { loss: [0.48, 0.32, 0.24, 0.18, 0.12], accuracy: [0.82, 0.89, 0.92, 0.94, 0.96], epochs: [1, 2, 3, 4, 5] }, accuracy: '96.2%' }
+  ];
+};
 
 interface DashboardPageProps {
   onOpenProject?: () => void;
@@ -42,6 +56,23 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [importingTemplate, setImportingTemplate] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [selectedRunsToCompare, setSelectedRunsToCompare] = useState<Array<{ id: string; projectName: string; metrics: any }>>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  const handleToggleRunSelection = (run: any, projectName: string) => {
+    setSelectedRunsToCompare(prev => {
+      const exists = prev.some(r => r.id === run.id);
+      if (exists) {
+        return prev.filter(r => r.id !== run.id);
+      } else {
+        if (prev.length >= 3) {
+          toast.error("You can compare up to 3 runs at a time.");
+          return prev;
+        }
+        return [...prev, { id: run.id, projectName, metrics: run.metrics }];
+      }
+    });
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -222,7 +253,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
               >
-                <Card className="bg-card border border-border rounded-2xl group hover:border-primary/40 hover:shadow-glow transition-all flex flex-col h-[320px] justify-between relative overflow-hidden">
+                <Card className="bg-card border border-border rounded-2xl group hover:border-primary/40 hover:shadow-glow transition-all flex flex-col h-[420px] justify-between relative overflow-hidden">
                   {/* Thumbnail area like Figma */}
                   <div className={`h-24 w-full bg-gradient-to-tr ${getDeterministicGradient(p.name)} border-b border-border flex items-center justify-center relative overflow-hidden rounded-t-2xl`}>
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
@@ -261,6 +292,27 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                       <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
                         {p.description || "No description provided."}
                       </p>
+
+                      {/* Recent Runs checklist for comparison */}
+                      <div className="mt-3 bg-white/5 border border-white/5 rounded-xl p-2.5">
+                        <p className="text-[8px] font-black uppercase text-slate-500 tracking-wider mb-2">Runs History (Select to compare)</p>
+                        <div className="space-y-1.5">
+                          {getMockRunsForProject(p.name).map((run) => {
+                            const isChecked = selectedRunsToCompare.some(r => r.id === run.id);
+                            return (
+                              <label key={run.id} className="flex items-center gap-2 text-[10px] text-slate-300 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleRunSelection(run, p.name)}
+                                  className="w-3 h-3 accent-weave-violet rounded border-white/10"
+                                />
+                                <span className="truncate">{run.id} ({run.accuracy})</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="border-t border-border pt-4 mt-2">
@@ -443,6 +495,38 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Compare Button */}
+      <AnimatePresence>
+        {selectedRunsToCompare.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-card/90 backdrop-blur-xl border border-primary/20 shadow-2xl rounded-2xl p-4 flex items-center gap-4"
+          >
+            <span className="text-xs font-bold text-slate-300 uppercase">{selectedRunsToCompare.length} runs selected</span>
+            <Button
+              onClick={() => setIsCompareModalOpen(true)}
+              className="bg-weave-violet hover:bg-weave-violet/90 text-white rounded-xl text-xs font-bold h-10 px-6 uppercase tracking-wider cursor-pointer"
+            >
+              Compare Runs
+            </Button>
+            <button
+              onClick={() => setSelectedRunsToCompare([])}
+              className="text-xs text-slate-400 hover:text-white uppercase font-bold"
+            >
+              Clear
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <CompareRunsModal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        selectedRuns={selectedRunsToCompare}
+      />
     </motion.div>
   );
 }

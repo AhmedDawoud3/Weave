@@ -13,15 +13,31 @@ vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: PropsWithChildren) => <>{children}</>,
 }));
 
+// Mock lazy-loaded pages so they resolve synchronously and avoid Suspense page loading fallback
+vi.mock("../pages/LandingPage", () => ({
+  LandingPage: () => (
+    <div>
+      <h1>WEAVE</h1>
+      <p>Neural Design Studio</p>
+    </div>
+  )
+}));
+vi.mock("../pages/LoginPage", () => ({ LoginPage: () => null }));
+vi.mock("../pages/DashboardPage", () => ({ DashboardPage: () => null }));
+vi.mock("../pages/StudioPage", () => ({ StudioPage: () => null }));
+vi.mock("../pages/PrivacyPage", () => ({ PrivacyPage: () => null }));
+vi.mock("../pages/FeaturesPage", () => ({ FeaturesPage: () => null }));
+vi.mock("../pages/PricingPage", () => ({ PricingPage: () => null }));
+vi.mock("../pages/GalleryPage", () => ({ GalleryPage: () => null }));
+
 describe("App", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("renders splash screen on mount", () => {
-    vi.useFakeTimers();
+  it("renders splash screen on mount", async () => {
     render(<App />);
-    expect(screen.getByText("WEAVE")).toBeInTheDocument();
-    expect(screen.getByText("Neural Design Studio")).toBeInTheDocument();
+    expect(await screen.findByText("WEAVE")).toBeInTheDocument();
+    expect(await screen.findByText("Neural Design Studio")).toBeInTheDocument();
   });
 });

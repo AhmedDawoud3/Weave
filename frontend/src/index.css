@@ -126,6 +126,18 @@ html, body, #root {
   /* Destructive */
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
+
+  /* Frosted Glass System */
+  --glass-bg: rgba(13, 15, 26, 0.45);
+  --glass-bg-hover: rgba(13, 15, 26, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-border-hover: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+
+  /* Deep Glow Radial Gradients */
+  --glow-violet: radial-gradient(circle, rgba(108, 60, 225, 0.12) 0%, transparent 60%);
+  --glow-blue: radial-gradient(circle, rgba(26, 188, 254, 0.12) 0%, transparent 60%);
+  --glow-teal: radial-gradient(circle, rgba(45, 212, 191, 0.08) 0%, transparent 60%);
 }
 
 /* Weave Light Theme overrides */
@@ -176,6 +188,13 @@ html, body, #root {
   --sidebar-ring: var(--weave-violet);
 
   color-scheme: light;
+
+  /* Frosted Glass System (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-bg-hover: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-border-hover: rgba(15, 23, 42, 0.15);
+  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.04);
 }
 
 @layer base {
@@ -277,4 +296,30 @@ html, body, #root {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
+}
+
+/* Glassmorphism custom components */
+.glass-panel {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-panel-interactive {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-interactive:hover {
+  background-color: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, #6C3CE1 0%, #1ABCFE 50%, #2DD4BF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
