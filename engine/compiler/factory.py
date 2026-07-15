@@ -8,30 +8,42 @@ from torch.nn.parameter import Parameter
 from schemas import (
     AdaptiveAvgPool2dNode,
     AvgPool2dNode,
+    BatchNorm1dNode,
     BatchNorm2dNode,
+    CausalMaskNode,
     ChannelScaleBiasNode,
     ConcatNode,
+    Conv1dNode,
     Conv2dNode,
     ConvTranspose2dNode,
     CustomAutogradNode,
     DivNode,
     Dropout2dNode,
     DropoutNode,
+    ELUNode,
     EmbeddingNode,
+    FeedForwardNode,
+    FlattenConsecutiveNode,
     FlattenNode,
     GELUNode,
     GroupNormNode,
     LayerNormNode,
+    LeakyReLUNode,
     LinearNode,
     MatMulNode,
+    MaxPool1dNode,
     MaxPool2dNode,
     MeanNode,
     NodeConfig,
     PermuteNode,
+    PositionalEncodingNode,
+    PReLUNode,
     ReLUNode,
     ReshapeNode,
     ScaleNode,
+    SelfAttentionNode,
     SigmoidNode,
+    SiLUNode,
     SliceNode,
     SoftmaxNode,
     SqrtNode,
@@ -42,25 +54,78 @@ from schemas import (
 
 from .modules import (
     AddModule,
+    CausalMaskModule,
     ChannelScaleBias,
     ConcatModule,
     CustomAutogradModule,
     DivModule,
+    FeedForwardModule,
+    FlattenConsecutiveModule,
     MatMulModule,
     MeanModule,
     MultiplyModule,
     PermuteModule,
+    PositionalEncodingModule,
     ReshapeModule,
     ScaleModule,
+    SelfAttentionModule,
     SliceModule,
     SqrtModule,
     SubModule,
-    TanhModule,
     VarModule,
 )
 
 # Type alias for a function that takes a NodeConfig and returns an nn.Module
 LayerBuilder = Callable[[NodeConfig], nn.Module]
+
+
+def _apply_init(module: nn.Module, scheme: str, gain: float | None, fan_mode: str) -> None:
+    """Apply weight initialization to a module based on the given scheme.
+
+    Auto heuristics:
+    - Conv* / Linear  -> kaiming_uniform (good for ReLU/GELU/SiLU families)
+    - Embedding       -> normal(0, 1/sqrt(embedding_dim))
+    - 'auto' uses these defaults.
+    """
+    import math
+
+    import torch.nn as nn
+
+    if scheme == "auto":
+        if isinstance(module, (nn.Conv1d, nn.Conv2d, nn.ConvTranspose2d, nn.Linear)):
+            nn.init.kaiming_uniform_(module.weight, a=math.sqrt(5))
+            if module.bias is not None:
+                fan_in, _ = nn.init._calculate_fan_in_and_fan_out(module.weight)
+                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                nn.init.uniform_(module.bias, -bound, bound)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=1.0 / math.sqrt(module.embedding_dim))
+        # all other modules: leave PyTorch defaults
+        return
+
+    # Manual override schemes
+    _gain = gain if gain is not None else 1.0
+    weight = getattr(module, "weight", None)
+    if weight is None:
+        return
+
+    if scheme == "xavier_uniform":
+        nn.init.xavier_uniform_(weight, gain=_gain)
+    elif scheme == "xavier_normal":
+        nn.init.xavier_normal_(weight, gain=_gain)
+    elif scheme == "kaiming_uniform":
+        nn.init.kaiming_uniform_(weight, mode=fan_mode)
+    elif scheme == "kaiming_normal":
+        nn.init.kaiming_normal_(weight, mode=fan_mode)
+    elif scheme == "zeros":
+        nn.init.zeros_(weight)
+    elif scheme == "ones":
+        nn.init.ones_(weight)
+    elif scheme == "normal":
+        nn.init.normal_(weight, std=_gain)
+    elif scheme == "uniform":
+        nn.init.uniform_(weight, -_gain, _gain)
+
 
 
 def _normalize_config(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -192,7 +257,7 @@ def _build_conv2d(node: NodeConfig) -> nn.Module:
     if not isinstance(node, Conv2dNode):
         raise ValueError("Expected Conv2d")
     p = node.params
-    return nn.Conv2d(
+    m = nn.Conv2d(
         p.in_channels,
         p.out_channels,
         p.kernel_size,
@@ -202,6 +267,8 @@ def _build_conv2d(node: NodeConfig) -> nn.Module:
         p.groups,
         p.bias,
     )
+    _apply_init(m, p.init_scheme, p.init_gain, p.init_fan_mode)
+    return m
 
 
 @ComponentFactory.register("MaxPool2d")
@@ -231,7 +298,9 @@ def _build_linear(node: NodeConfig) -> nn.Module:
     if not isinstance(node, LinearNode):
         raise ValueError("Expected Linear")
     p = node.params
-    return nn.Linear(p.in_features, p.out_features, p.bias)
+    m = nn.Linear(p.in_features, p.out_features, p.bias)
+    _apply_init(m, p.init_scheme, p.init_gain, p.init_fan_mode)
+    return m
 
 
 # --- Normalization ---
@@ -387,7 +456,7 @@ def _build_permute(node: NodeConfig) -> nn.Module:
 def _build_tanh(node: NodeConfig) -> nn.Module:
     if not isinstance(node, TanhNode):
         raise ValueError("Expected Tanh")
-    return TanhModule()
+    return nn.Tanh()
 
 
 @ComponentFactory.register("CustomAutograd")
@@ -413,7 +482,7 @@ def _build_convtranspose2d(node: NodeConfig) -> nn.Module:
     if not isinstance(node, ConvTranspose2dNode):
         raise ValueError("Expected ConvTranspose2d")
     p = node.params
-    return nn.ConvTranspose2d(
+    m = nn.ConvTranspose2d(
         p.in_channels,
         p.out_channels,
         p.kernel_size,
@@ -422,6 +491,8 @@ def _build_convtranspose2d(node: NodeConfig) -> nn.Module:
         p.output_padding,
         p.bias,
     )
+    _apply_init(m, p.init_scheme, p.init_gain, p.init_fan_mode)
+    return m
 
 
 @ComponentFactory.register("AvgPool2d")
@@ -437,7 +508,136 @@ def _build_embedding(node: NodeConfig) -> nn.Module:
     if not isinstance(node, EmbeddingNode):
         raise ValueError("Expected Embedding")
     p = node.params
-    return nn.Embedding(p.num_embeddings, p.embedding_dim, p.padding_idx)
+    m = nn.Embedding(p.num_embeddings, p.embedding_dim, p.padding_idx)
+    _apply_init(m, p.init_scheme, p.init_gain, p.init_fan_mode)
+    return m
+
+
+# --- 1D Convolution & Pooling ---
+
+
+@ComponentFactory.register("Conv1d")
+def _build_conv1d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, Conv1dNode):
+        raise ValueError("Expected Conv1d")
+    p = node.params
+    m = nn.Conv1d(
+        p.in_channels,
+        p.out_channels,
+        p.kernel_size,
+        p.stride,
+        p.padding,
+        p.dilation,
+        p.groups,
+        p.bias,
+    )
+    _apply_init(m, p.init_scheme, p.init_gain, p.init_fan_mode)
+    return m
+
+
+@ComponentFactory.register("MaxPool1d")
+def _build_maxpool1d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, MaxPool1dNode):
+        raise ValueError("Expected MaxPool1d")
+    p = node.params
+    return nn.MaxPool1d(p.kernel_size, p.stride, p.padding)
+
+
+@ComponentFactory.register("BatchNorm1d")
+def _build_batchnorm1d(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, BatchNorm1dNode):
+        raise ValueError("Expected BatchNorm1d")
+    p = node.params
+    return nn.BatchNorm1d(p.num_features, p.eps, p.momentum, p.affine)
+
+
+@ComponentFactory.register("FlattenConsecutive")
+def _build_flatten_consecutive(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, FlattenConsecutiveNode):
+        raise ValueError("Expected FlattenConsecutive")
+    p = node.params
+    return FlattenConsecutiveModule(n=p.n)
+
+
+# --- Transformer Primitives ---
+
+
+@ComponentFactory.register("SelfAttention")
+def _build_self_attention(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SelfAttentionNode):
+        raise ValueError("Expected SelfAttention")
+    p = node.params
+    return SelfAttentionModule(
+        embed_dim=p.embed_dim,
+        num_heads=p.num_heads,
+        dropout=p.dropout,
+        causal=p.causal,
+        bias=p.bias,
+    )
+
+
+@ComponentFactory.register("PositionalEncoding")
+def _build_positional_encoding(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, PositionalEncodingNode):
+        raise ValueError("Expected PositionalEncoding")
+    p = node.params
+    return PositionalEncodingModule(
+        embed_dim=p.embed_dim,
+        max_seq_len=p.max_seq_len,
+        pe_type=p.pe_type,
+    )
+
+
+@ComponentFactory.register("CausalMask")
+def _build_causal_mask(node: NodeConfig) -> nn.Module:
+    return CausalMaskModule()
+
+
+@ComponentFactory.register("FeedForward")
+def _build_feedforward(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, FeedForwardNode):
+        raise ValueError("Expected FeedForward")
+    p = node.params
+    return FeedForwardModule(
+        embed_dim=p.embed_dim,
+        expansion=p.expansion,
+        dropout=p.dropout,
+    )
+
+
+# --- Additional Activations ---
+
+
+@ComponentFactory.register("LeakyReLU")
+def _build_leakyrelu(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, LeakyReLUNode):
+        raise ValueError("Expected LeakyReLU")
+    p = node.params
+    return nn.LeakyReLU(negative_slope=p.negative_slope, inplace=p.inplace)
+
+
+@ComponentFactory.register("SiLU")
+def _build_silu(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, SiLUNode):
+        raise ValueError("Expected SiLU")
+    p = node.params
+    return nn.SiLU(inplace=p.inplace)
+
+
+@ComponentFactory.register("ELU")
+def _build_elu(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, ELUNode):
+        raise ValueError("Expected ELU")
+    p = node.params
+    return nn.ELU(alpha=p.alpha, inplace=p.inplace)
+
+
+@ComponentFactory.register("PReLU")
+def _build_prelu(node: NodeConfig) -> nn.Module:
+    if not isinstance(node, PReLUNode):
+        raise ValueError("Expected PReLU")
+    p = node.params
+    return nn.PReLU(num_parameters=p.num_parameters, init=p.init)
 
 
 @ComponentFactory.register("LayerNorm")

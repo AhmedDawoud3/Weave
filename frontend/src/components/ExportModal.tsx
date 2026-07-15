@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Check, Download, Code2, X, Terminal, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Check, Download, Code2, X, Terminal, Loader2, Sparkles, FolderArchive } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useWeaveStore } from '../store/useWeaveStore';
 import { api } from '../services/api';
@@ -13,8 +13,8 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ onClose }: ExportModalProps) {
-  const { inferredDatasetShape, getFormattedGraph } = useWeaveStore();
-  const [activeTab, setActiveTab] = useState<'pytorch' | 'onnx' | 'torchscript'>('pytorch');
+  const { inferredDatasetShape, getFormattedGraph, datasetConfig } = useWeaveStore();
+  const [activeTab, setActiveTab] = useState<'pytorch' | 'onnx' | 'torchscript' | 'project'>('pytorch');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -31,6 +31,9 @@ export function ExportModal({ onClose }: ExportModalProps) {
 
   const [tsStatus, setTsStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
   const [tsError, setTsError] = useState<string | null>(null);
+
+  const [projectStatus, setProjectStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
+  const [projectError, setProjectError] = useState<string | null>(null);
 
   // Compile PyTorch on mount / tab swap
   useEffect(() => {
@@ -112,6 +115,59 @@ export function ExportModal({ onClose }: ExportModalProps) {
     }
   };
 
+  const handleDownloadProject = async () => {
+    setProjectStatus('compiling');
+    setProjectError(null);
+    try {
+      const pythonConfig = {
+        model_graph: getFormattedGraph(),
+        dataset_config: datasetConfig || { source: 'predefined', name: 'MNIST', split: 'train' },
+        loss: {
+          type: 'CrossEntropyLoss',
+          params: {}
+        },
+        optimizer: {
+          type: 'AdamW',
+          params: { lr: 0.001 }
+        },
+        training: {
+          epochs: 10,
+          device: 'cuda',
+          mixed_precision: false,
+          gradient_clip_norm: 1.0
+        }
+      };
+
+      const token = localStorage.getItem('weave_token');
+      const res = await fetch(`/api/Engine/export/project`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(pythonConfig)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'exported_project.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setProjectStatus('success');
+    } catch (err: any) {
+      setProjectStatus('error');
+      setProjectError(err.message || 'Project zip generation failed.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-6 z-50">
       <motion.div
@@ -164,10 +220,18 @@ export function ExportModal({ onClose }: ExportModalProps) {
           >
             <Terminal size={14} /> TorchScript binary
           </button>
+          <button
+            onClick={() => setActiveTab('project')}
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-wider pb-3 border-b-2 transition-all cursor-pointer ${
+              activeTab === 'project' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <FolderArchive size={14} /> Standalone Project (ZIP)
+          </button>
         </div>
 
         {/* Compilation Input Shape Configuration */}
-        {activeTab !== 'pytorch' && (
+        {(activeTab === 'onnx' || activeTab === 'torchscript') && (
           <div className="flex items-center gap-3 bg-background border border-border px-4 py-2.5 rounded-xl mb-4 shrink-0 text-xs select-none">
             <span className="font-extrabold uppercase text-primary tracking-wider text-[10px] shrink-0">
               Compilation Shape:
@@ -234,7 +298,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
                 <Download size={14} /> GENERATE & DOWNLOAD ONNX
               </Button>
             </div>
-          ) : (
+          ) : activeTab === 'torchscript' ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto">
               <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
                 <Terminal size={24} className="text-primary/70" />
@@ -268,6 +332,42 @@ export function ExportModal({ onClose }: ExportModalProps) {
                 className="mt-2 bg-primary hover:brightness-110 text-primary-foreground font-extrabold px-6 rounded-xl flex items-center gap-2 cursor-pointer"
               >
                 <Download size={14} /> GENERATE & DOWNLOAD TORCHSCRIPT
+              </Button>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6 max-w-md mx-auto animate-fade-in">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+                <FolderArchive size={24} className="text-primary/70" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-2">Export Standalone PyTorch Project</h3>
+                <p className="text-xs text-muted-foreground leading-normal">Download a complete, runnable Python project workspace with model definition, training loop configuration, dataset pipeline support, tokenizers, and custom requirements/README documentation.</p>
+              </div>
+
+              {projectStatus === 'compiling' && (
+                <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-primary animate-pulse">
+                  <Loader2 size={12} className="animate-spin" /> Generating standalone project bundle...
+                </div>
+              )}
+
+              {projectStatus === 'success' && (
+                <div className="text-[10px] uppercase font-bold text-weave-teal">
+                  🎉 Project successfully bundled & download initiated!
+                </div>
+              )}
+
+              {projectStatus === 'error' && (
+                <div className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
+                  ❌ Bundling Failed: {projectError}
+                </div>
+              )}
+
+              <Button
+                onClick={handleDownloadProject}
+                disabled={projectStatus === 'compiling'}
+                className="mt-2 bg-primary hover:brightness-110 text-primary-foreground font-extrabold px-6 rounded-xl flex items-center gap-2 cursor-pointer"
+              >
+                <Download size={14} /> GENERATE & DOWNLOAD PROJECT ZIP
               </Button>
             </div>
           )}

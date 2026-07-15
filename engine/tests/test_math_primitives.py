@@ -363,20 +363,7 @@ def test_rnn_manually_built_graph():
     assert torch.allclose(y_weave, y_pt, atol=1e-5)
 
 
-def test_manual_tanh_module():
-    from compiler.modules import TanhModule
 
-    t = TanhModule()
-    x = torch.tensor([0.0, 1.0, -1.0], requires_grad=True)
-    y = t(x)
-    # Check forward values
-    assert torch.allclose(y, torch.tanh(x))
-
-    # Check backward pass derivative calculation
-    y.sum().backward()
-    expected_grad = 1.0 - torch.tanh(x) ** 2
-    assert x.grad is not None
-    assert torch.allclose(x.grad, expected_grad)
 
 
 def test_custom_autograd_module():
