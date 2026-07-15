@@ -166,6 +166,16 @@ class Trainer:
                 self.model = compiler.compile(self.config.model_graph)
                 logger.info(f"Run {self.run_id}: Model graph compiled successfully.")
 
+                # --- Training cap: reject models > 20M parameters ---
+                param_count = sum(p.numel() for p in self.model.parameters())
+                if param_count > 20_000_000:
+                    raise RuntimeError(
+                        f"Model has {param_count / 1_000_000:.1f}M parameters, "
+                        f"which exceeds the 20M training cap. "
+                        f"Please export the project instead (use Export → PyTorch / ONNX / TorchScript)."
+                    )
+                logger.info(f"Run {self.run_id}: Parameter count: {param_count:,}")
+
                 # Notify setup status: loading dataset
                 self._push_event(
                     {
@@ -276,6 +286,9 @@ class Trainer:
 
             self._save_experiment_run()
             self.model.to(self.device)
+            from training.diagnostics import DiagnosticsCollector
+            diagnostics_collector = DiagnosticsCollector(self.model, self.run_id)
+            diagnostics_collector.register_hooks()
             logger.info(
                 f"Run {self.run_id}: Starting training loop on device '{self.device}' for {self.settings.epochs} epochs."
             )
@@ -498,6 +511,11 @@ class Trainer:
 
                 # Save epoch history to RunRecord
                 self.metrics_history.append({"epoch": epoch, **epoch_combined_metrics})
+                try:
+                    current_lr = self.optimizer.param_groups[0]["lr"]
+                    diagnostics_collector.collect_epoch(epoch, current_lr)
+                except Exception as e:
+                    logger.error(f"Failed to collect diagnostics for epoch {epoch}: {e}")
                 self._save_experiment_run()
 
             # Mark completed
@@ -552,6 +570,9 @@ class Trainer:
             except Exception:
                 pass
             raise e
+        finally:
+            if "diagnostics_collector" in locals():
+                diagnostics_collector.remove_hooks()
 
     def _save_experiment_run(self) -> None:
         """Saves or updates the current run record in local disk storage."""

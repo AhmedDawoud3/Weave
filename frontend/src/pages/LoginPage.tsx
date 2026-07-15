@@ -9,17 +9,23 @@ import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
 import { useTheme } from '../context/ThemeContext';
 
-// Read Client IDs from environment variables
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "unconfigured-client-id";
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
-
 const PYTORCH_CODE_SNIPPETS = [
   "import torch\nimport torch.nn as nn\n\nclass CNN(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv1 = nn.Conv2d(3, 32, 3)\n        self.relu = nn.ReLU()",
   "        self.pool = nn.MaxPool2d(2)\n        self.fc = nn.Linear(32*14*14, 10)\n\n    def forward(self, x):\n        x = self.pool(self.relu(self.conv1(x)))\n        return self.fc(x.view(x.size(0), -1))",
   "# Model successfully compiled by Weave\n# Starting training run...\n# Epoch 1: Loss = 0.432, Acc = 85.4%\n# Epoch 2: Loss = 0.291, Acc = 91.2%"
 ];
 
-function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthenticating: boolean, onLoginSuccess: () => void }) {
+function SocialLoginButtons({ 
+  isAuthenticating, 
+  onLoginSuccess,
+  googleClientId,
+  facebookAppId
+}: { 
+  isAuthenticating: boolean, 
+  onLoginSuccess: () => void,
+  googleClientId: string,
+  facebookAppId: string
+}) {
   const { externalLogin } = useWeaveStore();
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -33,7 +39,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
   });
 
   const handleGoogleClick = () => {
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === "unconfigured-client-id") {
+    if (!googleClientId || googleClientId === "unconfigured-client-id") {
       setLocalError("Google Login is not configured. Please add VITE_GOOGLE_CLIENT_ID to your env.");
       return;
     }
@@ -51,7 +57,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
   };
 
   const handleFacebookClick = (renderPropsOnClick: () => void) => {
-    if (!FACEBOOK_APP_ID) {
+    if (!facebookAppId) {
       setLocalError("Facebook Login is not configured. Please add VITE_FACEBOOK_APP_ID to your env.");
       return;
     }
@@ -85,7 +91,7 @@ function SocialLoginButtons({ isAuthenticating, onLoginSuccess }: { isAuthentica
         </Button>
 
         <FacebookLogin
-          appId={FACEBOOK_APP_ID || "1234567890"}
+          appId={facebookAppId || "1234567890"}
           fields="name,email,picture"
           callback={responseFacebook}
           render={renderProps => (
@@ -127,6 +133,23 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
 
   const { login, register, authError, isAuthenticating } = useWeaveStore();
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const [googleClientId, setGoogleClientId] = useState<string>(
+    import.meta.env.VITE_GOOGLE_CLIENT_ID || "unconfigured-client-id"
+  );
+  const [facebookAppId, setFacebookAppId] = useState<string>(
+    import.meta.env.VITE_FACEBOOK_APP_ID || ""
+  );
+
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.googleClientId) setGoogleClientId(data.googleClientId);
+        if (data.facebookAppId) setFacebookAppId(data.facebookAppId);
+      })
+      .catch(err => console.error('Error fetching auth config:', err));
+  }, []);
 
   // PyTorch code terminal typing simulation
   const [typedLines, setTypedLines] = useState<string[]>([]);
@@ -187,7 +210,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
   };
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       <motion.div
         key="login"
         initial={{ opacity: 0 }}
@@ -391,7 +414,12 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
               </Button>
             </form>
 
-            <SocialLoginButtons isAuthenticating={isAuthenticating} onLoginSuccess={handleLoginSuccess} />
+            <SocialLoginButtons 
+              isAuthenticating={isAuthenticating} 
+              onLoginSuccess={handleLoginSuccess} 
+              googleClientId={googleClientId}
+              facebookAppId={facebookAppId}
+            />
 
             <button
               type="button"

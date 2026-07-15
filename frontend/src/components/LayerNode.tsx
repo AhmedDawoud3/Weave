@@ -12,6 +12,11 @@ const KEY_PARAMS: Partial<Record<string, KeyParam[]>> = {
   MaxPool2d:        [{ label: 'K', key: 'kernel_size' }, { label: 'S', key: 'stride' }],
   AvgPool2d:        [{ label: 'K', key: 'kernel_size' }, { label: 'S', key: 'stride' }],
   AdaptiveAvgPool2d:[{ label: 'Out', key: 'output_size', format: (p) => JSON.stringify(p.output_size) }],
+  // Sequence (1D)
+  Conv1d:           [{ label: 'In→Out', key: '_channels', format: (p) => `${p.in_channels}→${p.out_channels}` }, { label: 'K', key: 'kernel_size' }, { label: 'S', key: 'stride' }],
+  MaxPool1d:        [{ label: 'K', key: 'kernel_size' }, { label: 'S', key: 'stride' }],
+  BatchNorm1d:      [{ label: 'Ch', key: 'num_features' }],
+  FlattenConsecutive:[{ label: 'n', key: 'n' }],
   Linear:           [{ label: 'In→Out', key: '_feats', format: (p) => `${p.in_features}→${p.out_features}` }],
   Embedding:        [{ label: 'Vocab', key: 'num_embeddings' }, { label: 'Dim', key: 'embedding_dim' }],
   BatchNorm2d:      [{ label: 'Ch', key: 'num_features' }],
@@ -30,6 +35,14 @@ const KEY_PARAMS: Partial<Record<string, KeyParam[]>> = {
   Scale:            [{ label: 'value', key: 'value' }],
   ChannelScaleBias: [{ label: 'features', key: 'num_features' }],
   Slice:            [{ label: 'dim', key: 'dim' }, { label: 'index', key: 'index' }],
+  // Transformer Primitives
+  SelfAttention:    [{ label: 'Dim', key: 'embed_dim' }, { label: 'Heads', key: 'num_heads' }],
+  PositionalEncoding:[{ label: 'Dim', key: 'embed_dim' }, { label: 'Type', key: 'pe_type' }],
+  FeedForward:      [{ label: 'Dim', key: 'embed_dim' }, { label: 'Exp', key: 'expansion' }],
+  // New activations
+  LeakyReLU:        [{ label: 'slope', key: 'negative_slope' }],
+  ELU:              [{ label: 'alpha', key: 'alpha' }],
+  PReLU:            [{ label: 'num_params', key: 'num_parameters' }],
 };
 
 interface FieldDef {
@@ -46,6 +59,11 @@ const FULL_FIELDS: Partial<Record<string, FieldDef[]>> = {
   MaxPool2d:        [{ label: 'Kernel',       key: 'kernel_size',  type: 'number' }, { label: 'Stride',       key: 'stride',       type: 'number' }, { label: 'Padding',      key: 'padding',      type: 'number' }],
   AvgPool2d:        [{ label: 'Kernel',       key: 'kernel_size',  type: 'number' }, { label: 'Stride',       key: 'stride',       type: 'number' }, { label: 'Padding',      key: 'padding',      type: 'number' }],
   AdaptiveAvgPool2d:[{ label: 'Output Size',  key: 'output_size',  type: 'json',  placeholder: '1 or [7,7]' }],
+  // Sequence (1D)
+  Conv1d:           [{ label: 'In Channels',  key: 'in_channels',  type: 'number' }, { label: 'Out Channels', key: 'out_channels', type: 'number' }, { label: 'Kernel',       key: 'kernel_size',  type: 'number' }, { label: 'Stride',       key: 'stride',       type: 'number' }, { label: 'Padding',      key: 'padding',      type: 'number' }, { label: 'Bias',         key: 'bias',         type: 'boolean' }],
+  MaxPool1d:        [{ label: 'Kernel',       key: 'kernel_size',  type: 'number' }, { label: 'Stride',       key: 'stride',       type: 'number' }, { label: 'Padding',      key: 'padding',      type: 'number' }],
+  BatchNorm1d:      [{ label: 'Num Features', key: 'num_features', type: 'number' }],
+  FlattenConsecutive:[{ label: 'Merge Factor (n)', key: 'n', type: 'number', min: 2 }],
   Linear:           [{ label: 'In Features',  key: 'in_features',  type: 'number' }, { label: 'Out Features', key: 'out_features', type: 'number' }, { label: 'Bias',         key: 'bias',         type: 'boolean' }],
   Embedding:        [{ label: 'Num Embeddings', key: 'num_embeddings', type: 'number' }, { label: 'Embedding Dim', key: 'embedding_dim', type: 'number' }],
   BatchNorm2d:      [{ label: 'Num Features', key: 'num_features', type: 'number' }],
@@ -59,6 +77,14 @@ const FULL_FIELDS: Partial<Record<string, FieldDef[]>> = {
   Reshape:          [{ label: 'Shape', key: 'target_shape', type: 'json', placeholder: '-1, 64' }],
   Permute:          [{ label: 'Dims', key: 'dims', type: 'json', placeholder: '0, 2, 3, 1' }],
   Slice:            [{ label: 'Dim', key: 'dim', type: 'number' }, { label: 'Index', key: 'index', type: 'number' }],
+  // Transformer Primitives
+  SelfAttention:    [{ label: 'Embed Dim', key: 'embed_dim', type: 'number' }, { label: 'Num Heads', key: 'num_heads', type: 'number', min: 1 }, { label: 'Dropout', key: 'dropout', type: 'number', step: 0.05, min: 0, max: 1 }, { label: 'Causal', key: 'causal', type: 'boolean' }],
+  PositionalEncoding:[{ label: 'Embed Dim', key: 'embed_dim', type: 'number' }, { label: 'Max Seq Len', key: 'max_seq_len', type: 'number' }, { label: 'PE Type (sinusoidal/learned)', key: 'pe_type', type: 'text' }],
+  FeedForward:      [{ label: 'Embed Dim', key: 'embed_dim', type: 'number' }, { label: 'Expansion', key: 'expansion', type: 'number', min: 1 }, { label: 'Dropout', key: 'dropout', type: 'number', step: 0.05, min: 0, max: 1 }],
+  // New activations
+  LeakyReLU:        [{ label: 'Negative Slope', key: 'negative_slope', type: 'number', step: 0.01 }],
+  ELU:              [{ label: 'Alpha', key: 'alpha', type: 'number', step: 0.1, min: 0 }],
+  PReLU:            [{ label: 'Num Parameters', key: 'num_parameters', type: 'number', min: 1 }, { label: 'Initial Value', key: 'init', type: 'number', step: 0.05 }],
 };
 
 const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput: boolean, isError: boolean, selected: boolean) => {
@@ -105,8 +131,10 @@ const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput
   
   let color = 'blue';
   if (['Add','Concat','Multiply'].includes(type)) color = 'yellow';
-  else if (['BatchNorm2d','LayerNorm','GroupNorm'].includes(type)) color = 'teal';
-  else if (['ReLU','GELU','Sigmoid','Tanh','Softmax'].includes(type)) color = 'emerald';
+  else if (['BatchNorm2d','LayerNorm','GroupNorm','BatchNorm1d'].includes(type)) color = 'teal';
+  else if (['ReLU','GELU','Sigmoid','Tanh','Softmax','LeakyReLU','SiLU','ELU','PReLU'].includes(type)) color = 'emerald';
+  else if (['Conv1d','MaxPool1d','FlattenConsecutive'].includes(type)) color = 'fuchsia';
+  else if (['SelfAttention','PositionalEncoding','CausalMask','FeedForward'].includes(type)) color = 'indigo';
 
   const colorMap: Record<string, any> = {
     blue: {
@@ -140,11 +168,107 @@ const getNodeTheme = (type: string, isBlock: boolean, isInput: boolean, isOutput
       badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
       handle: '!bg-emerald-500',
       icon: 'text-emerald-400',
+    },
+    fuchsia: {
+      topBar: 'bg-fuchsia-500',
+      text: 'text-fuchsia-400',
+      border: selected ? 'border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'border-border hover:border-fuchsia-500/40',
+      badge: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20',
+      handle: '!bg-fuchsia-500',
+      icon: 'text-fuchsia-400',
+    },
+    indigo: {
+      topBar: 'bg-indigo-500',
+      text: 'text-indigo-400',
+      border: selected ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.35)]' : 'border-indigo-500/30 hover:border-indigo-500/50',
+      badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      handle: '!bg-indigo-500',
+      icon: 'text-indigo-400',
     }
   };
 
   return colorMap[color];
 };
+
+function WeightInitSection({ params, onUpdate }: { params: any; onUpdate: (patch: any) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const scheme = params.init_scheme ?? 'auto';
+  const gain = params.init_gain ?? '';
+  const fanMode = params.init_fan_mode ?? 'fan_in';
+
+  return (
+    <div className="space-y-1.5 border-t border-border/40 pt-2 mt-2">
+      <button
+        type="button"
+        className="nodrag w-full flex items-center justify-between text-[9px] text-muted-foreground hover:text-foreground font-black uppercase tracking-wider cursor-pointer"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>Advanced: Weight Init</span>
+        {isOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+      </button>
+
+      {isOpen && (
+        <div className="space-y-2 pt-1 pb-1">
+          {/* Scheme Dropdown */}
+          <div className="space-y-1">
+            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Init Scheme</span>
+            <select
+              className="nodrag w-full bg-background border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
+              value={scheme}
+              onChange={(e) => onUpdate({ init_scheme: e.target.value })}
+            >
+              <option value="auto">Auto (Smart Default)</option>
+              <option value="xavier_uniform">Xavier Uniform</option>
+              <option value="xavier_normal">Xavier Normal</option>
+              <option value="kaiming_uniform">Kaiming Uniform</option>
+              <option value="kaiming_normal">Kaiming Normal</option>
+              <option value="zeros">Zeros</option>
+              <option value="ones">Ones</option>
+              <option value="normal">Normal (Custom Std)</option>
+              <option value="uniform">Uniform (Custom Range)</option>
+            </select>
+          </div>
+
+          {scheme !== 'auto' && (
+            <div className="grid grid-cols-2 gap-2">
+              {/* Gain / Std Dev */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Gain / Std</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="nodrag w-full bg-background border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary/50"
+                  placeholder="1.0"
+                  value={gain}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? null : Number(e.target.value);
+                    onUpdate({ init_gain: val });
+                  }}
+                />
+              </div>
+
+              {/* Fan Mode if Kaiming */}
+              {(scheme === 'kaiming_uniform' || scheme === 'kaiming_normal') && (
+                <div className="space-y-1">
+                  <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Fan Mode</span>
+                  <select
+                    className="nodrag w-full bg-background border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
+                    value={fanMode}
+                    onChange={(e) => onUpdate({ init_fan_mode: e.target.value })}
+                  >
+                    <option value="fan_in">Fan In</option>
+                    <option value="fan_out">Fan Out</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeData>> & { selected?: boolean }) {
   const shape = data.outputShape;
@@ -463,15 +587,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
               </div>
             )}
 
-            {/* Complete parameters editing block */}
-            {isExpanded && (
+              {isExpanded && (
               <div className="p-3.5 space-y-1.5 text-left border-b border-border/5">
                 {fullFields.map(renderField)}
                 {fullFields.length === 0 && (
                   <p className="text-[10px] text-muted-foreground italic text-center py-2">No configuration inputs</p>
                 )}
 
-                {/* Internal Connections list */}
+                {/* Weight Initialization — shown for trainable weight layers */}
+                {['Conv2d','Conv1d','ConvTranspose2d','Linear','Embedding'].includes(data.type) && (
+                  <WeightInitSection params={data.params} onUpdate={(patch) => updateNodeParams(id, { ...data.params, ...patch })} />
+                )}
                 {incomingEdges.length > 0 && (
                   <div className="space-y-1.5 border-t border-border pt-3 mt-3 select-none">
                     <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider block mb-1">Incoming Links</span>

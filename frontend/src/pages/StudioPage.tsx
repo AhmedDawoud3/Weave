@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from '../components/ui/toaster';
 import { LayerPalette } from '../components/LayerPalette';
 import { DatasetWorkspace } from '../components/DatasetWorkspace';
+import { TokenizerWorkspace } from '../components/TokenizerWorkspace';
 
 import { LayerNode } from '../components/LayerNode';
 import { WeaveEdge } from '../components/WeaveEdge';
@@ -32,11 +33,16 @@ const edgeTypes = { weave: WeaveEdge as any };
 const ALL_LAYER_TYPES: LayerType[] = [
   'InputNode', 'OutputNode',
   'Conv2d', 'ConvTranspose2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d',
+  // Sequence (1D)
+  'Conv1d', 'MaxPool1d', 'BatchNorm1d', 'FlattenConsecutive',
   'Linear', 'Embedding',
   'BatchNorm2d', 'LayerNorm', 'GroupNorm',
-  'ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax',
+  // Activations
+  'ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax', 'LeakyReLU', 'SiLU', 'ELU', 'PReLU',
   'Flatten', 'Reshape', 'Permute', 'Dropout', 'Dropout2d',
   'Add', 'Concat', 'Multiply',
+  // Transformer Primitives
+  'SelfAttention', 'PositionalEncoding', 'CausalMask', 'FeedForward',
   'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock',
   'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'
 ];
@@ -308,6 +314,15 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             >
               Dataset Workspace
             </button>
+            <button
+              onClick={() => setActiveTab('tokenizer')}
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'tokenizer'
+                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
+                  : 'text-muted-foreground hover:text-foreground'
+                }`}
+            >
+              Tokenizer Workspace
+            </button>
           </div>
 
           <div className="h-8 w-px bg-border" />
@@ -569,8 +584,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
               </div>
             </div>
           </>
-        ) : (
+        ) : activeTab === 'dataset' ? (
           <DatasetWorkspace />
+        ) : (
+          <TokenizerWorkspace />
         )}
       </div>
 

@@ -114,6 +114,7 @@ public class AuthService : IAuthService
             if (dto.Provider.Equals("Google", StringComparison.OrdinalIgnoreCase))
             {
                 using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Weave-App");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", dto.IdToken);
                 var response = await httpClient.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo", ct);
                 if (!response.IsSuccessStatusCode)

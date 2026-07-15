@@ -37,6 +37,10 @@ class Conv2dParams(BaseModel):
     dilation: int = 1
     groups: int = 1
     bias: bool = True
+    # Weight initialization
+    init_scheme: str = "auto"  # auto | xavier_uniform | xavier_normal | kaiming_uniform | kaiming_normal | zeros | ones | normal | uniform
+    init_gain: float | None = None
+    init_fan_mode: str = "fan_in"  # fan_in | fan_out
 
 
 class ConvTranspose2dParams(BaseModel):
@@ -47,6 +51,10 @@ class ConvTranspose2dParams(BaseModel):
     padding: int = 0
     output_padding: int = 0
     bias: bool = True
+    # Weight initialization
+    init_scheme: str = "auto"
+    init_gain: float | None = None
+    init_fan_mode: str = "fan_in"
 
 
 class MaxPool2dParams(BaseModel):
@@ -72,12 +80,20 @@ class LinearParams(BaseModel):
     in_features: int
     out_features: int
     bias: bool = True
+    # Weight initialization
+    init_scheme: str = "auto"
+    init_gain: float | None = None
+    init_fan_mode: str = "fan_in"
 
 
 class EmbeddingParams(BaseModel):
     num_embeddings: int
     embedding_dim: int
     padding_idx: int | None = None
+    # Weight initialization
+    init_scheme: str = "auto"
+    init_gain: float | None = None
+    init_fan_mode: str = "fan_in"
 
 
 # --- Normalization ------------------------------------------------------------
@@ -211,6 +227,90 @@ class ConcatParams(BaseModel):
 
 class MultiplyParams(BaseModel):
     pass
+
+
+# --- 1D Convolution & Pooling ------------------------------------------------
+
+
+class Conv1dParams(BaseModel):
+    in_channels: int
+    out_channels: int
+    kernel_size: int
+    stride: int = 1
+    padding: int = 0
+    dilation: int = 1
+    groups: int = 1
+    bias: bool = True
+    # Weight initialization
+    init_scheme: str = "auto"
+    init_gain: float | None = None
+    init_fan_mode: str = "fan_in"
+
+
+class MaxPool1dParams(BaseModel):
+    kernel_size: int
+    stride: int | None = None
+    padding: int = 0
+
+
+class BatchNorm1dParams(BaseModel):
+    num_features: int
+    eps: float = 1e-5
+    momentum: float = 0.1
+    affine: bool = True
+
+
+class FlattenConsecutiveParams(BaseModel):
+    n: int = 2  # merge factor: (B, T, C) -> (B, T//n, C*n)
+
+
+# --- Transformer Primitives --------------------------------------------------
+
+
+class SelfAttentionParams(BaseModel):
+    embed_dim: int
+    num_heads: int
+    dropout: float = 0.0
+    causal: bool = True
+    bias: bool = True
+
+
+class PositionalEncodingParams(BaseModel):
+    embed_dim: int
+    max_seq_len: int = 1024
+    pe_type: str = "sinusoidal"  # sinusoidal | learned
+
+
+class CausalMaskParams(BaseModel):
+    pass
+
+
+class FeedForwardParams(BaseModel):
+    embed_dim: int
+    expansion: int = 4
+    dropout: float = 0.0
+
+
+# --- Additional Activations --------------------------------------------------
+
+
+class LeakyReLUParams(BaseModel):
+    negative_slope: float = 0.01
+    inplace: bool = False
+
+
+class SiLUParams(BaseModel):
+    inplace: bool = False
+
+
+class ELUParams(BaseModel):
+    alpha: float = 1.0
+    inplace: bool = False
+
+
+class PReLUParams(BaseModel):
+    num_parameters: int = 1
+    init: float = 0.25
 
 
 # =============================================================================
@@ -418,6 +518,87 @@ class MultiplyNode(BaseModel):
     params: MultiplyParams = MultiplyParams()
 
 
+# --- 1D Convolution & Pooling Nodes ------------------------------------------
+
+
+class Conv1dNode(BaseModel):
+    id: str
+    type: Literal["Conv1d"]
+    params: Conv1dParams
+
+
+class MaxPool1dNode(BaseModel):
+    id: str
+    type: Literal["MaxPool1d"]
+    params: MaxPool1dParams
+
+
+class BatchNorm1dNode(BaseModel):
+    id: str
+    type: Literal["BatchNorm1d"]
+    params: BatchNorm1dParams
+
+
+class FlattenConsecutiveNode(BaseModel):
+    id: str
+    type: Literal["FlattenConsecutive"]
+    params: FlattenConsecutiveParams = FlattenConsecutiveParams()
+
+
+# --- Transformer Primitive Nodes ---------------------------------------------
+
+
+class SelfAttentionNode(BaseModel):
+    id: str
+    type: Literal["SelfAttention"]
+    params: SelfAttentionParams
+
+
+class PositionalEncodingNode(BaseModel):
+    id: str
+    type: Literal["PositionalEncoding"]
+    params: PositionalEncodingParams
+
+
+class CausalMaskNode(BaseModel):
+    id: str
+    type: Literal["CausalMask"]
+    params: CausalMaskParams = CausalMaskParams()
+
+
+class FeedForwardNode(BaseModel):
+    id: str
+    type: Literal["FeedForward"]
+    params: FeedForwardParams
+
+
+# --- Additional Activation Nodes ---------------------------------------------
+
+
+class LeakyReLUNode(BaseModel):
+    id: str
+    type: Literal["LeakyReLU"]
+    params: LeakyReLUParams = LeakyReLUParams()
+
+
+class SiLUNode(BaseModel):
+    id: str
+    type: Literal["SiLU"]
+    params: SiLUParams = SiLUParams()
+
+
+class ELUNode(BaseModel):
+    id: str
+    type: Literal["ELU"]
+    params: ELUParams = ELUParams()
+
+
+class PReLUNode(BaseModel):
+    id: str
+    type: Literal["PReLU"]
+    params: PReLUParams = PReLUParams()
+
+
 # =============================================================================
 # SECTION 2B — BLOCK NODES
 # FIX from previous version: We used Literal["Block"] for everything.
@@ -500,17 +681,21 @@ class CustomBlockNode(BaseModel):
 
 NodeConfig = Annotated[
     Union[
-        # Convolution & Pooling
+        # Convolution & Pooling (2D)
         Conv2dNode,
         ConvTranspose2dNode,
         MaxPool2dNode,
         AvgPool2dNode,
         AdaptiveAvgPool2dNode,
+        # Convolution & Pooling (1D)
+        Conv1dNode,
+        MaxPool1dNode,
         # Linear & Embedding
         LinearNode,
         EmbeddingNode,
         # Normalization
         BatchNorm2dNode,
+        BatchNorm1dNode,
         LayerNormNode,
         GroupNormNode,
         # Math & Tensor Primitives
@@ -530,10 +715,15 @@ NodeConfig = Annotated[
         TanhNode,
         CustomAutogradNode,
         SoftmaxNode,
+        LeakyReLUNode,
+        SiLUNode,
+        ELUNode,
+        PReLUNode,
         # Shape Manipulation
         FlattenNode,
         ReshapeNode,
         PermuteNode,
+        FlattenConsecutiveNode,
         # Regularization
         DropoutNode,
         Dropout2dNode,
@@ -541,6 +731,11 @@ NodeConfig = Annotated[
         AddNode,
         ConcatNode,
         MultiplyNode,
+        # Transformer Primitives
+        SelfAttentionNode,
+        PositionalEncodingNode,
+        CausalMaskNode,
+        FeedForwardNode,
         # Built-in Block Templates (architecture doc section 3.3.4)
         ResidualBlockNode,
         TransformerEncoderNode,
@@ -723,12 +918,32 @@ class CustomDatasetConfig(BaseModel):
     dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
 
 
-# Clean discriminated union — source is now unique for all three
+
+class TextDatasetConfig(BaseModel):
+    """
+    Character-level or BPE sliding-window text dataset for language modeling.
+    source = "text" distinguishes it cleanly in the discriminated union.
+    """
+
+    source: Literal["text"]
+    text_source: Literal["builtin", "upload", "paste"] = "builtin"
+    builtin_name: str | None = None  # "names" | "tiny_shakespeare"
+    file_path: str | None = None  # for uploaded files (server-side path)
+    text_content: str | None = None  # for paste mode (inline text)
+    tokenization: Literal["char", "bpe"] = "char"
+    bpe_vocab_size: int = 256
+    context_length: int = 8
+    train_split: float = 0.9
+    dataloader: DataLoaderConfig = Field(default_factory=DataLoaderConfig)
+
+
+# Clean discriminated union — source is now unique for all four
 DatasetConfig = Annotated[
     Union[
         PredefinedDatasetConfig,  # source = "predefined"
         ImageFolderDatasetConfig,  # source = "image_folder"
         CustomDatasetConfig,  # source = "custom"
+        TextDatasetConfig,  # source = "text"
     ],
     Field(discriminator="source"),
 ]
@@ -1080,6 +1295,13 @@ class InferenceResponse(BaseModel):
     predicted_class: int | None = None  # None for regression tasks
 
 
+class GenerateRequest(BaseModel):
+    run_id: str
+    prompt: str = ""
+    max_tokens: int = 100
+    temperature: float = 1.0
+
+
 # --- Dataset Catalog & Scan --------------------------------------------------
 
 
@@ -1202,3 +1424,46 @@ class ExperimentCompareResponse(BaseModel):
     """
 
     runs: list[dict]
+
+
+# --- Tokenizer Workspace -----------------------------------------------------
+
+
+class TokenizerTrainRequest(BaseModel):
+    text_source: Literal["builtin", "upload", "paste"]
+    builtin_name: str | None = None
+    file_path: str | None = None
+    text_content: str | None = None
+    vocab_size: int = 256
+    special_tokens: list[str] | None = None
+    pattern: str | None = None
+
+
+class TokenizerTrainResponse(BaseModel):
+    status: str
+    tokenizer_id: str | None = None
+    vocab_size: int | None = None
+    message: str | None = None
+
+
+class TokenizerEncodeRequest(BaseModel):
+    tokenizer_id: str
+    text: str
+
+
+class TokenizerEncodeResponse(BaseModel):
+    status: str
+    tokens: list[int] | None = None
+    tokens_decoded: list[str] | None = None
+    message: str | None = None
+
+
+class TokenizerDecodeRequest(BaseModel):
+    tokenizer_id: str
+    tokens: list[int]
+
+
+class TokenizerDecodeResponse(BaseModel):
+    status: str
+    text: str | None = None
+    message: str | None = None

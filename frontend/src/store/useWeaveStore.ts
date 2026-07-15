@@ -87,15 +87,15 @@ interface WeaveState {
   activeInputShape: number[] | null;
   isInferringDatasetShape: boolean;
   setDatasetConfig: (config: DatasetConfig | null) => void;
-  setDatasetSource: (source: 'predefined' | 'image_folder' | 'custom') => void;
+  setDatasetSource: (source: 'predefined' | 'image_folder' | 'custom' | 'text') => void;
   addTransform: (transform: TransformConfig) => void;
   removeTransform: (index: number) => void;
   reorderTransforms: (from: number, to: number) => void;
   updateTransformParam: (index: number, key: string, value: any) => void;
   setDataLoaderConfig: (config: Partial<DataLoaderConfig>) => void;
   inferDatasetShape: () => Promise<void>;
-  activeTab: 'canvas' | 'dataset';
-  setActiveTab: (tab: 'canvas' | 'dataset') => void;
+  activeTab: 'canvas' | 'dataset' | 'tokenizer';
+  setActiveTab: (tab: 'canvas' | 'dataset' | 'tokenizer') => void;
 
   // Dataset Download Status
   datasetDownloadStatus: Record<string, 'not_downloaded' | 'starting' | 'downloading' | 'completed' | 'failed' | 'downloaded'>;
@@ -111,6 +111,11 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   MaxPool2d: { kernel_size: 2, stride: 2, padding: 0 },
   AvgPool2d: { kernel_size: 2, stride: 2, padding: 0 },
   AdaptiveAvgPool2d: { output_size: 1 },
+  // Sequence (1D)
+  Conv1d: { in_channels: 1, out_channels: 16, kernel_size: 3, stride: 1, padding: 1, bias: true },
+  MaxPool1d: { kernel_size: 2, stride: 2, padding: 0 },
+  BatchNorm1d: { num_features: 16 },
+  FlattenConsecutive: { n: 2 },
   Linear: { in_features: 128, out_features: 10, bias: true },
   Embedding: { num_embeddings: 1000, embedding_dim: 64 },
   BatchNorm2d: { num_features: 16 },
@@ -121,6 +126,11 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   Sigmoid: {},
   Tanh: {},
   Softmax: { dim: -1 },
+  // New activations
+  LeakyReLU: { negative_slope: 0.01 },
+  SiLU: {},
+  ELU: { alpha: 1.0 },
+  PReLU: { num_parameters: 1, init: 0.25 },
   Flatten: { start_dim: 1, end_dim: -1 },
   Reshape: { target_shape: [-1, 64] },
   Permute: { dims: [0, 2, 3, 1] },
@@ -139,6 +149,11 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   ChannelScaleBias: { num_features: 3 },
   Slice: { dim: 1, index: 0 },
   CustomAutograd: { forward_code: 'def forward(x):\n    return x', backward_code: 'def backward(x, grad_output):\n    return grad_output' },
+  // Transformer Primitives
+  SelfAttention: { embed_dim: 64, num_heads: 4, dropout: 0.0, causal: true },
+  PositionalEncoding: { embed_dim: 64, max_seq_len: 1024, pe_type: 'sinusoidal' },
+  CausalMask: {},
+  FeedForward: { embed_dim: 64, expansion: 4, dropout: 0.0 },
   InputNode: {},
   OutputNode: {},
   // Templates blocks default empty params
@@ -1312,6 +1327,17 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           dataloader,
           file_pattern: '*.jpg'
         };
+      } else if (source === 'text') {
+        config = {
+          source: 'text',
+          text_source: 'builtin',
+          builtin_name: 'tiny_shakespeare',
+          tokenization: 'char',
+          bpe_vocab_size: 256,
+          context_length: 8,
+          train_split: 0.9,
+          dataloader
+        } as any;
       }
 
       get().setDatasetConfig(config);

@@ -17,7 +17,8 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
   const {
     validationStatus,
     datasetConfig,
-    datasetDownloadStatus
+    datasetDownloadStatus,
+    nodes
   } = useWeaveStore();
 
   const {
@@ -31,6 +32,55 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
 
   // Establish SSE stream automatically if run ID is set
   useTrainingSSE(activeRunId);
+
+  const calculateTotalParameters = (nodesList: any[]): number => {
+    let total = 0;
+    for (const node of nodesList) {
+      const p = node.data?.params || {};
+      const type = node.data?.type;
+      
+      if (type === 'Linear') {
+        const inf = Number(p.in_features) || 0;
+        const outf = Number(p.out_features) || 0;
+        const bias = p.bias !== false;
+        total += inf * outf + (bias ? outf : 0);
+      } else if (type === 'Conv2d' || type === 'ConvTranspose2d') {
+        const inc = Number(p.in_channels) || 0;
+        const outc = Number(p.out_channels) || 0;
+        const k = Number(p.kernel_size) || 0;
+        const bias = p.bias !== false;
+        total += inc * outc * k * k + (bias ? outc : 0);
+      } else if (type === 'Conv1d') {
+        const inc = Number(p.in_channels) || 0;
+        const outc = Number(p.out_channels) || 0;
+        const k = Number(p.kernel_size) || 0;
+        const bias = p.bias !== false;
+        total += inc * outc * k + (bias ? outc : 0);
+      } else if (type === 'Embedding') {
+        const numEmb = Number(p.num_embeddings) || 0;
+        const embDim = Number(p.embedding_dim) || 0;
+        total += numEmb * embDim;
+      } else if (type === 'BatchNorm2d' || type === 'BatchNorm1d') {
+        const numF = Number(p.num_features) || 0;
+        total += numF * 2;
+      } else if (type === 'LayerNorm') {
+        const shape = p.normalized_shape;
+        let size = 0;
+        if (Array.isArray(shape)) {
+          size = shape.reduce((acc, v) => acc * (Number(v) || 1), 1);
+        } else {
+          size = Number(shape) || 0;
+        }
+        total += size * 2;
+      } else if (type === 'GroupNorm') {
+        const numC = Number(p.num_channels) || 0;
+        total += numC * 2;
+      }
+    }
+    return total;
+  };
+
+  const paramCount = calculateTotalParameters(nodes);
 
   const [activeTab, setActiveTab] = useState<'config' | 'metrics' | 'logs' | 'inference'>('config');
 
@@ -140,6 +190,13 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             </div>
           )}
 
+          {paramCount > 20000000 && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg mr-4">
+              <AlertTriangle size={14} className="text-amber-400 animate-pulse" />
+              <span>Cap Exceeded ({ (paramCount / 1000000).toFixed(1) }M)</span>
+            </div>
+          )}
+
           {trainingStatus === 'running' ? (
             <>
               <Button
@@ -173,7 +230,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
           ) : (
             <Button
               onClick={handleStartRun}
-              disabled={validationStatus !== 'success' || isTraining || !isDatasetReady}
+              disabled={validationStatus !== 'success' || isTraining || !isDatasetReady || paramCount > 20000000}
               className="bg-primary hover:brightness-110 text-primary-foreground font-black h-9 px-6 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-glow"
             >
               {isTraining ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
@@ -196,7 +253,24 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
       {/* Tab Panels */}
       <div className="flex-1 p-6 overflow-y-auto min-h-0 bg-background">
         {activeTab === 'config' && (
-          <TrainingSetup
+          <>
+            {paramCount > 20000000 && (
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-amber-400 font-bold select-none">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} className="shrink-0 text-amber-400" />
+                  <div>
+                    <span className="font-extrabold uppercase text-[#40d3b6]">20M Parameter Cap Exceeded:</span>
+                    <span className="font-normal text-muted-foreground ml-1">
+                      This model has { (paramCount / 1000000).toFixed(1) }M parameters. Training is blocked.
+                    </span>
+                  </div>
+                </div>
+                <div className="text-[10px] text-muted-foreground uppercase font-black bg-white/5 border border-border rounded-lg px-3 py-1">
+                  Use EXPORT button on the top header instead
+                </div>
+              </div>
+            )}
+            <TrainingSetup
             optimizer={optimizer}
             setOptimizer={setOptimizer}
             learningRate={learningRate}
@@ -208,6 +282,7 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             lossFunction={lossFunction}
             setLossFunction={setLossFunction}
           />
+          </>
         )}
         {activeTab === 'metrics' && (
           <MetricsView epochs={epochs} />

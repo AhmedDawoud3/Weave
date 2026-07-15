@@ -6,6 +6,11 @@ export type LayerType =
   | 'MaxPool2d'
   | 'AvgPool2d'
   | 'AdaptiveAvgPool2d'
+  // Sequence (1D)
+  | 'Conv1d'
+  | 'MaxPool1d'
+  | 'BatchNorm1d'
+  | 'FlattenConsecutive'
   | 'Linear'
   | 'Embedding'
   | 'BatchNorm2d'
@@ -16,6 +21,11 @@ export type LayerType =
   | 'Sigmoid'
   | 'Tanh'
   | 'Softmax'
+  // New activations
+  | 'LeakyReLU'
+  | 'SiLU'
+  | 'ELU'
+  | 'PReLU'
   | 'Flatten'
   | 'Reshape'
   | 'Permute'
@@ -34,6 +44,11 @@ export type LayerType =
   | 'ChannelScaleBias'
   | 'Slice'
   | 'CustomAutograd'
+  // Transformer Primitives
+  | 'SelfAttention'
+  | 'PositionalEncoding'
+  | 'CausalMask'
+  | 'FeedForward'
   // Template blocks
   | 'ResidualBlock'
   | 'TransformerEncoder'
@@ -75,4 +90,26 @@ export interface LayerParams {
 
   // Softmax & Concat & Mean/Var
   dim?: number | number[];
+
+  // Weight init
+  init_scheme?: string;
+  init_gain?: number | null;
+  init_fan_mode?: string;
+
+  // Sequence (1D)
+  n?: number;  // FlattenConsecutive
+
+  // Transformer
+  embed_dim?: number;
+  num_heads?: number;
+  causal?: boolean;
+  pe_type?: string;
+  max_seq_len?: number;
+  expansion?: number;
+
+  // Activations
+  negative_slope?: number;
+  alpha?: number;
+  num_parameters?: number;
+  init?: number;
 }

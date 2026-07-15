@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Weave.Application.DTOs.Auth;
 using Weave.Application.Interfaces;
@@ -92,5 +93,19 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Get the configuration for external authentication providers.
+    /// </summary>
+    [HttpGet("config")]
+    [AllowAnonymous]
+    public ActionResult<object> GetExternalAuthConfig([FromServices] Microsoft.Extensions.Configuration.IConfiguration config)
+    {
+        return Ok(new
+        {
+            GoogleClientId = config["Authentication:Google:ClientId"],
+            FacebookAppId = config["Authentication:Facebook:AppId"]
+        });
     }
 }

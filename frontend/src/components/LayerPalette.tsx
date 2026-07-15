@@ -25,6 +25,12 @@ const CATEGORIES: LayerCategory[] = [
     types: ['Conv2d', 'ConvTranspose2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d']
   },
   {
+    name: "Sequence",
+    colorClass: "border-fuchsia-500/20 text-fuchsia-400 bg-fuchsia-500/5 hover:border-fuchsia-400/40 hover:bg-fuchsia-500/10 hover:shadow-[0_0_10px_rgba(217,70,239,0.1)]",
+    icon: ArrowRight,
+    types: ['Conv1d', 'MaxPool1d', 'BatchNorm1d', 'FlattenConsecutive']
+  },
+  {
     name: "Linear",
     colorClass: "border-purple-500/20 text-purple-400 bg-purple-500/5 hover:border-purple-400/40 hover:bg-purple-500/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.1)]",
     icon: GitCommit,
@@ -40,7 +46,7 @@ const CATEGORIES: LayerCategory[] = [
     name: "Activations",
     colorClass: "border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:shadow-[0_0_10px_rgba(16,185,129,0.1)]",
     icon: Cpu,
-    types: ['ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax']
+    types: ['ReLU', 'GELU', 'Sigmoid', 'Tanh', 'Softmax', 'LeakyReLU', 'SiLU', 'ELU', 'PReLU']
   },
   {
     name: "Shape & Reg",
@@ -58,7 +64,7 @@ const CATEGORIES: LayerCategory[] = [
     name: "Blocks",
     colorClass: "border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:shadow-[0_0_10px_rgba(99,102,241,0.1)]",
     icon: Layers,
-    types: ['ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock']
+    types: ['SelfAttention', 'PositionalEncoding', 'CausalMask', 'FeedForward', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock']
   }
 ];
 

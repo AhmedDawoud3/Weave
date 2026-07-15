@@ -13,11 +13,13 @@ from schemas import (
     DatasetConfig,
     ImageFolderDatasetConfig,
     PredefinedDatasetConfig,
+    TextDatasetConfig,
 )
 
 from .custom_loaders.csv_image_dataset import CSVImageDataset
 from .custom_loaders.tabular_dataset import TabularDataset
 from .custom_loaders.text_dataset import TextDataset
+from .text_lm_dataset import CharLMDataset
 
 try:
     from .custom_loaders.audio_dataset import AudioDataset
@@ -106,6 +108,8 @@ def get_dataset_from_config(config: DatasetConfig) -> Dataset:
         return _create_image_folder(config)
     elif isinstance(config, CustomDatasetConfig):
         return _create_custom(config)
+    elif isinstance(config, TextDatasetConfig):
+        return _create_text_lm(config)
     else:
         raise ValueError(f"Unknown dataset source type: {type(config)}")
 
@@ -246,6 +250,22 @@ def _create_custom_audio(
         n_mels=config.n_mels,
         feature_extraction=config.feature_extraction,
         transform=transform,
+    )
+
+
+
+def _create_text_lm(config: "TextDatasetConfig") -> "CharLMDataset":
+    """Create a language model dataset from TextDatasetConfig."""
+    return CharLMDataset(
+        text_source=config.text_source,
+        builtin_name=config.builtin_name,
+        file_path=config.file_path,
+        text_content=config.text_content,
+        context_length=config.context_length,
+        split="train",
+        train_split=config.train_split,
+        tokenization=config.tokenization,
+        bpe_vocab_size=config.bpe_vocab_size,
     )
 
 

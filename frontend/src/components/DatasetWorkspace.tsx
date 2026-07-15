@@ -10,6 +10,7 @@ import { Separator } from './ui/separator';
 import { DatasetCatalogEntry, TransformCatalogEntry } from '../types';
 import { DatasetBrowser } from './dataset/DatasetBrowser';
 import { CustomDatasetForm } from './dataset/CustomDatasetForm';
+import { TextDatasetForm } from './dataset/TextDatasetForm';
 import { TransformPipeline } from './dataset/TransformPipeline';
 import { DataPreview } from './dataset/DataPreview';
 import { toast } from './ui/toaster';
@@ -388,12 +389,13 @@ export function DatasetWorkspace() {
           {/* Source Tabs */}
           <div className="space-y-1.5">
             <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Ingestion Method</span>
-            <div className="grid grid-cols-3 gap-1 bg-foreground/40 p-1 border border-border rounded-xl">
-              {(['predefined', 'image_folder', 'custom'] as const).map((src) => {
+            <div className="grid grid-cols-4 gap-1 bg-foreground/40 p-1 border border-border rounded-xl">
+              {(['predefined', 'image_folder', 'custom', 'text'] as const).map((src) => {
                 const labelMap = {
                   predefined: 'Predefined',
                   image_folder: 'Img Folder',
-                  custom: 'Custom'
+                  custom: 'Custom',
+                  text: 'Text (LM)'
                 };
                 const isActive = source === src;
                 return (
@@ -416,7 +418,7 @@ export function DatasetWorkspace() {
           <Separator className="bg-border" />
 
           {/* Catalog Ingest Config or Custom mod form */}
-          {source === 'predefined' ? (
+          {source === 'predefined' && (
             <DatasetBrowser
               datasetConfig={datasetConfig}
               datasetsCatalog={datasetsCatalog}
@@ -428,7 +430,14 @@ export function DatasetWorkspace() {
               onDownloadDataset={downloadDataset}
               onConfigChange={setDatasetConfig}
             />
-          ) : (
+          )}
+          {source === 'text' && (
+            <TextDatasetForm
+              datasetConfig={datasetConfig}
+              onConfigChange={setDatasetConfig}
+            />
+          )}
+          {(source === 'image_folder' || source === 'custom') && (
             <CustomDatasetForm
               datasetConfig={datasetConfig}
               onConfigChange={setDatasetConfig}
