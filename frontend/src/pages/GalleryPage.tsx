@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play } from 'lucide-react';
+import { ArrowLeft, Play, Layers, BookOpen } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useWeaveStore } from '../store/useWeaveStore';
@@ -11,6 +11,9 @@ export function GalleryPage() {
   const navigate = useNavigate();
   const { isAuthenticated, importTemplate } = useWeaveStore();
   const [deployingTemplate, setDeployingTemplate] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<'architecture' | 'paper'>('architecture');
+
+  const filteredTemplates = TEMPLATES.filter((t) => t.category === activeCategory);
 
   const handleDeploy = async (template: any) => {
     if (!isAuthenticated) {
@@ -70,22 +73,69 @@ export function GalleryPage() {
           </motion.p>
         </section>
 
+        {/* Category Pill Switcher */}
+        <div className="flex justify-center mb-16">
+          <div className="bg-white/5 border border-white/10 p-1.5 rounded-2xl flex gap-2 backdrop-blur-md">
+            <button
+              onClick={() => setActiveCategory('architecture')}
+              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+                activeCategory === 'architecture'
+                  ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Layers size={13} />
+              Architectures
+            </button>
+            <button
+              onClick={() => setActiveCategory('paper')}
+              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+                activeCategory === 'paper'
+                  ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <BookOpen size={13} />
+              Famous Papers
+            </button>
+          </div>
+        </div>
+
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-          {TEMPLATES.map((tmpl, idx) => (
+          {filteredTemplates.map((tmpl, idx) => (
             <motion.div
-              key={idx}
+              key={tmpl.name}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.08 }}
               className="glass-panel p-8 rounded-3xl flex flex-col justify-between items-start text-left relative"
             >
               <div className="w-full">
-                <div className="flex justify-between items-start gap-4 mb-4">
+                <div className="flex justify-between items-start gap-4 mb-2">
                   <h3 className="text-2xl font-black text-slate-100 uppercase tracking-tight leading-none">{tmpl.name}</h3>
                   <span className="text-[10px] font-mono tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 rounded-full uppercase shrink-0 text-slate-400">
                     Input: {tmpl.inputShape.join('x')}
                   </span>
                 </div>
+
+                {tmpl.category === 'paper' && (
+                  <div className="flex items-center gap-3 mb-4 text-xs font-sans">
+                    <span className="text-weave-violet font-extrabold font-mono px-2 py-0.5 bg-weave-violet/10 border border-weave-violet/20 rounded uppercase text-[10px] tracking-wider">
+                      {tmpl.citation}
+                    </span>
+                    {tmpl.paperUrl && (
+                      <a
+                        href={tmpl.paperUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-weave-blue hover:text-weave-blue/80 hover:underline font-bold flex items-center gap-1 transition-colors text-[10px] uppercase tracking-wider"
+                      >
+                        Read Paper →
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-sm text-slate-400 leading-relaxed mb-8 min-h-[48px]">{tmpl.description}</p>
                 
                 {/* Stats / Node layout summary */}

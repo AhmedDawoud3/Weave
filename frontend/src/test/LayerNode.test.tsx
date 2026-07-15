@@ -4,9 +4,10 @@ import type { ComponentType } from "react";
 import { LayerNode } from "@/components/LayerNode";
 import { useWeaveStore } from "@/store/useWeaveStore";
 
-// Mock @xyflow/react Handle and Position since they are DOM-drawing primitives
 vi.mock("@xyflow/react", () => ({
-  Handle: () => null,
+  Handle: ({ id, type }: { id: string; type: string }) => (
+    <div data-testid="react-flow-handle" data-id={id} data-type={type} />
+  ),
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
   useUpdateNodeInternals: () => vi.fn(),
 }));
@@ -60,5 +61,13 @@ describe("LayerNode", () => {
       />
     );
     expect(screen.queryByText(/\[.*\]/)).not.toBeInTheDocument();
+  });
+
+  it("renders multiple input handles for multi-input layers like MatMul", () => {
+    render(<LayerNodeAny id="matmul-1" data={{ type: "MatMul", label: "MatMul 1", params: {} }} />);
+    const handles = screen.getAllByTestId("react-flow-handle").filter(h => h.getAttribute("data-type") === "target");
+    expect(handles.length).toBeGreaterThanOrEqual(2);
+    expect(handles.some(h => h.getAttribute("data-id") === "input_0")).toBe(true);
+    expect(handles.some(h => h.getAttribute("data-id") === "input_1")).toBe(true);
   });
 });
