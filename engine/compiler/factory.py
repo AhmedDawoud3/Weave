@@ -678,3 +678,22 @@ def _build_dropout2d(node: NodeConfig) -> nn.Module:
         raise ValueError("Expected Dropout2d")
     p = node.params
     return nn.Dropout2d(p.p, p.inplace)
+
+
+@ComponentFactory.register("ResidualBlock")
+@ComponentFactory.register("TransformerEncoder")
+@ComponentFactory.register("MultiHeadAttention")
+@ComponentFactory.register("ConvBNReLU")
+@ComponentFactory.register("BottleneckBlock")
+@ComponentFactory.register("Block")
+@ComponentFactory.register("BatchNorm2dManualBlock")
+@ComponentFactory.register("AttentionManualBlock")
+@ComponentFactory.register("RNNManualBlock")
+@ComponentFactory.register("CustomAutogradManualBlock")
+def _build_block(node: NodeConfig) -> nn.Module:
+    subgraph = getattr(node, "graph", None)
+    if subgraph is None:
+        raise ValueError(f"Block node '{node.id}' of type '{node.type}' is missing its nested graph.")
+    from compiler.compiler import GraphCompiler
+    compiler = GraphCompiler()
+    return compiler.compile(subgraph)
