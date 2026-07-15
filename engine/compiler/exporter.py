@@ -126,8 +126,7 @@ def export_torchscript(request: ExportRequest) -> str:
     return request.output_path
 
 
-def generate_pytorch_code(graph: GraphConfig) -> str:
-    """Generates standalone, human-readable PyTorch source code for the model graph."""
+def _generate_class_for_graph(graph: GraphConfig, class_name: str, custom_defs_list: list[str]) -> str:
     from compiler.compiler import GraphCompiler
 
     compiler = GraphCompiler()
@@ -138,7 +137,6 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
     init_lines = []
     forward_lines = []
 
-    custom_defs = []
     has_concat = False
     has_add = False
     has_multiply = False
@@ -147,6 +145,24 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
     has_matmul = False
     has_scale = False
     has_scale_bias = False
+    has_flatten_consec = False
+    has_self_attn = False
+    has_pos_enc = False
+    has_causal_mask = False
+    has_feed_forward = False
+
+    BLOCK_TYPES = {
+        "ResidualBlock",
+        "TransformerEncoder",
+        "MultiHeadAttention",
+        "ConvBNReLU",
+        "BottleneckBlock",
+        "Block",
+        "BatchNorm2dManualBlock",
+        "AttentionManualBlock",
+        "RNNManualBlock",
+        "CustomAutogradManualBlock",
+    }
 
     for node_id in block.exec_order:
         if node_id in ("input", "output"):
@@ -157,6 +173,23 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
             continue
 
         t = node_config.type
+        
+        if t in BLOCK_TYPES:
+            subgraph = getattr(node_config, "graph", None)
+            if subgraph is not None:
+                sub_class_name = f"{t}_{node_id}"
+                sub_class_code = _generate_class_for_graph(subgraph, sub_class_name, custom_defs_list)
+                if not any(f"class {sub_class_name}" in c for c in custom_defs_list):
+                    custom_defs_list.append(sub_class_code)
+                init_lines.append(f"        self.{node_id} = {sub_class_name}()")
+                
+                inputs = block.incoming_edges.get(node_id, [])
+                if len(inputs) == 1:
+                    forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}(tensors['{inputs[0]}'])")
+                elif len(inputs) > 1:
+                    forward_lines.append(f"        tensors['{node_id}'] = self.{node_id}(tensors['{inputs[0]}'])")
+                continue
+
         params = getattr(node_config, "params", None)
         params_dict = {}
         if params is not None:
@@ -165,9 +198,13 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
             elif hasattr(params, "dict"):
                 params_dict = params.dict()
             elif isinstance(params, dict):
-                params_dict = params
+                params_dict = params.copy()
 
-        # Render params as keyword args
+        # Remove weight init parameters
+        init_scheme = params_dict.pop("init_scheme", "auto")
+        init_gain = params_dict.pop("init_gain", None)
+        init_fan_mode = params_dict.pop("init_fan_mode", "fan_in")
+
         param_strs = []
         for k, v in params_dict.items():
             if isinstance(v, str):
@@ -177,6 +214,35 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
             else:
                 param_strs.append(f"{k}={v}")
         params_str = ", ".join(param_strs)
+
+        init_calls = []
+        if init_scheme != "auto":
+            gain_val = init_gain if init_gain is not None else 1.0
+            if init_scheme == "xavier_uniform":
+                init_calls.append(f"        nn.init.xavier_uniform_(self.{node_id}.weight, gain={gain_val})")
+            elif init_scheme == "xavier_normal":
+                init_calls.append(f"        nn.init.xavier_normal_(self.{node_id}.weight, gain={gain_val})")
+            elif init_scheme == "kaiming_uniform":
+                init_calls.append(f"        nn.init.kaiming_uniform_(self.{node_id}.weight, mode='{init_fan_mode}')")
+            elif init_scheme == "kaiming_normal":
+                init_calls.append(f"        nn.init.kaiming_normal_(self.{node_id}.weight, mode='{init_fan_mode}')")
+            elif init_scheme == "zeros":
+                init_calls.append(f"        nn.init.zeros_(self.{node_id}.weight)")
+            elif init_scheme == "ones":
+                init_calls.append(f"        nn.init.ones_(self.{node_id}.weight)")
+            elif init_scheme == "normal":
+                init_calls.append(f"        nn.init.normal_(self.{node_id}.weight, std={gain_val})")
+            elif init_scheme == "uniform":
+                init_calls.append(f"        nn.init.uniform_(self.{node_id}.weight, -{gain_val}, {gain_val})")
+        else:
+            if t in ("Conv1d", "Conv2d", "ConvTranspose2d", "Linear"):
+                init_calls.append(f"        nn.init.kaiming_uniform_(self.{node_id}.weight, a=math.sqrt(5))")
+                init_calls.append(f"        if self.{node_id}.bias is not None:")
+                init_calls.append(f"            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.{node_id}.weight)")
+                init_calls.append(f"            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0")
+                init_calls.append(f"            nn.init.uniform_(self.{node_id}.bias, -bound, bound)")
+            elif t == "Embedding":
+                init_calls.append(f"        nn.init.normal_(self.{node_id}.weight, mean=0.0, std=1.0 / math.sqrt(self.{node_id}.embedding_dim))")
 
         if t == "Add":
             init_lines.append(f"        self.{node_id} = AddModule()")
@@ -204,11 +270,26 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
                 f"        self.{node_id} = ChannelScaleBias({params_str})"
             )
             has_scale_bias = True
+        elif t == "FlattenConsecutive":
+            init_lines.append(f"        self.{node_id} = FlattenConsecutiveModule({params_str})")
+            has_flatten_consec = True
+        elif t == "SelfAttention":
+            init_lines.append(f"        self.{node_id} = SelfAttentionModule({params_str})")
+            has_self_attn = True
+        elif t == "PositionalEncoding":
+            init_lines.append(f"        self.{node_id} = PositionalEncodingModule({params_str})")
+            has_pos_enc = True
+        elif t == "CausalMask":
+            init_lines.append(f"        self.{node_id} = CausalMaskModule()")
+            has_causal_mask = True
+        elif t == "FeedForward":
+            init_lines.append(f"        self.{node_id} = FeedForwardModule({params_str})")
+            has_feed_forward = True
         else:
-            # Standard nn.Module
             init_lines.append(f"        self.{node_id} = nn.{t}({params_str})")
+            for call in init_calls:
+                init_lines.append(call)
 
-        # Determine forward pass code
         inputs = block.incoming_edges.get(node_id, [])
         if t in ("Add", "Concat", "Multiply", "Sub", "Div", "MatMul"):
             inputs_str = ", ".join(f"tensors['{src}']" for src in inputs)
@@ -219,7 +300,6 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
             if len(inputs) == 1:
                 src = inputs[0]
                 if t == "Linear":
-                    # add auto-flatten support
                     forward_lines.append(
                         "        # Auto-flatten if input is multi-dimensional"
                     )
@@ -240,46 +320,45 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
                     f"        tensors['{node_id}'] = self.{node_id}(tensors['{inputs[0]}'])"
                 )
 
-    # Add custom modules code at the top
-    if has_add:
-        custom_defs.append("""class AddModule(nn.Module):
+    if has_add and not any("class AddModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class AddModule(nn.Module):
     def forward(self, xs):
         return sum(xs)""")
-    if has_concat:
-        custom_defs.append("""class ConcatModule(nn.Module):
+    if has_concat and not any("class ConcatModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class ConcatModule(nn.Module):
     def __init__(self, dim=1):
         super().__init__()
         self.dim = dim
     def forward(self, xs):
         return torch.cat(xs, dim=self.dim)""")
-    if has_multiply:
-        custom_defs.append("""class MultiplyModule(nn.Module):
+    if has_multiply and not any("class MultiplyModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class MultiplyModule(nn.Module):
     def forward(self, xs):
         res = xs[0]
         for x in xs[1:]:
             res = res * x
         return res""")
-    if has_sub:
-        custom_defs.append("""class SubModule(nn.Module):
+    if has_sub and not any("class SubModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class SubModule(nn.Module):
     def forward(self, xs):
         return xs[0] - xs[1]""")
-    if has_div:
-        custom_defs.append("""class DivModule(nn.Module):
+    if has_div and not any("class DivModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class DivModule(nn.Module):
     def forward(self, xs):
         return xs[0] / xs[1]""")
-    if has_matmul:
-        custom_defs.append("""class MatMulModule(nn.Module):
+    if has_matmul and not any("class MatMulModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class MatMulModule(nn.Module):
     def forward(self, xs):
         return torch.matmul(xs[0], xs[1])""")
-    if has_scale:
-        custom_defs.append("""class ScaleModule(nn.Module):
+    if has_scale and not any("class ScaleModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class ScaleModule(nn.Module):
     def __init__(self, value=1.0):
         super().__init__()
         self.value = value
     def forward(self, x):
         return x * self.value""")
-    if has_scale_bias:
-        custom_defs.append("""class ChannelScaleBias(nn.Module):
+    if has_scale_bias and not any("class ChannelScaleBias" in c for c in custom_defs_list):
+        custom_defs_list.append("""class ChannelScaleBias(nn.Module):
     def __init__(self, num_features):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(num_features))
@@ -290,19 +369,84 @@ def generate_pytorch_code(graph: GraphConfig) -> str:
         w = self.weight.view(*dims)
         b = self.bias.view(*dims)
         return x * w + b""")
-
-    custom_code = "\\n\\n".join(custom_defs)
-    if custom_code:
-        custom_code += "\\n\\n"
+    if has_flatten_consec and not any("class FlattenConsecutiveModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class FlattenConsecutiveModule(nn.Module):
+    def __init__(self, n=2):
+        super().__init__()
+        self.n = n
+    def forward(self, x):
+        B, T, C = x.shape
+        return x.contiguous().view(B, T // self.n, C * self.n)""")
+    if has_self_attn and not any("class SelfAttentionModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class SelfAttentionModule(nn.Module):
+    def __init__(self, embed_dim, num_heads, dropout=0.0, causal=True, bias=True):
+        super().__init__()
+        self.causal = causal
+        self.attn = nn.MultiheadAttention(
+            embed_dim, num_heads, dropout=dropout, bias=bias, batch_first=True
+        )
+    def forward(self, x):
+        T = x.size(1)
+        attn_mask = None
+        if self.causal:
+            attn_mask = torch.triu(
+                torch.ones(T, T, device=x.device, dtype=torch.bool), diagonal=1
+            )
+        out, _ = self.attn(x, x, x, attn_mask=attn_mask, need_weights=False)
+        return out""")
+    if has_pos_enc and not any("class PositionalEncodingModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class PositionalEncodingModule(nn.Module):
+    def __init__(self, embed_dim, max_seq_len=1024, pe_type="sinusoidal"):
+        super().__init__()
+        self.pe_type = pe_type
+        if pe_type == "learned":
+            self.pos_emb = nn.Embedding(max_seq_len, embed_dim)
+        else:
+            import math
+            pe = torch.zeros(max_seq_len, embed_dim)
+            position = torch.arange(0, max_seq_len, dtype=torch.float).unsqueeze(1)
+            div_term = torch.exp(
+                torch.arange(0, embed_dim, 2, dtype=torch.float)
+                * (-math.log(10000.0) / embed_dim)
+            )
+            pe[:, 0::2] = torch.sin(position * div_term)
+            if embed_dim % 2 == 1:
+                pe[:, 1::2] = torch.cos(position * div_term[:-1])
+            else:
+                pe[:, 1::2] = torch.cos(position * div_term)
+            self.register_buffer("pe", pe.unsqueeze(0))
+    def forward(self, x):
+        T = x.size(1)
+        if self.pe_type == "learned":
+            positions = torch.arange(T, device=x.device)
+            return x + self.pos_emb(positions)
+        else:
+            return x + self.pe[:, :T, :]""")
+    if has_causal_mask and not any("class CausalMaskModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class CausalMaskModule(nn.Module):
+    def forward(self, x):
+        T = x.size(1)
+        return torch.triu(torch.ones(T, T, device=x.device, dtype=torch.bool), diagonal=1)""")
+    if has_feed_forward and not any("class FeedForwardModule" in c for c in custom_defs_list):
+        custom_defs_list.append("""class FeedForwardModule(nn.Module):
+    def __init__(self, embed_dim, expansion=4, dropout=0.0):
+        super().__init__()
+        hidden = embed_dim * expansion
+        self.net = nn.Sequential(
+            nn.Linear(embed_dim, hidden),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden, embed_dim),
+            nn.Dropout(dropout),
+        )
+    def forward(self, x):
+        return self.net(x)""")
 
     output_src = block.incoming_edges.get("output", ["input"])[0]
-    init_str = "\\n".join(init_lines)
-    forward_str = "\\n".join(forward_lines)
+    init_str = "\n".join(init_lines)
+    forward_str = "\n".join(forward_lines)
 
-    code = f"""import torch
-import torch.nn as nn
-
-{custom_code}class Model(nn.Module):
+    return f"""class {class_name}(nn.Module):
     def __init__(self):
         super().__init__()
 {init_str}
@@ -310,6 +454,21 @@ import torch.nn as nn
     def forward(self, x):
         tensors = {{"input": x}}
 {forward_str}
-        return tensors['{output_src}']
+        return tensors['{output_src}']"""
+
+
+def generate_pytorch_code(graph: GraphConfig) -> str:
+    """Generates standalone, human-readable PyTorch source code for the model graph."""
+    custom_defs_list = []
+    model_class_code = _generate_class_for_graph(graph, "Model", custom_defs_list)
+    
+    custom_code = "\n\n".join(custom_defs_list)
+    if custom_code:
+        custom_code += "\n\n"
+        
+    return f"""import math
+import torch
+import torch.nn as nn
+
+{custom_code}{model_class_code}
 """
-    return code
