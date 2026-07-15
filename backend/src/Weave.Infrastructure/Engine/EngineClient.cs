@@ -110,4 +110,38 @@ public class EngineClient : IEngineOrchestrator
             };
         }
     }
+
+    public async Task<object> TrainTokenizerAsync(object request, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("/tokenizer/train", request, ct);
+        return await response.Content.ReadFromJsonAsync<object>(cancellationToken: ct) ?? new { status = "error", message = "Empty response" };
+    }
+
+    public async Task<object> GetTokenizerVocabAsync(string id, CancellationToken ct = default)
+    {
+        return await _http.GetFromJsonAsync<object>($"/tokenizer/{id}/vocab", ct) ?? new { status = "error", message = "Empty response" };
+    }
+
+    public async Task<object> GetTokenizerMergesAsync(string id, CancellationToken ct = default)
+    {
+        return await _http.GetFromJsonAsync<object>($"/tokenizer/{id}/merges", ct) ?? new { status = "error", message = "Empty response" };
+    }
+
+    public async Task<object> TokenizerEncodeAsync(object request, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("/tokenizer/encode", request, ct);
+        return await response.Content.ReadFromJsonAsync<object>(cancellationToken: ct) ?? new { status = "error", message = "Empty response" };
+    }
+
+    public async Task<object> TokenizerDecodeAsync(object request, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("/tokenizer/decode", request, ct);
+        return await response.Content.ReadFromJsonAsync<object>(cancellationToken: ct) ?? new { status = "error", message = "Empty response" };
+    }
+
+    public async Task<byte[]> ExportProjectAsync(object request, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("/export/project", request, ct);
+        return await response.Content.ReadAsByteArrayAsync(ct);
+    }
 }

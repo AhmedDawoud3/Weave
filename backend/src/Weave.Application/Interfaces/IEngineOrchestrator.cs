@@ -28,4 +28,11 @@ public interface IEngineOrchestrator
     /// </summary>
     Task<EngineResponseDto<DatasetShapeInferenceResponseDto>> InferDatasetShapeAsync(
         DatasetShapeInferenceRequestDto request, CancellationToken ct = default);
+
+    Task<object> TrainTokenizerAsync(object request, CancellationToken ct = default);
+    Task<object> GetTokenizerVocabAsync(string id, CancellationToken ct = default);
+    Task<object> GetTokenizerMergesAsync(string id, CancellationToken ct = default);
+    Task<object> TokenizerEncodeAsync(object request, CancellationToken ct = default);
+    Task<object> TokenizerDecodeAsync(object request, CancellationToken ct = default);
+    Task<byte[]> ExportProjectAsync(object request, CancellationToken ct = default);
 }

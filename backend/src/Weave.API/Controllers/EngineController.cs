@@ -82,4 +82,31 @@ public class EngineController : ControllerBase
         var result = await _engine.InferDatasetShapeAsync(dto, ct);
         return Ok(result);
     }
+
+    [HttpPost("tokenizer/train")]
+    public async Task<IActionResult> TrainTokenizer([FromBody] object request, CancellationToken ct) =>
+        Ok(await _engine.TrainTokenizerAsync(request, ct));
+
+    [HttpGet("tokenizer/{id}/vocab")]
+    public async Task<IActionResult> GetTokenizerVocab(string id, CancellationToken ct) =>
+        Ok(await _engine.GetTokenizerVocabAsync(id, ct));
+
+    [HttpGet("tokenizer/{id}/merges")]
+    public async Task<IActionResult> GetTokenizerMerges(string id, CancellationToken ct) =>
+        Ok(await _engine.GetTokenizerMergesAsync(id, ct));
+
+    [HttpPost("tokenizer/encode")]
+    public async Task<IActionResult> TokenizerEncode([FromBody] object request, CancellationToken ct) =>
+        Ok(await _engine.TokenizerEncodeAsync(request, ct));
+
+    [HttpPost("tokenizer/decode")]
+    public async Task<IActionResult> TokenizerDecode([FromBody] object request, CancellationToken ct) =>
+        Ok(await _engine.TokenizerDecodeAsync(request, ct));
+
+    [HttpPost("export/project")]
+    public async Task<IActionResult> ExportProject([FromBody] object request, CancellationToken ct)
+    {
+        var fileBytes = await _engine.ExportProjectAsync(request, ct);
+        return File(fileBytes, "application/octet-stream", "project_export.zip");
+    }
 }

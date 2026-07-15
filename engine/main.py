@@ -62,6 +62,13 @@ from schemas import (
     TrainingStatusResponse,
     TransformCatalogEntry,
     TransformCatalogResponse,
+    TokenizerTrainRequest,
+    TokenizerTrainResponse,
+    TokenizerEncodeRequest,
+    TokenizerEncodeResponse,
+    TokenizerDecodeRequest,
+    TokenizerDecodeResponse,
+    GenerateRequest,
 )
 from training.runner import TrainingRunner
 from training.scheduler_factory import create_scheduler
@@ -134,6 +141,8 @@ def verify_api_key(request: Request):
 
     expected_key = os.environ.get("WEAVE_ENGINE_API_KEY", "weave-default-key-12345")
     x_api_key = request.headers.get("X-API-Key")
+    if not x_api_key:
+        x_api_key = request.query_params.get("api_key")
     if x_api_key != expected_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -174,17 +183,22 @@ def download_file(path: str):
     return FileResponse(path, filename=filename, media_type="application/octet-stream")
 
 
+allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS")
+allowed_origins = [
+    "https://weave-ai.dev",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+]
+if allowed_origins_env:
+    allowed_origins.extend([o.strip() for o in allowed_origins_env.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://weave-ai.dev",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -849,6 +863,37 @@ def export_torchscript_endpoint(request: ExportRequest):
         return ExportResponse(status="error", output_path="", message=str(e))
 
 
+@app.post("/export/project", tags=["Model Exporters"])
+def export_project_endpoint(config: TrainingConfig):
+    """Generates and exports the complete standalone PyTorch project as a zip file."""
+    from export.project_exporter import export_project
+    from fastapi.responses import Response
+
+    try:
+        # Find tokenizer path if BPE is enabled
+        tokenizer_path = None
+        if config.dataset_config.source == "text" and config.dataset_config.tokenization == "bpe":
+            from dataset import get_dataset_from_config
+            dataset = get_dataset_from_config(config.dataset_config)
+            if hasattr(dataset, "tokenizer_obj") and dataset.tokenizer_obj:
+                import tempfile
+                from tokenizer import save_tokenizer
+                temp_dir = tempfile.mkdtemp()
+                tokenizer_path = os.path.join(temp_dir, "tokenizer.json")
+                save_tokenizer(dataset.tokenizer_obj, tokenizer_path)
+        
+        zip_bytes = export_project(config, tokenizer_path)
+        
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={"Content-Disposition": "attachment; filename=exported_project.zip"}
+        )
+    except Exception as e:
+        logger.exception("Failed to export project.")
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
 @app.post(
     "/inference/predict",
     response_model=InferenceResponse,
@@ -957,8 +1002,366 @@ def compare_experiments(request: ExperimentCompareRequest):
 
 
 # ---------------------------------------------------------------------------
+# Tokenizer Workspace Endpoints
+# ---------------------------------------------------------------------------
+
+@app.post(
+    "/tokenizer/train",
+    response_model=TokenizerTrainResponse,
+    tags=["Tokenizer Workspace"],
+)
+def train_tokenizer_endpoint(request: TokenizerTrainRequest):
+    """Trains a BPE tokenizer on the provided text corpus and saves it."""
+    import uuid
+    from tokenizer import train_bpe, BPETokenizer, save_tokenizer
+
+    try:
+        # 1. Retrieve the text
+        if request.text_source == "builtin":
+            from dataset.text_lm_dataset import CharLMDataset
+            dataset = CharLMDataset(text_source="builtin", builtin_name=request.builtin_name)
+            text = dataset._load_text("builtin", request.builtin_name, None, None)
+        elif request.text_source == "upload":
+            if not request.file_path:
+                raise ValueError("file_path is required for text_source='upload'.")
+            file_path = request.file_path
+            if file_path.startswith("data"):
+                file_path = file_path.replace("data", "../data", 1)
+            with open(file_path, encoding="utf-8") as f:
+                text = f.read()
+        elif request.text_source == "paste":
+            if not request.text_content:
+                raise ValueError("text_content is required for text_source='paste'.")
+            text = request.text_content
+        else:
+            raise ValueError(f"Unknown text_source: {request.text_source}")
+
+        # 2. Train the BPE
+        merges, vocab, special_tokens, frequencies = train_bpe(
+            text,
+            vocab_size=request.vocab_size,
+            pattern=request.pattern,
+            special_tokens=request.special_tokens,
+        )
+
+        # 3. Create BPETokenizer and save it
+        tokenizer = BPETokenizer(
+            merges=merges,
+            vocab=vocab,
+            special_tokens=special_tokens,
+            pattern=request.pattern,
+        )
+        tokenizer.frequencies = frequencies
+
+        tokenizer_id = str(uuid.uuid4())
+        tokenizer_path = os.path.join("../data/tokenizers", f"{tokenizer_id}.json")
+        save_tokenizer(tokenizer, tokenizer_path)
+
+        return TokenizerTrainResponse(
+            status="success",
+            tokenizer_id=tokenizer_id,
+            vocab_size=len(vocab),
+            message="Tokenizer trained and saved successfully.",
+        )
+    except Exception as e:
+        logger.exception("Tokenizer training failed.")
+        return TokenizerTrainResponse(status="error", message=str(e))
+
+
+@app.post(
+    "/tokenizer/encode",
+    response_model=TokenizerEncodeResponse,
+    tags=["Tokenizer Workspace"],
+)
+def encode_tokenizer_endpoint(request: TokenizerEncodeRequest):
+    """Encodes text into token IDs using a trained tokenizer."""
+    from tokenizer import load_tokenizer
+
+    try:
+        tokenizer_path = os.path.join("../data/tokenizers", f"{request.tokenizer_id}.json")
+        if not os.path.exists(tokenizer_path):
+            raise HTTPException(status_code=404, detail="Tokenizer not found.")
+
+        tokenizer = load_tokenizer(tokenizer_path)
+        tokens = tokenizer.encode(request.text)
+
+        tokens_decoded = []
+        for tid in tokens:
+            tokens_decoded.append(tokenizer.decode([tid]))
+
+        return TokenizerEncodeResponse(
+            status="success",
+            tokens=tokens,
+            tokens_decoded=tokens_decoded,
+        )
+    except Exception as e:
+        logger.exception("Tokenizer encode failed.")
+        return TokenizerEncodeResponse(status="error", message=str(e))
+
+
+@app.post(
+    "/tokenizer/decode",
+    response_model=TokenizerDecodeResponse,
+    tags=["Tokenizer Workspace"],
+)
+def decode_tokenizer_endpoint(request: TokenizerDecodeRequest):
+    """Decodes token IDs back into text using a trained tokenizer."""
+    from tokenizer import load_tokenizer
+
+    try:
+        tokenizer_path = os.path.join("../data/tokenizers", f"{request.tokenizer_id}.json")
+        if not os.path.exists(tokenizer_path):
+            raise HTTPException(status_code=404, detail="Tokenizer not found.")
+
+        tokenizer = load_tokenizer(tokenizer_path)
+        text = tokenizer.decode(request.tokens)
+
+        return TokenizerDecodeResponse(status="success", text=text)
+    except Exception as e:
+        logger.exception("Tokenizer decode failed.")
+        return TokenizerDecodeResponse(status="error", message=str(e))
+
+
+@app.get(
+    "/tokenizer/{tokenizer_id}/vocab",
+    tags=["Tokenizer Workspace"],
+)
+def get_tokenizer_vocab(tokenizer_id: str):
+    """Returns the vocabulary table for a trained tokenizer."""
+    from tokenizer import load_tokenizer
+
+    try:
+        tokenizer_path = os.path.join("../data/tokenizers", f"{tokenizer_id}.json")
+        if not os.path.exists(tokenizer_path):
+            raise HTTPException(status_code=404, detail="Tokenizer not found.")
+
+        tokenizer = load_tokenizer(tokenizer_path)
+        vocab_table = {}
+        for token_id, b in tokenizer.vocab.items():
+            try:
+                vocab_table[str(token_id)] = b.decode("utf-8", errors="replace")
+            except Exception:
+                vocab_table[str(token_id)] = str(b)
+
+        return {"status": "success", "vocab": vocab_table}
+    except Exception as e:
+        logger.exception("Failed to get tokenizer vocab.")
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.get(
+    "/tokenizer/{tokenizer_id}/merges",
+    tags=["Tokenizer Workspace"],
+)
+def get_tokenizer_merges(tokenizer_id: str):
+    """Returns the merge rules and frequencies for a trained tokenizer."""
+    from tokenizer import load_tokenizer
+
+    try:
+        tokenizer_path = os.path.join("../data/tokenizers", f"{tokenizer_id}.json")
+        if not os.path.exists(tokenizer_path):
+            raise HTTPException(status_code=404, detail="Tokenizer not found.")
+
+        tokenizer = load_tokenizer(tokenizer_path)
+        
+        merges_list = []
+        sorted_merges = sorted(tokenizer.merges.items(), key=lambda x: x[1])
+        frequencies = getattr(tokenizer, "frequencies", {})
+        
+        for (p0, p1), new_id in sorted_merges:
+            freq = frequencies.get(f"{p0},{p1}", 0)
+            p0_str = tokenizer.vocab.get(p0, b"").decode("utf-8", errors="replace")
+            p1_str = tokenizer.vocab.get(p1, b"").decode("utf-8", errors="replace")
+            new_str = tokenizer.vocab.get(new_id, b"").decode("utf-8", errors="replace")
+            
+            merges_list.append({
+                "pair": [p0, p1],
+                "pair_str": [p0_str, p1_str],
+                "new_id": new_id,
+                "new_str": new_str,
+                "frequency": freq
+            })
+
+        return {"status": "success", "merges": merges_list}
+    except Exception as e:
+        logger.exception("Failed to get tokenizer merges.")
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.post(
+    "/inference/generate",
+    tags=["Predictive Inference"],
+)
+async def generate_endpoint(request: GenerateRequest):
+    """Generates text autoregressively using a trained model and streams the output."""
+    from training.experiments import get_run
+    from compiler.exporter import load_checkpoint_model
+    from dataset import get_dataset_from_config
+    import torch
+    import asyncio
+
+    trainer = runner.get_trainer(request.run_id)
+    if trainer and trainer.model:
+        model = trainer.model
+        config = trainer.config
+    else:
+        run_record = get_run(request.run_id)
+        if not run_record:
+            raise HTTPException(status_code=404, detail="Run ID not found.")
+        from schemas import TrainingConfig
+        config = TrainingConfig(**run_record.config)
+        
+        checkpoint_path = run_record.checkpoint_path
+        if checkpoint_path and checkpoint_path.startswith("data"):
+            checkpoint_path = checkpoint_path.replace("data", "../data", 1)
+            
+        model = load_checkpoint_model(config.model_graph, checkpoint_path)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    model.eval()
+
+    try:
+        dataset = get_dataset_from_config(config.dataset_config)
+    except Exception as e:
+        logger.exception("Failed to build dataset for generation.")
+        raise HTTPException(status_code=400, detail=f"Failed to load dataset: {e}") from e
+
+    is_bpe = getattr(dataset, "tokenization", "char") == "bpe"
+    if is_bpe:
+        tokenizer = dataset.tokenizer_obj
+        if request.prompt:
+            context_ids = tokenizer.encode(request.prompt)
+        else:
+            context_ids = [tokenizer.special_tokens.get("<|endoftext|>", 0)]
+    else:
+        if request.prompt:
+            context_ids = [dataset.stoi[c] for c in request.prompt if c in dataset.stoi]
+        else:
+            context_ids = [0]
+        if not context_ids:
+            context_ids = [0]
+
+    context_length = getattr(dataset, "context_length", 8)
+
+    async def event_generator():
+        current_context = list(context_ids)
+        
+        for tid in current_context:
+            if is_bpe:
+                token_str = tokenizer.decode([tid])
+            else:
+                token_str = dataset.itos.get(tid, "")
+            yield {
+                "event": "token",
+                "data": json.dumps({"token": token_str, "done": False})
+            }
+            await asyncio.sleep(0.01)
+
+        try:
+            for _ in range(request.max_tokens):
+                input_ids = current_context[-context_length:]
+                x = torch.tensor([input_ids], dtype=torch.long).to(device)
+                
+                with torch.inference_mode():
+                    logits = model(x)
+                    
+                if logits.dim() == 3:
+                    logits = logits[0, -1, :]
+                elif logits.dim() == 2:
+                    logits = logits[0, :]
+                
+                temp = max(request.temperature, 1e-5)
+                logits = logits / temp
+                probs = torch.softmax(logits, dim=-1)
+                
+                next_id = torch.multinomial(probs, num_samples=1).item()
+                current_context.append(next_id)
+                
+                if is_bpe:
+                    token_str = tokenizer.decode([next_id])
+                else:
+                    token_str = dataset.itos.get(next_id, "")
+                    
+                yield {
+                    "event": "token",
+                    "data": json.dumps({"token": token_str, "done": False})
+                }
+                await asyncio.sleep(0.02)
+        except Exception as e:
+            logger.exception("Error in SSE token generation stream.")
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": str(e)})
+            }
+        finally:
+            yield {
+                "event": "token",
+                "data": json.dumps({"token": "", "done": True})
+            }
+
+    return EventSourceResponse(event_generator())
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics Endpoints
+# ---------------------------------------------------------------------------
+
+def _load_diagnostics(run_id: str) -> list:
+    filepath = os.path.join("../data/runs", f"{run_id}.diagnostics.json")
+    if not os.path.exists(filepath):
+        return []
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+@app.get("/training/diagnostics/{run_id}/activations", tags=["Training Engine"])
+def get_diagnostics_activations(run_id: str):
+    records = _load_diagnostics(run_id)
+    return {
+        "status": "success",
+        "epochs": [{"epoch": r["epoch"], "activations": r["activations"]} for r in records]
+    }
+
+@app.get("/training/diagnostics/{run_id}/gradients", tags=["Training Engine"])
+def get_diagnostics_gradients(run_id: str):
+    records = _load_diagnostics(run_id)
+    return {
+        "status": "success",
+        "epochs": [{"epoch": r["epoch"], "gradients": r["gradients"]} for r in records]
+    }
+
+@app.get("/training/diagnostics/{run_id}/weights", tags=["Training Engine"])
+def get_diagnostics_weights(run_id: str):
+    records = _load_diagnostics(run_id)
+    return {
+        "status": "success",
+        "epochs": [{"epoch": r["epoch"], "weights": r["weights"]} for r in records]
+    }
+
+@app.get("/training/diagnostics/{run_id}/update_ratio", tags=["Training Engine"])
+def get_diagnostics_update_ratio(run_id: str):
+    records = _load_diagnostics(run_id)
+    return {
+        "status": "success",
+        "epochs": [{"epoch": r["epoch"], "update_ratio": r["update_ratio"]} for r in records]
+    }
+
+@app.get("/training/diagnostics/{run_id}/attention", tags=["Training Engine"])
+def get_diagnostics_attention(run_id: str):
+    records = _load_diagnostics(run_id)
+    return {
+        "status": "success",
+        "epochs": [{"epoch": r["epoch"], "attention": r["attention"]} for r in records]
+    }
+
+
+# ---------------------------------------------------------------------------
 # Training endpoints
 # ---------------------------------------------------------------------------
+
 
 
 @app.post("/training/start", tags=["Training Engine"])
