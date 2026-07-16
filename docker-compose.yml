@@ -6,7 +6,7 @@ services:
       - SA_PASSWORD=YourStrong!Passw0rd
       - MSSQL_PID=Developer
     ports:
-      - "1433:1433"
+      - "51433:1433"
     volumes:
       - sqldata:/var/opt/mssql
 
@@ -35,6 +35,7 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:5000
     depends_on:

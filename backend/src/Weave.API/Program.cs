@@ -97,6 +97,9 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<Weave.Infrastructure.Persistence.WeaveDbContext>();
         Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.Migrate(context.Database);
+        
+        // Seed default pricing plans
+        await Weave.Infrastructure.Persistence.PricingPlanSeeder.SeedAsync(context);
     }
     catch (Exception ex)
     {

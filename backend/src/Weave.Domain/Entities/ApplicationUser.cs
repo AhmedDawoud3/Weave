@@ -13,6 +13,7 @@ public class ApplicationUser
     public string Email { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsSuspended { get; set; } = false;
 
     // Navigation properties
     public ICollection<Project> Projects { get; set; } = new List<Project>();

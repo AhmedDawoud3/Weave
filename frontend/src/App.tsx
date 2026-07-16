@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from './components/ui/toaster';
 import { Loader2 } from 'lucide-react';
@@ -15,6 +16,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ defaul
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const GalleryPage = lazy(() => import('./pages/GalleryPage').then(m => ({ default: m.GalleryPage })));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 
 function PageLoader() {
   return (
@@ -82,6 +84,16 @@ function AnimatedRoutes() {
             <ProtectedRoute>
               <StudioPage />
             </ProtectedRoute>
+          }
+        />
+        
+        {/* Admin Dashboard (Protected by AdminRoute) */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboardPage />
+            </AdminRoute>
           }
         />
         

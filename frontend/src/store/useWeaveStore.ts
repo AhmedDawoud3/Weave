@@ -3,7 +3,7 @@ import { type Node, type Edge, type Connection, addEdge, applyNodeChanges, apply
 import { api } from '../services/api';
 import { Project, SubGraph, NodeData, LayerType, LayerParams, DatasetConfig, TransformConfig, DataLoaderConfig } from '../types';
 
-function decodeToken(token: string | null): { email: string; name?: string } | null {
+function decodeToken(token: string | null): { email: string; name?: string; roles: string[] } | null {
   if (!token) return null;
   try {
     const parts = token.split('.');
@@ -12,8 +12,18 @@ function decodeToken(token: string | null): { email: string; name?: string } | n
     
     const email = payload.email || payload.unique_name || payload.sub || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "";
     const name = payload.display_name || payload.name || "";
+    // Roles could be a string or an array of strings
+    let roles: string[] = [];
+    const roleClaim = payload.role || payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    if (roleClaim) {
+      if (Array.isArray(roleClaim)) {
+        roles = roleClaim;
+      } else if (typeof roleClaim === 'string') {
+        roles = [roleClaim];
+      }
+    }
     
-    return { email, name };
+    return { email, name, roles };
   } catch (e) {
     console.error("Failed to decode JWT token:", e);
     return null;
@@ -27,7 +37,7 @@ interface WeaveState {
   // Auth
   token: string | null;
   isAuthenticated: boolean;
-  user: { email: string; name?: string } | null;
+  user: { email: string; name?: string; roles: string[] } | null;
   authError: string | null;
   isAuthenticating: boolean;
   login: (dto: any) => Promise<boolean>;

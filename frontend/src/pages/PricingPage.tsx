@@ -1,61 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { api } from '../services/api';
 
 export function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const plans = [
-    {
-      name: "Hobby",
-      price: 0,
-      desc: "Perfect for students and developers learning neural network architectures.",
-      features: [
-        "Interactive Model Canvas Editor",
-        "Standard conv/dense/transformer nodes",
-        "Local compilation & export (PyTorch)",
-        "Single workspace sandbox",
-        "Community support"
-      ],
-      cta: "Start Free",
-      popular: false,
-      color: "border-white/5"
-    },
-    {
-      name: "Developer",
-      price: isAnnual ? 12 : 15,
-      desc: "For deep learning engineers building, training, and optimizing real models.",
-      features: [
-        "All features in Hobby",
-        "Cloud GPU Training access",
-        "Live SignalR training metrics stream",
-        "Multi-run history comparison chart",
-        "ONNX & TorchScript exporter",
-        "Priority Discord support"
-      ],
-      cta: "Upgrade to Developer",
-      popular: true,
-      color: "border-weave-violet/50 shadow-[0_0_24px_rgba(108,60,225,0.15)] bg-weave-violet/5"
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      desc: "For teams and research labs requiring massive compute and integrations.",
-      features: [
-        "All features in Developer",
-        "Dedicated GPU cluster scaling",
-        "SAML SSO & Team management",
-        "Custom autograd code execution",
-        "API pipeline endpoints",
-        "SLA & Dedicated account manager"
-      ],
-      cta: "Contact Sales",
-      popular: false,
-      color: "border-white/5"
-    }
-  ];
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const fetchedPlans = await api.public.getPricing();
+        setPlans(fetchedPlans);
+      } catch (err) {
+        console.error("Failed to load pricing plans", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-[#0F1117] text-slate-100 py-12 px-6 md:px-12 relative overflow-hidden font-sans">
@@ -111,62 +78,88 @@ export function PricingPage() {
           </span>
         </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-20">
-          {plans.map((plan, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className={`glass-panel rounded-3xl p-8 flex flex-col justify-between relative border ${plan.color}`}
-            >
-              {plan.popular && (
-                <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-weave-violet text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border border-white/20">
-                  <Sparkles size={10} /> Most Popular
-                </div>
-              )}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-weave-violet" />
+          </div>
+        ) : (
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch mb-20">
+            {plans.map((plan, idx) => {
+              let featuresList: string[] = [];
+              try {
+                if (plan.featuresJson) {
+                  featuresList = JSON.parse(plan.featuresJson);
+                } else {
+                  featuresList = ["Interactive Model Canvas", `Max ${plan.maxProjectsCount} Projects`, "Community Support"];
+                }
+              } catch {
+                featuresList = ["Interactive Model Canvas", `Max ${plan.maxProjectsCount} Projects`, "Community Support"];
+              }
 
-              <div>
-                <h3 className="text-2xl font-black mb-2 uppercase text-slate-100">{plan.name}</h3>
-                <p className="text-xs text-slate-400 mb-6 min-h-[36px]">{plan.desc}</p>
-                
-                <div className="mb-8">
-                  {typeof plan.price === 'number' ? (
-                    <div className="flex items-baseline">
-                      <span className="text-5xl font-black tracking-tight">${plan.price}</span>
-                      <span className="text-sm text-slate-400 font-bold ml-1 uppercase">/ month</span>
-                    </div>
-                  ) : (
-                    <span className="text-4xl font-black tracking-tight">{plan.price}</span>
-                  )}
-                </div>
+              const monthlyPrice = plan.monthlyPrice || 0;
+              const yearlyPrice = plan.yearlyPrice || 0;
+              
+              // If yearly is selected and plan has yearly price, show it (divide by 12 for monthly equivalent if desired, or show full year).
+              // Let's show the monthly equivalent. If yearly price is 120, monthly equivalent is 10.
+              const displayPrice = isAnnual ? yearlyPrice : monthlyPrice;
 
-                <hr className="border-white/5 mb-8" />
-
-                <ul className="space-y-4 mb-8">
-                  {plan.features.map((feat, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-300">
-                      <Check className="w-4 h-4 text-weave-teal mt-0.5 shrink-0" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <Link to="/login" className="w-full">
-                <Button
-                  className={`w-full py-6 rounded-xl font-bold uppercase tracking-wider text-xs border ${
-                    plan.popular
-                      ? 'bg-weave-violet hover:bg-weave-violet/90 text-white border-transparent'
-                      : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
-                  }`}
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className={`glass-panel rounded-3xl p-8 flex flex-col justify-between relative border ${plan.colorClass || 'border-white/5'}`}
                 >
-                  {plan.cta}
-                </Button>
-              </Link>
-            </motion.div>
-          ))}
-        </section>
+                  {plan.isPopular && (
+                    <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-weave-violet text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border border-white/20">
+                      <Sparkles size={10} /> Most Popular
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-2xl font-black mb-2 uppercase text-slate-100">{plan.name}</h3>
+                    <p className="text-xs text-slate-400 mb-6 min-h-[36px]">{plan.description}</p>
+                    
+                    <div className="mb-8">
+                      {displayPrice > 0 ? (
+                        <div className="flex items-baseline">
+                          <span className="text-5xl font-black tracking-tight">${displayPrice}</span>
+                          <span className="text-sm text-slate-400 font-bold ml-1 uppercase">/ month</span>
+                        </div>
+                      ) : (
+                        <span className="text-4xl font-black tracking-tight">Free</span>
+                      )}
+                    </div>
+
+                    <hr className="border-white/5 mb-8" />
+
+                    <ul className="space-y-4 mb-8">
+                      {featuresList.map((feat, fIdx) => (
+                        <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-300">
+                          <Check className="w-4 h-4 text-weave-teal mt-0.5 shrink-0" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Link to="/login" className="w-full">
+                    <Button
+                      className={`w-full py-6 rounded-xl font-bold uppercase tracking-wider text-xs border ${
+                        plan.isPopular
+                          ? 'bg-weave-violet hover:bg-weave-violet/90 text-white border-transparent'
+                          : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+                      }`}
+                    >
+                      {plan.ctaText || 'Start Now'}
+                    </Button>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </section>
+        )}
       </div>
     </div>
   );

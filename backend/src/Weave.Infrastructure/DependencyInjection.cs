@@ -34,6 +34,8 @@ public static class DependencyInjection
                 connectionString,
                 b => b.MigrationsAssembly(typeof(WeaveDbContext).Assembly.FullName)));
 
+        services.AddScoped<IWeaveDbContext>(provider => provider.GetRequiredService<WeaveDbContext>());
+
         // ---- Identity ----
         services.AddIdentity<WeaveIdentityUser, IdentityRole>(options =>
         {
@@ -97,6 +99,7 @@ public static class DependencyInjection
         // ---- Application Services ----
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminService, AdminService>();
 
         // ---- Engine Client (typed HttpClient) ----
         services.AddHttpClient<IEngineOrchestrator, EngineClient>(client =>

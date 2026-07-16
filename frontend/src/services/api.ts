@@ -60,6 +60,111 @@ export const api = {
     },
   },
 
+  public: {
+    getPricing: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/pricing`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    getGallery: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/Public/gallery`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    }
+  },
+
+  admin: {
+    getStats: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/stats`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    getUsers: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/users`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    setUserRole: async (userId: string, isAdmin: boolean) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/users/${userId}/role`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ isAdmin }),
+      });
+      return handleResponse(res);
+    },
+    toggleSuspension: async (userId: string, suspend: boolean) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/users/${userId}/suspend`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ suspend }),
+      });
+      return handleResponse(res);
+    },
+    deleteUser: async (userId: string) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/users/${userId}`, { method: 'DELETE', headers: getHeaders() });
+      if (res.status === 204) return true;
+      return handleResponse(res);
+    },
+    getProjects: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/projects`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    getPricingPlans: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/admin/pricing`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    createPricingPlan: async (dto: any) => {
+      const res = await fetch(`${apiBaseUrl}/api/admin/pricing`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res);
+    },
+    getGalleryItems: async () => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/gallery`, { method: 'GET', headers: getHeaders() });
+      return handleResponse(res);
+    },
+    createGalleryItem: async (dto: any) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/gallery`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res);
+    },
+    updateGalleryItem: async (id: string, dto: any) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/gallery/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res);
+    },
+    deleteGalleryItem: async (id: string) => {
+      const res = await fetch(`${apiBaseUrl}/api/Admin/gallery/${id}`, { method: 'DELETE', headers: getHeaders() });
+      if (res.status === 204) return true;
+      return handleResponse(res);
+    },
+    updatePricingPlan: async (id: string, dto: any) => {
+      const res = await fetch(`${apiBaseUrl}/api/admin/pricing/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(dto),
+      });
+      return handleResponse(res);
+    },
+    deletePricingPlan: async (id: string) => {
+      const res = await fetch(`${apiBaseUrl}/api/admin/pricing/${id}`, { method: 'DELETE', headers: getHeaders() });
+      if (res.status === 204) return true;
+      return handleResponse(res);
+    },
+    reorderPricingPlans: async (planIds: string[]) => {
+      const res = await fetch(`${apiBaseUrl}/api/admin/pricing/reorder`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ planIds }),
+      });
+      return handleResponse(res);
+    }
+  },
+
   projects: {
     list: async () => {
       const res = await fetch(`${apiBaseUrl}/api/Projects`, {

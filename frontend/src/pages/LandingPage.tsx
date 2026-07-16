@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ChevronRight, Layers, Code2, Zap, ArrowRight,
   Workflow, Database, Play, Download, GitBranch,
-  Blocks, BarChart3, Sparkles, Sun, Moon
+  Blocks, BarChart3, Sparkles, Sun, Moon, Shield
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ReactFlow, Background, Handle, Position, type Node, type Edge } from '@xyflow/react';
@@ -182,6 +182,16 @@ export function LandingPage() {
                 <span className="text-muted-foreground font-medium hidden sm:inline">
                   Welcome back, <span className="text-foreground font-bold">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                 </span>
+                {user?.roles?.includes('Admin') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/admin')}
+                    className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary rounded-xl h-9 px-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                  >
+                    <Shield size={16} />
+                    <span className="hidden sm:inline">Admin Panel</span>
+                  </Button>
+                )}
                 <Button
                   onClick={() => navigate('/dashboard')}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-glow"
