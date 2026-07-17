@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut, Sun, Moon } from 'lucide-react';
+import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut, Sun, Moon, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -180,6 +180,8 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             )}
+
+
 
             {/* Theme Toggle Button */}
             <Button

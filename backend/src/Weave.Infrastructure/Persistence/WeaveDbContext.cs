@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Weave.Application.Interfaces;
 using Weave.Domain.Entities;
 using Weave.Infrastructure.Identity;
 
@@ -9,7 +10,7 @@ namespace Weave.Infrastructure.Persistence;
 /// The main EF Core DbContext for Weave, combining Identity tables
 /// with the application's domain entities.
 /// </summary>
-public class WeaveDbContext : IdentityDbContext<WeaveIdentityUser>
+public class WeaveDbContext : IdentityDbContext<WeaveIdentityUser>, IWeaveDbContext
 {
     public WeaveDbContext(DbContextOptions<WeaveDbContext> options) : base(options)
     {
@@ -18,6 +19,8 @@ public class WeaveDbContext : IdentityDbContext<WeaveIdentityUser>
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<SubGraph> SubGraphs => Set<SubGraph>();
     public DbSet<NetworkState> NetworkStates => Set<NetworkState>();
+    public DbSet<PricingPlan> PricingPlans => Set<PricingPlan>();
+    public DbSet<GalleryItem> GalleryItems => Set<GalleryItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -72,6 +75,13 @@ public class WeaveDbContext : IdentityDbContext<WeaveIdentityUser>
                   .WithMany(p => p.NetworkStates)
                   .HasForeignKey(n => n.ProjectId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ---- PricingPlan ----
+        builder.Entity<PricingPlan>(entity =>
+        {
+            entity.Property(p => p.MonthlyPrice).HasColumnType("decimal(18,2)");
+            entity.Property(p => p.YearlyPrice).HasColumnType("decimal(18,2)");
         });
     }
 }

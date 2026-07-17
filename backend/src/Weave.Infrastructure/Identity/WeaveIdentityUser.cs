@@ -11,4 +11,5 @@ public class WeaveIdentityUser : IdentityUser
 {
     public string DisplayName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsSuspended { get; set; } = false;
 }

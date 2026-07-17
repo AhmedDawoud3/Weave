@@ -56,7 +56,7 @@ public class AuthService : IAuthService
             };
         }
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
         {
@@ -91,7 +91,7 @@ public class AuthService : IAuthService
             };
         }
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
         {
@@ -174,7 +174,7 @@ public class AuthService : IAuthService
             }
         }
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
         {
@@ -187,7 +187,7 @@ public class AuthService : IAuthService
         };
     }
 
-    private string GenerateJwtToken(WeaveIdentityUser user)
+    private async Task<string> GenerateJwtTokenAsync(WeaveIdentityUser user)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
@@ -201,6 +201,12 @@ public class AuthService : IAuthService
             new("display_name", user.DisplayName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        var roles = await _userManager.GetRolesAsync(user);
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

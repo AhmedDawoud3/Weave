@@ -78,22 +78,20 @@ export function GalleryPage() {
           <div className="bg-white/5 border border-white/10 p-1.5 rounded-2xl flex gap-2 backdrop-blur-md">
             <button
               onClick={() => setActiveCategory('architecture')}
-              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-                activeCategory === 'architecture'
-                  ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${activeCategory === 'architecture'
+                ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               <Layers size={13} />
               Architectures
             </button>
             <button
               onClick={() => setActiveCategory('paper')}
-              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-                activeCategory === 'paper'
-                  ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${activeCategory === 'paper'
+                ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               <BookOpen size={13} />
               Famous Papers
@@ -137,7 +135,7 @@ export function GalleryPage() {
                 )}
 
                 <p className="text-sm text-slate-400 leading-relaxed mb-8 min-h-[48px]">{tmpl.description}</p>
-                
+
                 {/* Stats / Node layout summary */}
                 <div className="grid grid-cols-3 gap-4 mb-8 bg-white/5 p-4 rounded-xl border border-white/5 w-full">
                   <div className="text-center">
