@@ -351,7 +351,11 @@ export const api = {
       graphDto: any,
       inputShape: number[] = [1, 10],
       checkpointPath: string = "data/checkpoints/best.pt",
-      outputPath: string = "data/exports/model.pt"
+      outputPath: string = "data/exports/model.pt",
+      datasetConfig?: any,
+      loss?: any,
+      optimizer?: any,
+      training?: any
     ) => {
       const url = `${engineBaseUrl}/export/pytorch`;
       const res = await fetch(url, {
@@ -362,6 +366,10 @@ export const api = {
           input_shape: inputShape,
           checkpoint_path: checkpointPath,
           output_path: outputPath,
+          dataset_config: datasetConfig,
+          loss: loss,
+          optimizer: optimizer,
+          training: training,
         }),
       });
       return handleResponse(res);

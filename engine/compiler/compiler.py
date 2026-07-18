@@ -54,9 +54,23 @@ class GraphCompiler:
                 f"Graph exceeds maximum compilation length of {MAX_NODES} nodes."
             )
 
-        nodes_in_graph = set(["input", "output"])
+        # Collect input ports and output ports from the graph nodes
+        input_ports = [n.id for n in graph.nodes if n.type == "InputPort"]
+        output_ports = [n.id for n in graph.nodes if n.type == "OutputPort"]
+
+        # Fallback for old single-input/single-output graphs
+        if not input_ports:
+            input_ports = ["input"]
+        if not output_ports:
+            output_ports = ["output"]
+
+        nodes_in_graph = set()
         for node in graph.nodes:
             nodes_in_graph.add(node.id)
+        # Add virtual nodes or edge boundary nodes
+        for edge in graph.edges:
+            nodes_in_graph.add(edge.source)
+            nodes_in_graph.add(edge.target)
 
         # Initialize all nodes (ensures disconnected components are tracked)
         for nid in nodes_in_graph:
@@ -88,11 +102,12 @@ class GraphCompiler:
             )
 
         # Enforce that output is reachable from input
-        if not incoming_edges["output"]:
-            raise ValueError("No path leads to 'output' node.")
+        for out_p in output_ports:
+            if not incoming_edges.get(out_p) and out_p in nodes_in_graph:
+                raise ValueError(f"No path leads to output port '{out_p}'.")
 
         reachable_from_input = set()
-        reachability_queue = deque(["input"])
+        reachability_queue = deque(input_ports)
 
         while reachability_queue:
             current = reachability_queue.popleft()
@@ -103,9 +118,10 @@ class GraphCompiler:
                 if neighbor not in reachable_from_input:
                     reachability_queue.append(neighbor)
 
-        if "output" not in reachable_from_input:
-            raise ValueError("No path leads to 'output' node.")
-        return WeaveBlock(exec_order, node_map, incoming_edges)
+        for out_p in output_ports:
+            if out_p not in reachable_from_input and out_p in nodes_in_graph:
+                raise ValueError(f"No path leads from input ports to output port '{out_p}'.")
+        return WeaveBlock(exec_order, node_map, incoming_edges, input_ports, output_ports)
 
     def validate_pipeline(self, graph: GraphConfig, input_shape: list[int]) -> dict:
         logger.info(f"Validating pipeline with input shape: {input_shape}")
@@ -152,20 +168,22 @@ class GraphCompiler:
         # 3. Simulate the forward pass, recording shapes
         logger.info("Starting shape propagation simulation for compiled graph...")
         block.eval()
-        tensors = {"input": x}
-        node_shapes = {"input": list(x.shape)}
+        tensors = {}
+        for ip in block.input_ports:
+            tensors[ip] = x
+        node_shapes = {ip: list(tensors[ip].shape) for ip in block.input_ports}
 
         with torch.inference_mode():
             for node_id in block.exec_order:
-                if node_id == "input":
+                if node_id in block.input_ports:
                     continue
 
-                if node_id == "output":
-                    sources = block.incoming_edges.get("output", [])
+                if node_id in block.output_ports:
+                    sources = block.incoming_edges.get(node_id, [])
                     if len(sources) != 1:
                         return {
                             "status": "error",
-                            "message": f"Uh oh! The 'output' node must have exactly 1 incoming arrow, but it received {len(sources)}.",
+                            "message": f"Uh oh! The OutputPort node '{node_id}' must have exactly 1 incoming arrow, but it received {len(sources)}.",
                         }
 
                     output_source = sources[0]
@@ -175,8 +193,9 @@ class GraphCompiler:
                             "message": f"Couldn't track the values coming into '{output_source}'. Is it disconnected?",
                         }
 
-                    node_shapes["output"] = list(tensors[output_source].shape)
-                    break
+                    tensors[node_id] = tensors[output_source]
+                    node_shapes[node_id] = list(tensors[node_id].shape)
+                    continue
 
                 # Gather inputs
                 sources = block.incoming_edges.get(node_id, [])
@@ -227,6 +246,12 @@ class GraphCompiler:
                 logger.debug(
                     f"Node '{node_id}' shape propagation: output_shape={node_shapes[node_id]}"
                 )
+        # Set final output shapes for backward compatibility
+        if len(block.output_ports) == 1:
+            node_shapes["output"] = node_shapes.get(block.output_ports[0])
+        else:
+            node_shapes["output"] = [node_shapes.get(p) for p in block.output_ports]
+
         logger.info(
             f"Pipeline validation completed successfully. Output shape: {node_shapes.get('output')}"
         )
@@ -243,6 +268,8 @@ class GraphCompiler:
         "ConvBNReLU",
         "BottleneckBlock",
         "Block",
+        "Module",
+        "Stack",
     }
 
     def infer_layer_shape(

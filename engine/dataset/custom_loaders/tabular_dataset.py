@@ -38,7 +38,17 @@ class TabularDataset(Dataset):
         normalize: bool = True,
     ) -> None:
         if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"Data file not found: {file_path}")
+            # Auto-generate synthetic tabular data for example templates if requested
+            if file_path in ("data/features.csv", "./data/features.csv", "../data/features.csv"):
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                import numpy as np
+                # Generate 100 samples with 10 features and 1 target label
+                data = np.random.randn(100, 11)
+                cols = [f"feat_{i}" for i in range(10)] + ["label"]
+                df = pd.DataFrame(data, columns=cols)
+                df.to_csv(file_path, index=False)
+            else:
+                raise FileNotFoundError(f"Data file not found: {file_path}")
 
         self.df = pd.read_csv(file_path)
         self.target_column = target_column

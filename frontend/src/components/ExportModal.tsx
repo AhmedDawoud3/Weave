@@ -13,7 +13,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ onClose }: ExportModalProps) {
-  const { inferredDatasetShape, getFormattedGraph, datasetConfig } = useWeaveStore();
+  const { inferredDatasetShape, getFormattedRootGraph, datasetConfig } = useWeaveStore();
   const [activeTab, setActiveTab] = useState<'pytorch' | 'onnx' | 'torchscript' | 'project'>('pytorch');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,18 +42,34 @@ export function ExportModal({ onClose }: ExportModalProps) {
     }
   }, [activeTab]);
 
-  // Trigger Prism highlighting when code updates
-  useEffect(() => {
-    if (activeTab === 'pytorch' && code) {
-      Prism.highlightAll();
+  // Compute highlighted code using Prism
+  const highlightedCode = (() => {
+    if (!code) return '';
+    try {
+      return Prism.highlight(code, Prism.languages.python || {}, 'python');
+    } catch (e) {
+      return code;
     }
-  }, [code, activeTab]);
+  })();
 
   const fetchPyTorch = async () => {
     setLoading(true);
     try {
-      const res = await api.engine.exportPyTorch(getFormattedGraph());
-      setCode(res.code || '');
+      const parsedShape = parseShape(compileShape);
+      const res = await api.engine.exportPyTorch(
+        getFormattedRootGraph(),
+        parsedShape,
+        "data/checkpoints/best.pt",
+        "data/exports/model.pt",
+        datasetConfig
+      );
+      if (res.code) {
+        setCode(res.code);
+      } else if (res.status === 'error') {
+        setCode(`# PyTorch export failed.\n# Error: ${res.message}`);
+      } else {
+        setCode('');
+      }
     } catch (err: any) {
       setCode(`# Failed to export compiled PyTorch model.\n# Error: ${err.message}`);
     } finally {
@@ -76,7 +92,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
     setOnnxError(null);
     try {
       const parsedShape = parseShape(compileShape);
-      const res = await api.engine.exportONNX(getFormattedGraph(), parsedShape);
+      const res = await api.engine.exportONNX(getFormattedRootGraph(), parsedShape);
       if (res.status === 'success') {
         setOnnxStatus('success');
         if (res.output_path) {
@@ -98,7 +114,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
     setTsError(null);
     try {
       const parsedShape = parseShape(compileShape);
-      const res = await api.engine.exportTorchScript(getFormattedGraph(), parsedShape);
+      const res = await api.engine.exportTorchScript(getFormattedRootGraph(), parsedShape);
       if (res.status === 'success') {
         setTsStatus('success');
         if (res.output_path) {
@@ -120,7 +136,7 @@ export function ExportModal({ onClose }: ExportModalProps) {
     setProjectError(null);
     try {
       const pythonConfig = {
-        model_graph: getFormattedGraph(),
+        model_graph: getFormattedRootGraph(),
         dataset_config: datasetConfig || { source: 'predefined', name: 'MNIST', split: 'train' },
         loss: {
           type: 'CrossEntropyLoss',
@@ -259,7 +275,10 @@ export function ExportModal({ onClose }: ExportModalProps) {
               </div>
             ) : (
               <pre className="language-python text-foreground/90 leading-relaxed whitespace-pre-wrap select-text p-0 m-0 bg-transparent">
-                <code className="language-python">{code}</code>
+                <code
+                  className="language-python"
+                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                />
               </pre>
             )
           ) : activeTab === 'onnx' ? (

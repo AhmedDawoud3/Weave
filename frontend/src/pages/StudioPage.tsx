@@ -11,7 +11,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Terminal, Code2, RefreshCw, Plus, Search, Loader2, Sliders, HelpCircle, Sun, Moon } from 'lucide-react';
+import { Terminal, Code2, RefreshCw, Plus, Search, Loader2, Sliders, HelpCircle, Sun, Moon, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { api } from '../services/api';
 import { Button } from "@/components/ui/button";
 import { toast } from '../components/ui/toaster';
 import { LayerPalette } from '../components/LayerPalette';
@@ -22,6 +23,9 @@ import { LayerNode } from '../components/LayerNode';
 import { WeaveEdge } from '../components/WeaveEdge';
 import { TrainingPanel } from '../components/training/TrainingPanel';
 import { ExportModal } from '../components/ExportModal';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-python';
+import 'prismjs/themes/prism-tomorrow.css';
 import { useWeaveStore } from '../store/useWeaveStore';
 import { useTrainingStore } from '../store/useTrainingStore';
 import { LayerType } from '../types';
@@ -82,7 +86,10 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     activeTab,
     setActiveTab,
     selectProjectById,
-    saveActiveSubGraph
+    saveActiveSubGraph,
+    ensureSubgraphExists,
+    getFormattedGraph,
+    datasetConfig
   } = useWeaveStore();
 
   const { theme, setTheme } = useTheme();
@@ -120,6 +127,72 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showTrainingConsole, setShowTrainingConsole] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  const [liveCode, setLiveCode] = useState('');
+  const [isCompilingLiveCode, setIsCompilingLiveCode] = useState(false);
+  const [codePanelCollapsed, setCodePanelCollapsed] = useState(false);
+  const [copiedLiveCode, setCopiedLiveCode] = useState(false);
+
+  const handleCopyLiveCode = () => {
+    navigator.clipboard.writeText(liveCode);
+    setCopiedLiveCode(true);
+    setTimeout(() => setCopiedLiveCode(false), 2000);
+  };
+
+  useEffect(() => {
+    let active = true;
+    const compileTimer = setTimeout(async () => {
+      if (!active) return;
+      setIsCompilingLiveCode(true);
+      try {
+        const formatted = getFormattedGraph();
+        if (nodes.length === 0) {
+          setLiveCode('# Drag and drop layers from the left panel to begin.');
+          setIsCompilingLiveCode(false);
+          return;
+        }
+        const res = await api.engine.exportPyTorch(
+          formatted,
+          activeInputShape || [1, 3, 224, 224],
+          "data/checkpoints/best.pt",
+          "data/exports/model.pt",
+          datasetConfig
+        );
+        if (active) {
+          if (res.code) {
+            setLiveCode(res.code);
+          } else if (res.status === 'error') {
+            setLiveCode(`# PyTorch export failed.\n# Error: ${res.message}`);
+          } else {
+            setLiveCode('');
+          }
+        }
+      } catch (err: any) {
+        if (active) {
+          setLiveCode(`# Live compilation waiting/offline.\n# Detail: ${err.message}`);
+        }
+      } finally {
+        if (active) {
+          setIsCompilingLiveCode(false);
+        }
+      }
+    }, 600);
+
+    return () => {
+      active = false;
+      clearTimeout(compileTimer);
+    };
+  }, [nodes, edges, activeSubGraph, getFormattedGraph]);
+
+  // Compute highlighted live PyTorch code
+  const highlightedLiveCode = (() => {
+    if (!liveCode) return '';
+    try {
+      return Prism.highlight(liveCode, Prism.languages.python || {}, 'python');
+    } catch (e) {
+      return liveCode;
+    }
+  })();
   const [newSubGraphName, setNewSubGraphName] = useState('');
   const [showSubGraphPrompt, setShowSubGraphPrompt] = useState(false);
   const [showShortcutsTray, setShowShortcutsTray] = useState(false);
@@ -221,15 +294,15 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
   }, [checkKernelConnection]);
 
   // Handle double-clicking nested blocks to enter viewport
-  const handleNodeDoubleClick = useCallback((_: any, node: any) => {
-    const doubleClickableTypes = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'];
+  const handleNodeDoubleClick = useCallback(async (_: any, node: any) => {
+    const doubleClickableTypes = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock', 'Module', 'Stack'];
     if (doubleClickableTypes.includes(node.data?.type)) {
-      const subGraphId = node.data?.params?.subgraph_id;
+      const subGraphId = await ensureSubgraphExists(node.id);
       if (subGraphId) {
         enterSubGraph(subGraphId);
       }
     }
-  }, [enterSubGraph]);
+  }, [enterSubGraph, ensureSubgraphExists]);
 
   const onConnect = useCallback((connection: Connection) => {
     connectEdges(connection);
@@ -505,15 +578,15 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
       </div>
 
       {/* Main Studio Body Workspace */}
-      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+<div className="flex-1 flex overflow-hidden min-h-0 relative">
         {activeTab === 'canvas' ? (
           <>
             <LayerPalette onNavigateDashboard={handleNavigateDashboard} />
 
             {/* Canvas Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-background relative">
+            <div className="flex-1 flex min-w-0 bg-background relative h-full">
 
-              <div className="flex-1 relative min-h-0 min-w-0">
+              <div className="flex-1 relative min-h-0 min-w-0 h-full">
                 {/* Floating Canvas boundary node spawn buttons when in a nested subgraph */}
                 {navigationStack.length > 0 && (
                   <>
@@ -653,6 +726,63 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
                     nodeBorderRadius={4}
                   />
                 </ReactFlow>
+              </div>
+
+              {/* Collapsible Live PyTorch Code Panel */}
+              <div className="flex h-full select-none relative shrink-0">
+                <button
+                  onClick={() => setCodePanelCollapsed(v => !v)}
+                  className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card hover:bg-sidebar border border-border rounded-full p-1.5 shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer z-40 text-muted-foreground hover:text-foreground"
+                >
+                  {codePanelCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {!codePanelCollapsed && (
+                    <motion.div
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 420, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+                      className="h-full border-l border-border bg-card/65 backdrop-blur-md flex flex-col overflow-hidden text-foreground w-[420px]"
+                    >
+                      {/* Header */}
+                      <div className="p-4 border-b border-border shrink-0 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Code2 size={15} className="text-primary animate-pulse" />
+                          <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                            Live PyTorch Code
+                          </span>
+                        </div>
+                        
+                        {isCompilingLiveCode ? (
+                          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-primary tracking-widest">
+                            <Loader2 size={10} className="animate-spin" />
+                            <span>Compiling...</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleCopyLiveCode}
+                            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors focus:outline-none bg-transparent border-0 cursor-pointer"
+                          >
+                            {copiedLiveCode ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                            <span>{copiedLiveCode ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Code Area */}
+                      <div className="flex-1 overflow-auto p-4 font-mono text-[10px] leading-relaxed relative select-text scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                        <pre className="language-python text-foreground/90 whitespace-pre-wrap select-text p-0 m-0 bg-transparent">
+                          <code
+                            className="language-python"
+                            dangerouslySetInnerHTML={{ __html: highlightedLiveCode }}
+                          />
+                        </pre>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </>

@@ -296,9 +296,9 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
   const incomingEdgesCount = incomingEdges.length;
 
   const isMultiInput = ['Add', 'Concat', 'Multiply', 'MatMul', 'Sub', 'Div'].includes(data.type);
-  const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(data.type);
-  const isInputNode  = data.type === 'InputNode';
-  const isOutputNode = data.type === 'OutputNode';
+  const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock', 'Module', 'Stack'].includes(data.type);
+  const isInputNode  = data.type === 'InputNode' || data.type === 'InputPort';
+  const isOutputNode = data.type === 'OutputNode' || data.type === 'OutputPort';
 
   const isOutputConnected = isOutputNode
     ? incomingEdgesCount > 0

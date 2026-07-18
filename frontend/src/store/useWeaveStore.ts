@@ -90,13 +90,19 @@ interface WeaveState {
   validatePipeline: (inputShape?: number[]) => Promise<void>;
   saveActiveSubGraph: () => Promise<void>;
   getFormattedGraph: () => { nodes: any[]; edges: any[] };
+  getFormattedRootGraph: () => { nodes: any[]; edges: any[] };
+  ensureSubgraphExists: (nodeId: string) => Promise<string | null>;
 
   // Dataset Config
   datasetConfig: DatasetConfig | null;
+  lossConfig: { loss_type: string } | null;
+  optimizerConfig: { optimizer_type: string; lr: number; scheduler_type: string; epochs: number } | null;
   inferredDatasetShape: number[] | null;
   activeInputShape: number[] | null;
   isInferringDatasetShape: boolean;
   setDatasetConfig: (config: DatasetConfig | null) => void;
+  setLossConfig: (config: { loss_type: string } | null) => void;
+  setOptimizerConfig: (config: { optimizer_type: string; lr: number; scheduler_type: string; epochs: number } | null) => void;
   setDatasetSource: (source: 'predefined' | 'image_folder' | 'custom' | 'text') => void;
   addTransform: (transform: TransformConfig) => void;
   removeTransform: (index: number) => void;
@@ -176,6 +182,10 @@ const DEFAULT_PARAMS: Record<LayerType, LayerParams> = {
   AttentionManualBlock: {},
   RNNManualBlock: {},
   CustomAutogradManualBlock: {},
+  InputPort: { name: 'x' },
+  OutputPort: { name: 'out' },
+  Stack: { count: 1 },
+  Module: { configurable_params: [], param_overrides: {} },
   Block: {}
 };
 
@@ -249,7 +259,9 @@ const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubG
   const formattedNodes = nodes
     .filter(n => n.data.type !== 'InputNode' && n.data.type !== 'OutputNode')
     .map((n) => {
-      if (['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(n.data.type)) {
+      const isBlock = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(n.data.type);
+      
+      if (isBlock || n.data.type === 'Module' || n.data.type === 'Stack') {
         // Resolve child subgraph
         const subId = n.data.params?.subgraph_id;
         const sub = activeSubGraphs.find(s => s.id === subId);
@@ -262,12 +274,31 @@ const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubG
             console.error("Failed to parse subgraph json:", e);
           }
         }
-        return {
-          id: n.id,
-          type: n.data.type,
-          graph: nestedGraph,
-          repeat: n.data.params?.repeat || 1
-        };
+        
+        if (n.data.type === 'Module') {
+          return {
+            id: n.id,
+            type: 'Module',
+            name: n.data.label || 'Module',
+            graph: nestedGraph,
+            configurable_params: n.data.params?.configurable_params || [],
+            param_overrides: n.data.params?.param_overrides || {}
+          };
+        } else if (n.data.type === 'Stack') {
+          return {
+            id: n.id,
+            type: 'Stack',
+            params: { count: n.data.params?.count || 1 },
+            graph: nestedGraph
+          };
+        } else {
+          return {
+            id: n.id,
+            type: n.data.type,
+            graph: nestedGraph,
+            repeat: n.data.params?.repeat || 1
+          };
+        }
       }
       return {
         id: n.id,
@@ -326,6 +357,166 @@ const formatGraphForEngine = (nodes: Node<NodeData>[], edges: Edge[], activeSubG
   return { nodes: formattedNodes, edges: formattedEdges };
 };
 
+const createBlockSubgraphData = (type: string): { initialNodes: any[]; initialEdges: any[] } => {
+  let initialNodes: any[] = [];
+  let initialEdges: any[] = [];
+
+  if (type === 'ResidualBlock') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `conv_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 150 }, data: { type: 'Conv2d', label: 'Conv 1', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
+      { id: `bn_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 250 }, data: { type: 'BatchNorm2d', label: 'BN 1', params: { num_features: 16 } } },
+      { id: `relu_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 350 }, data: { type: 'ReLU', label: 'ReLU 1', params: {} } },
+      { id: `conv_${Date.now()}_2`, type: 'layer', position: { x: 150, y: 450 }, data: { type: 'Conv2d', label: 'Conv 2', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
+      { id: `add_${Date.now()}`, type: 'layer', position: { x: 150, y: 550 }, data: { type: 'Add', label: 'Residual Add', params: {} } },
+      { id: 'output_node', type: 'layer', position: { x: 150, y: 650 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
+      { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
+      { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_skip`, source: 'input_node', target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_6`, source: initialNodes[5].id, target: 'output_node', animated: true }
+    ];
+  } else if (type === 'Module' || type === 'Block' || type === 'Stack') {
+    initialNodes = [
+      { id: 'input_port', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputPort', label: 'Input: x', params: { name: 'x' } } },
+      { id: 'output_port', type: 'layer', position: { x: 150, y: 350 }, data: { type: 'OutputPort', label: 'Output: out', params: { name: 'out' } } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_port`, source: 'input_port', target: 'output_port', animated: true }
+    ];
+  } else if (type === 'ConvBNReLU') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `conv_${Date.now()}`, type: 'layer', position: { x: 150, y: 150 }, data: { type: 'Conv2d', label: 'Conv', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
+      { id: `bn_${Date.now()}`, type: 'layer', position: { x: 150, y: 250 }, data: { type: 'BatchNorm2d', label: 'BN', params: { num_features: 16 } } },
+      { id: `relu_${Date.now()}`, type: 'layer', position: { x: 150, y: 350 }, data: { type: 'ReLU', label: 'ReLU', params: {} } },
+      { id: 'output_node', type: 'layer', position: { x: 150, y: 450 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
+      { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: 'output_node', animated: true }
+    ];
+  } else if (type === 'BatchNorm2dManualBlock') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `mean_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Mean', label: 'Mean', params: { dim: [0, 2, 3], keepdim: true } } },
+      { id: `x_sub_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Sub', label: 'Sub', params: {} } },
+      { id: `var_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Var', label: 'Var', params: { dim: [0, 2, 3], keepdim: true, unbiased: false } } },
+      { id: `std_${Date.now()}`, type: 'layer', position: { x: 400, y: 250 }, data: { type: 'Sqrt', label: 'Sqrt', params: { eps: 1e-5 } } },
+      { id: `x_norm_${Date.now()}`, type: 'layer', position: { x: 250, y: 350 }, data: { type: 'Div', label: 'Div', params: {} } },
+      { id: `scale_bias_${Date.now()}`, type: 'layer', position: { x: 250, y: 450 }, data: { type: 'ChannelScaleBias', label: 'Scale Bias', params: { num_features: 3 } } },
+      { id: 'output_node', type: 'layer', position: { x: 250, y: 550 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_3`, source: initialNodes[1].id, target: initialNodes[2].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_4`, source: 'input_node', target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_5`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
+      { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_7`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_8`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
+      { id: `e_${Date.now()}_9`, source: initialNodes[6].id, target: 'output_node', animated: true }
+    ];
+  } else if (type === 'AttentionManualBlock') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `q_proj_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Linear', label: 'Query Proj', params: { in_features: 8, out_features: 8 } } },
+      { id: `k_proj_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'Linear', label: 'Key Proj', params: { in_features: 8, out_features: 8 } } },
+      { id: `v_proj_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Linear', label: 'Value Proj', params: { in_features: 8, out_features: 8 } } },
+      { id: `k_trans_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Permute', label: 'Key Transpose', params: { dims: [0, 2, 1] } } },
+      { id: `scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 350 }, data: { type: 'MatMul', label: 'Scores MatMul', params: {} } },
+      { id: `scaled_scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 430 }, data: { type: 'Scale', label: 'Scale Scores', params: { value: 0.35355339 } } },
+      { id: `attn_weights_${Date.now()}`, type: 'layer', position: { x: 175, y: 510 }, data: { type: 'Softmax', label: 'Softmax', params: { dim: -1 } } },
+      { id: `context_${Date.now()}`, type: 'layer', position: { x: 300, y: 600 }, data: { type: 'MatMul', label: 'Context MatMul', params: {} } },
+      { id: `out_proj_${Date.now()}`, type: 'layer', position: { x: 300, y: 700 }, data: { type: 'Linear', label: 'Output Proj', params: { in_features: 8, out_features: 8 } } },
+      { id: 'output_node', type: 'layer', position: { x: 300, y: 800 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
+      { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_4`, source: initialNodes[2].id, target: initialNodes[4].id, animated: true },
+      { id: `e_${Date.now()}_5`, source: initialNodes[1].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_6`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
+      { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[7].id, animated: true },
+      { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_10`, source: initialNodes[3].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_11`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
+      { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: 'output_node', animated: true }
+    ];
+  } else if (type === 'RNNManualBlock') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 300, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `slice_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Slice', label: 'Slice 0', params: { dim: 1, index: 0 } } },
+      { id: `slice_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 150 }, data: { type: 'Slice', label: 'Slice 1', params: { dim: 1, index: 1 } } },
+      { id: `slice_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 150 }, data: { type: 'Slice', label: 'Slice 2', params: { dim: 1, index: 2 } } },
+      { id: `i2h_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 0', params: { in_features: 4, out_features: 6 } } },
+      { id: `h0_${Date.now()}`, type: 'layer', position: { x: 100, y: 350 }, data: { type: 'Tanh', label: 'Hidden 0', params: {} } },
+      { id: `i2h_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 1', params: { in_features: 4, out_features: 6 } } },
+      { id: `h2h_1_${Date.now()}`, type: 'layer', position: { x: 200, y: 350 }, data: { type: 'Linear', label: 'Hidden to Hidden 1', params: { in_features: 6, out_features: 6 } } },
+      { id: `add_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 450 }, data: { type: 'Add', label: 'Add 1', params: {} } },
+      { id: `h1_${Date.now()}`, type: 'layer', position: { x: 300, y: 530 }, data: { type: 'Tanh', label: 'Hidden 1', params: {} } },
+      { id: `i2h_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 2', params: { in_features: 4, out_features: 6 } } },
+      { id: `h2h_2_${Date.now()}`, type: 'layer', position: { x: 400, y: 530 }, data: { type: 'Linear', label: 'Hidden to Hidden 2', params: { in_features: 6, out_features: 6 } } },
+      { id: `add_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 630 }, data: { type: 'Add', label: 'Add 2', params: {} } },
+      { id: `h2_${Date.now()}`, type: 'layer', position: { x: 500, y: 710 }, data: { type: 'Tanh', label: 'Hidden 2', params: {} } },
+      { id: `concat_h_${Date.now()}`, type: 'layer', position: { x: 300, y: 810 }, data: { type: 'Concat', label: 'Concat Hidden', params: { dim: 1 } } },
+      { id: `reshape_out_${Date.now()}`, type: 'layer', position: { x: 300, y: 900 }, data: { type: 'Reshape', label: 'Reshape Out', params: { target_shape: [-1, 3, 6] } } },
+      { id: 'output_node', type: 'layer', position: { x: 300, y: 990 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
+      { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_4`, source: initialNodes[1].id, target: initialNodes[4].id, animated: true },
+      { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: initialNodes[5].id, animated: true },
+      { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[6].id, animated: true },
+      { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[7].id, animated: true },
+      { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_10`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
+      { id: `e_${Date.now()}_11`, source: initialNodes[3].id, target: initialNodes[10].id, animated: true },
+      { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: initialNodes[11].id, animated: true },
+      { id: `e_${Date.now()}_13`, source: initialNodes[10].id, target: initialNodes[12].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_14`, source: initialNodes[11].id, target: initialNodes[12].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_15`, source: initialNodes[12].id, target: initialNodes[13].id, animated: true },
+      { id: `e_${Date.now()}_16`, source: initialNodes[5].id, target: initialNodes[14].id, targetHandle: 'input_0', animated: true },
+      { id: `e_${Date.now()}_17`, source: initialNodes[9].id, target: initialNodes[14].id, targetHandle: 'input_1', animated: true },
+      { id: `e_${Date.now()}_18`, source: initialNodes[13].id, target: initialNodes[14].id, targetHandle: 'input_2', animated: true },
+      { id: `e_${Date.now()}_19`, source: initialNodes[14].id, target: initialNodes[15].id, animated: true },
+      { id: `e_${Date.now()}_20`, source: initialNodes[15].id, target: 'output_node', animated: true }
+    ];
+  } else if (type === 'CustomAutogradManualBlock') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `custom_act_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'CustomAutograd', label: 'Custom Activation', params: { forward_code: "def forward(x):\n    return x * x", backward_code: "def backward(x, y, grad_output):\n    return grad_output * 2.0 * x" } } },
+      { id: 'output_node', type: 'layer', position: { x: 250, y: 250 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: 'output_node', animated: true }
+    ];
+  } else {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: 'output_node', type: 'layer', position: { x: 150, y: 350 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: 'output_node', animated: true }
+    ];
+  }
+
+  return { initialNodes, initialEdges };
+};
+
 export const useWeaveStore = create<WeaveState>((set, get) => {
   // Setup debounce variable for autosaving
   let saveTimeout: NodeJS.Timeout | null = null;
@@ -334,6 +525,8 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
   return {
     // Dataset State
     datasetConfig: null,
+    lossConfig: null,
+    optimizerConfig: null,
     inferredDatasetShape: null,
     activeInputShape: null,
     isInferringDatasetShape: false,
@@ -530,16 +723,43 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
         set((state) => ({ projects: [newProj, ...state.projects] }));
 
         const projectId = newProj.id;
-        const initialNodes = template.nodes.map((node: any) => ({
-          id: node.id,
-          type: 'layer',
-          position: node.position,
-          data: {
-            type: node.type,
-            label: node.label,
-            params: node.params
+        const initialNodes: any[] = [];
+        const subgraphsToRegister: any[] = [];
+
+        for (const node of template.nodes) {
+          const type = node.type;
+          const isBlockType = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock', 'Module', 'Stack'].includes(type);
+          
+          let subgraphId: string | undefined = undefined;
+          if (isBlockType) {
+            try {
+              const { initialNodes: subNodes, initialEdges: subEdges } = createBlockSubgraphData(type);
+              const subGraphJson = JSON.stringify({ nodes: subNodes, edges: subEdges });
+              const newSub = await api.projects.createSubGraph(projectId, {
+                name: `${type}_${Date.now()}`,
+                graphJson: subGraphJson
+              });
+              subgraphId = newSub.id;
+              subgraphsToRegister.push(newSub);
+            } catch (e) {
+              console.error("Failed to create subgraph during template import:", e);
+            }
           }
-        }));
+
+          initialNodes.push({
+            id: node.id,
+            type: 'layer',
+            position: node.position,
+            data: {
+              type: node.type,
+              label: node.label,
+              params: {
+                ...node.params,
+                ...(subgraphId ? { subgraph_id: subgraphId } : {})
+              }
+            }
+          });
+        }
 
         const initialEdges = template.edges.map((edge: any, index: number) => ({
           id: `edge_${Date.now()}_${index}`,
@@ -549,23 +769,32 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
           animated: true
         }));
 
-        const graphJson = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
+        const graphJson = JSON.stringify({ 
+          nodes: initialNodes, 
+          edges: initialEdges, 
+          datasetConfig: template.datasetConfig || null,
+          lossConfig: template.lossConfig || null,
+          optimizerConfig: template.optimizerConfig || null
+        });
 
         const mainSub = await api.projects.createSubGraph(projectId, {
           name: "Main",
           graphJson
         });
 
+        const allSubgraphs = [mainSub, ...subgraphsToRegister];
         const detail = {
           ...newProj,
-          subGraphs: [mainSub]
+          subGraphs: allSubgraphs
         };
 
         set({
           activeProject: detail,
-          activeSubGraphs: [mainSub],
+          activeSubGraphs: allSubgraphs,
           activeSubGraph: mainSub,
-          navigationStack: []
+          navigationStack: [],
+          lossConfig: template.lossConfig || null,
+          optimizerConfig: template.optimizerConfig || null
         });
 
         get().selectSubGraph(mainSub);
@@ -585,7 +814,13 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       if (!activeSubGraph) return;
 
       // 1. Save current graph immediately (sync)
-      const graphJson = JSON.stringify({ nodes, edges, datasetConfig: get().datasetConfig });
+      const graphJson = JSON.stringify({ 
+        nodes, 
+        edges, 
+        datasetConfig: get().datasetConfig,
+        lossConfig: get().lossConfig,
+        optimizerConfig: get().optimizerConfig
+      });
       if (activeProject) {
         try {
           await api.projects.updateSubGraph(activeProject.id, activeSubGraph.id, {
@@ -611,10 +846,14 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       try {
         const parsed = JSON.parse(targetSub.graphJson);
         const restoredDatasetConfig = parsed.datasetConfig || null;
+        const restoredLossConfig = parsed.lossConfig || null;
+        const restoredOptimizerConfig = parsed.optimizerConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
           datasetConfig: restoredDatasetConfig,
+          lossConfig: restoredLossConfig,
+          optimizerConfig: restoredOptimizerConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
@@ -638,7 +877,13 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       if (!activeSubGraph || navigationStack.length === 0) return;
 
       // 1. Save current nested subgraph
-      const graphJson = JSON.stringify({ nodes, edges, datasetConfig: get().datasetConfig });
+      const graphJson = JSON.stringify({ 
+        nodes, 
+        edges, 
+        datasetConfig: get().datasetConfig,
+        lossConfig: get().lossConfig,
+        optimizerConfig: get().optimizerConfig
+      });
       if (activeProject) {
         try {
           await api.projects.updateSubGraph(activeProject.id, activeSubGraph.id, {
@@ -663,10 +908,14 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       try {
         const parsed = JSON.parse(targetSub.graphJson);
         const restoredDatasetConfig = parsed.datasetConfig || null;
+        const restoredLossConfig = parsed.lossConfig || null;
+        const restoredOptimizerConfig = parsed.optimizerConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
           datasetConfig: restoredDatasetConfig,
+          lossConfig: restoredLossConfig,
+          optimizerConfig: restoredOptimizerConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
@@ -690,10 +939,14 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       try {
         const parsed = JSON.parse(subgraph.graphJson);
         const restoredDatasetConfig = parsed.datasetConfig || null;
+        const restoredLossConfig = parsed.lossConfig || null;
+        const restoredOptimizerConfig = parsed.optimizerConfig || null;
         set({
           nodes: parsed.nodes || [],
           edges: parsed.edges || [],
           datasetConfig: restoredDatasetConfig,
+          lossConfig: restoredLossConfig,
+          optimizerConfig: restoredOptimizerConfig,
           validationStatus: 'idle',
           validationMessage: null,
           nodeShapes: {}
@@ -794,161 +1047,14 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
     setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
     addNode: async (type, position) => {
-      const isBlockType = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock'].includes(type);
+      const isBlockType = ['Block', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock', 'Module', 'Stack'].includes(type);
       let subgraphId: string | undefined = undefined;
 
       if (isBlockType) {
         const activeProject = get().activeProject;
         if (activeProject) {
           try {
-            let initialNodes: any[] = [];
-            let initialEdges: any[] = [];
-
-            if (type === 'ResidualBlock') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `conv_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 150 }, data: { type: 'Conv2d', label: 'Conv 1', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
-                { id: `bn_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 250 }, data: { type: 'BatchNorm2d', label: 'BN 1', params: { num_features: 16 } } },
-                { id: `relu_${Date.now()}_1`, type: 'layer', position: { x: 150, y: 350 }, data: { type: 'ReLU', label: 'ReLU 1', params: {} } },
-                { id: `conv_${Date.now()}_2`, type: 'layer', position: { x: 150, y: 450 }, data: { type: 'Conv2d', label: 'Conv 2', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
-                { id: `add_${Date.now()}`, type: 'layer', position: { x: 150, y: 550 }, data: { type: 'Add', label: 'Residual Add', params: {} } },
-                { id: 'output_node', type: 'layer', position: { x: 150, y: 650 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
-                { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
-                { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
-                { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_skip`, source: 'input_node', target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_6`, source: initialNodes[5].id, target: 'output_node', animated: true }
-              ];
-            } else if (type === 'ConvBNReLU') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `conv_${Date.now()}`, type: 'layer', position: { x: 150, y: 150 }, data: { type: 'Conv2d', label: 'Conv', params: { in_channels: 16, out_channels: 16, kernel_size: 3, stride: 1, padding: 1 } } },
-                { id: `bn_${Date.now()}`, type: 'layer', position: { x: 150, y: 250 }, data: { type: 'BatchNorm2d', label: 'BN', params: { num_features: 16 } } },
-                { id: `relu_${Date.now()}`, type: 'layer', position: { x: 150, y: 350 }, data: { type: 'ReLU', label: 'ReLU', params: {} } },
-                { id: 'output_node', type: 'layer', position: { x: 150, y: 450 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
-                { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
-                { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: 'output_node', animated: true }
-              ];
-            } else if (type === 'BatchNorm2dManualBlock') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `mean_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Mean', label: 'Mean', params: { dim: [0, 2, 3], keepdim: true } } },
-                { id: `x_sub_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Sub', label: 'Sub', params: {} } },
-                { id: `var_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Var', label: 'Var', params: { dim: [0, 2, 3], keepdim: true, unbiased: false } } },
-                { id: `std_${Date.now()}`, type: 'layer', position: { x: 400, y: 250 }, data: { type: 'Sqrt', label: 'Sqrt', params: { eps: 1e-5 } } },
-                { id: `x_norm_${Date.now()}`, type: 'layer', position: { x: 250, y: 350 }, data: { type: 'Div', label: 'Div', params: {} } },
-                { id: `scale_bias_${Date.now()}`, type: 'layer', position: { x: 250, y: 450 }, data: { type: 'ChannelScaleBias', label: 'Scale Bias', params: { num_features: 3 } } },
-                { id: 'output_node', type: 'layer', position: { x: 250, y: 550 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_3`, source: initialNodes[1].id, target: initialNodes[2].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_4`, source: 'input_node', target: initialNodes[3].id, animated: true },
-                { id: `e_${Date.now()}_5`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
-                { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_7`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_8`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
-                { id: `e_${Date.now()}_9`, source: initialNodes[6].id, target: 'output_node', animated: true }
-              ];
-            } else if (type === 'AttentionManualBlock') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `q_proj_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Linear', label: 'Query Proj', params: { in_features: 8, out_features: 8 } } },
-                { id: `k_proj_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'Linear', label: 'Key Proj', params: { in_features: 8, out_features: 8 } } },
-                { id: `v_proj_${Date.now()}`, type: 'layer', position: { x: 400, y: 150 }, data: { type: 'Linear', label: 'Value Proj', params: { in_features: 8, out_features: 8 } } },
-                { id: `k_trans_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'Permute', label: 'Key Transpose', params: { dims: [0, 2, 1] } } },
-                { id: `scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 350 }, data: { type: 'MatMul', label: 'Scores MatMul', params: {} } },
-                { id: `scaled_scores_${Date.now()}`, type: 'layer', position: { x: 175, y: 430 }, data: { type: 'Scale', label: 'Scale Scores', params: { value: 0.35355339 } } },
-                { id: `attn_weights_${Date.now()}`, type: 'layer', position: { x: 175, y: 510 }, data: { type: 'Softmax', label: 'Softmax', params: { dim: -1 } } },
-                { id: `context_${Date.now()}`, type: 'layer', position: { x: 300, y: 600 }, data: { type: 'MatMul', label: 'Context MatMul', params: {} } },
-                { id: `out_proj_${Date.now()}`, type: 'layer', position: { x: 300, y: 700 }, data: { type: 'Linear', label: 'Output Proj', params: { in_features: 8, out_features: 8 } } },
-                { id: 'output_node', type: 'layer', position: { x: 300, y: 800 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
-                { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
-                { id: `e_${Date.now()}_4`, source: initialNodes[2].id, target: initialNodes[4].id, animated: true },
-                { id: `e_${Date.now()}_5`, source: initialNodes[1].id, target: initialNodes[5].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_6`, source: initialNodes[4].id, target: initialNodes[5].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[6].id, animated: true },
-                { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[7].id, animated: true },
-                { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_10`, source: initialNodes[3].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_11`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
-                { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: 'output_node', animated: true }
-              ];
-            } else if (type === 'RNNManualBlock') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 300, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `slice_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 150 }, data: { type: 'Slice', label: 'Slice 0', params: { dim: 1, index: 0 } } },
-                { id: `slice_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 150 }, data: { type: 'Slice', label: 'Slice 1', params: { dim: 1, index: 1 } } },
-                { id: `slice_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 150 }, data: { type: 'Slice', label: 'Slice 2', params: { dim: 1, index: 2 } } },
-                { id: `i2h_0_${Date.now()}`, type: 'layer', position: { x: 100, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 0', params: { in_features: 4, out_features: 6 } } },
-                { id: `h0_${Date.now()}`, type: 'layer', position: { x: 100, y: 350 }, data: { type: 'Tanh', label: 'Hidden 0', params: {} } },
-                { id: `i2h_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 1', params: { in_features: 4, out_features: 6 } } },
-                { id: `h2h_1_${Date.now()}`, type: 'layer', position: { x: 200, y: 350 }, data: { type: 'Linear', label: 'Hidden to Hidden 1', params: { in_features: 6, out_features: 6 } } },
-                { id: `add_1_${Date.now()}`, type: 'layer', position: { x: 300, y: 450 }, data: { type: 'Add', label: 'Add 1', params: {} } },
-                { id: `h1_${Date.now()}`, type: 'layer', position: { x: 300, y: 530 }, data: { type: 'Tanh', label: 'Hidden 1', params: {} } },
-                { id: `i2h_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 250 }, data: { type: 'Linear', label: 'Input to Hidden 2', params: { in_features: 4, out_features: 6 } } },
-                { id: `h2h_2_${Date.now()}`, type: 'layer', position: { x: 400, y: 530 }, data: { type: 'Linear', label: 'Hidden to Hidden 2', params: { in_features: 6, out_features: 6 } } },
-                { id: `add_2_${Date.now()}`, type: 'layer', position: { x: 500, y: 630 }, data: { type: 'Add', label: 'Add 2', params: {} } },
-                { id: `h2_${Date.now()}`, type: 'layer', position: { x: 500, y: 710 }, data: { type: 'Tanh', label: 'Hidden 2', params: {} } },
-                { id: `concat_h_${Date.now()}`, type: 'layer', position: { x: 300, y: 810 }, data: { type: 'Concat', label: 'Concat Hidden', params: { dim: 1 } } },
-                { id: `reshape_out_${Date.now()}`, type: 'layer', position: { x: 300, y: 900 }, data: { type: 'Reshape', label: 'Reshape Out', params: { target_shape: [-1, 3, 6] } } },
-                { id: 'output_node', type: 'layer', position: { x: 300, y: 990 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: 'input_node', target: initialNodes[2].id, animated: true },
-                { id: `e_${Date.now()}_3`, source: 'input_node', target: initialNodes[3].id, animated: true },
-                { id: `e_${Date.now()}_4`, source: initialNodes[1].id, target: initialNodes[4].id, animated: true },
-                { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: initialNodes[5].id, animated: true },
-                { id: `e_${Date.now()}_6`, source: initialNodes[2].id, target: initialNodes[6].id, animated: true },
-                { id: `e_${Date.now()}_7`, source: initialNodes[5].id, target: initialNodes[7].id, animated: true },
-                { id: `e_${Date.now()}_8`, source: initialNodes[6].id, target: initialNodes[8].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_9`, source: initialNodes[7].id, target: initialNodes[8].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_10`, source: initialNodes[8].id, target: initialNodes[9].id, animated: true },
-                { id: `e_${Date.now()}_11`, source: initialNodes[3].id, target: initialNodes[10].id, animated: true },
-                { id: `e_${Date.now()}_12`, source: initialNodes[9].id, target: initialNodes[11].id, animated: true },
-                { id: `e_${Date.now()}_13`, source: initialNodes[10].id, target: initialNodes[12].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_14`, source: initialNodes[11].id, target: initialNodes[12].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_15`, source: initialNodes[12].id, target: initialNodes[13].id, animated: true },
-                { id: `e_${Date.now()}_16`, source: initialNodes[5].id, target: initialNodes[14].id, targetHandle: 'input_0', animated: true },
-                { id: `e_${Date.now()}_17`, source: initialNodes[9].id, target: initialNodes[14].id, targetHandle: 'input_1', animated: true },
-                { id: `e_${Date.now()}_18`, source: initialNodes[13].id, target: initialNodes[14].id, targetHandle: 'input_2', animated: true },
-                { id: `e_${Date.now()}_19`, source: initialNodes[14].id, target: initialNodes[15].id, animated: true },
-                { id: `e_${Date.now()}_20`, source: initialNodes[15].id, target: 'output_node', animated: true }
-              ];
-            } else if (type === 'CustomAutogradManualBlock') {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: `custom_act_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'CustomAutograd', label: 'Custom Activation', params: { forward_code: "def forward(x):\n    return x * x", backward_code: "def backward(x, y, grad_output):\n    return grad_output * 2.0 * x" } } },
-                { id: 'output_node', type: 'layer', position: { x: 250, y: 250 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
-                { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: 'output_node', animated: true }
-              ];
-            } else {
-              initialNodes = [
-                { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
-                { id: 'output_node', type: 'layer', position: { x: 150, y: 350 }, data: { type: 'OutputNode', label: 'Output' } }
-              ];
-              initialEdges = [
-                { id: `e_${Date.now()}_1`, source: 'input_node', target: 'output_node', animated: true }
-              ];
-            }
-
+            const { initialNodes, initialEdges } = createBlockSubgraphData(type);
             const initialGraphJson = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
             const newSub = await api.projects.createSubGraph(activeProject.id, {
               name: `${type}_${Date.now()}`,
@@ -1262,6 +1368,86 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       return formatGraphForEngine(nodes, edges, activeSubGraphs);
     },
 
+    getFormattedRootGraph: () => {
+      const { activeSubGraphs, nodes, edges, navigationStack } = get();
+      if (activeSubGraphs.length === 0) return { nodes: [], edges: [] };
+      
+      if (navigationStack.length === 0) {
+        return formatGraphForEngine(nodes, edges, activeSubGraphs);
+      }
+
+      const rootSub = activeSubGraphs[0];
+      try {
+        const parsed = JSON.parse(rootSub.graphJson);
+        return formatGraphForEngine(parsed.nodes || [], parsed.edges || [], activeSubGraphs);
+      } catch (e) {
+        console.error("Failed to format root graph:", e);
+        return { nodes: [], edges: [] };
+      }
+    },
+
+    ensureSubgraphExists: async (nodeId) => {
+      const state = get();
+      const node = state.nodes.find(n => n.id === nodeId);
+      if (!node) return null;
+
+      let subGraphId = node.data?.params?.subgraph_id;
+      if (subGraphId) return subGraphId;
+
+      const activeProject = state.activeProject;
+      if (!activeProject) return null;
+
+      try {
+        const type = node.data?.type;
+        let initialNodes: any[] = [];
+        let initialEdges: any[] = [];
+
+        if (type === 'Module' || type === 'Block' || type === 'Stack') {
+          initialNodes = [
+            { id: 'input_port', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputPort', label: 'Input: x', params: { name: 'x' } } },
+            { id: 'output_port', type: 'layer', position: { x: 150, y: 350 }, data: { type: 'OutputPort', label: 'Output: out', params: { name: 'out' } } }
+          ];
+          initialEdges = [
+            { id: `e_${Date.now()}_port`, source: 'input_port', target: 'output_port', animated: true }
+          ];
+        } else {
+          initialNodes = [
+            { id: 'input_node', type: 'layer', position: { x: 150, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+            { id: 'output_node', type: 'layer', position: { x: 150, y: 350 }, data: { type: 'OutputNode', label: 'Output' } }
+          ];
+          initialEdges = [
+            { id: `e_${Date.now()}_1`, source: 'input_node', target: 'output_node', animated: true }
+          ];
+        }
+
+        const initialGraphJson = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
+        const newSub = await api.projects.createSubGraph(activeProject.id, {
+          name: `${type}_${Date.now()}`,
+          graphJson: initialGraphJson
+        });
+
+        set((state) => ({
+          activeSubGraphs: [...state.activeSubGraphs, newSub],
+          nodes: state.nodes.map(n => n.id === nodeId ? {
+            ...n,
+            data: {
+              ...n.data,
+              params: {
+                ...n.data.params,
+                subgraph_id: newSub.id
+              }
+            }
+          } : n)
+        }));
+
+        get().saveActiveSubGraph();
+        return newSub.id;
+      } catch (e) {
+        console.error("Failed to dynamically create subgraph:", e);
+        return null;
+      }
+    },
+
     setDatasetConfig: (config) => {
       if (config === null) {
         set({ datasetConfig: null, inferredDatasetShape: null, activeInputShape: null });
@@ -1292,6 +1478,16 @@ export const useWeaveStore = create<WeaveState>((set, get) => {
       inferTimeout = setTimeout(() => {
         get().inferDatasetShape();
       }, 500); // tightened from 800ms so shape updates feel snappier
+    },
+
+    setLossConfig: (config) => {
+      set({ lossConfig: config });
+      get().saveActiveSubGraph();
+    },
+
+    setOptimizerConfig: (config) => {
+      set({ optimizerConfig: config });
+      get().saveActiveSubGraph();
     },
 
     setDatasetSource: (source) => {

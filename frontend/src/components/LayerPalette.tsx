@@ -16,7 +16,7 @@ const CATEGORIES: LayerCategory[] = [
     name: "Boundary",
     colorClass: "border-amber-500/20 text-amber-400 bg-amber-500/5 hover:border-amber-500/40 hover:bg-amber-500/10 hover:shadow-[0_0_10px_rgba(245,158,11,0.1)]",
     icon: GitCommit,
-    types: ['InputNode', 'OutputNode']
+    types: ['InputNode', 'OutputNode', 'InputPort', 'OutputPort']
   },
   {
     name: "Conv & Pool",
@@ -61,10 +61,16 @@ const CATEGORIES: LayerCategory[] = [
     types: ['Add', 'Concat', 'Multiply']
   },
   {
-    name: "Blocks",
+    name: "Modules",
     colorClass: "border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:shadow-[0_0_10px_rgba(99,102,241,0.1)]",
     icon: Layers,
-    types: ['SelfAttention', 'PositionalEncoding', 'CausalMask', 'FeedForward', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock']
+    types: ['Module', 'SelfAttention', 'PositionalEncoding', 'CausalMask', 'FeedForward', 'ResidualBlock', 'TransformerEncoder', 'MultiHeadAttention', 'ConvBNReLU', 'BottleneckBlock', 'BatchNorm2dManualBlock', 'AttentionManualBlock', 'RNNManualBlock', 'CustomAutogradManualBlock']
+  },
+  {
+    name: "Containers",
+    colorClass: "border-teal-500/20 text-teal-400 bg-teal-500/5 hover:border-teal-400/40 hover:bg-teal-500/10 hover:shadow-[0_0_10px_rgba(20,184,166,0.1)]",
+    icon: Maximize,
+    types: ['Stack']
   }
 ];
 
@@ -79,7 +85,8 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     "Boundary": true,
     "Conv & Pool": true,
-    "Blocks": true
+    "Modules": true,
+    "Containers": true
   });
 
   const searchInputRef = useRef<HTMLInputElement>(null);

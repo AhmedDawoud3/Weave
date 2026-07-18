@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, Square, BarChart2, BookOpen, Terminal, Sparkles, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useWeaveStore } from '../../store/useWeaveStore';
@@ -17,6 +17,10 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
   const {
     validationStatus,
     datasetConfig,
+    lossConfig,
+    optimizerConfig,
+    setLossConfig,
+    setOptimizerConfig,
     datasetDownloadStatus,
     nodes
   } = useWeaveStore();
@@ -90,6 +94,67 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
   const [scheduler, setScheduler] = useState('CosineAnnealingLR');
   const [epochs, setEpochs] = useState(5);
   const [lossFunction, setLossFunction] = useState('CrossEntropyLoss');
+
+  // Sync with store-level training config when changed
+  useEffect(() => {
+    if (optimizerConfig) {
+      setOptimizer(optimizerConfig.optimizer_type || 'AdamW');
+      setLearningRate(optimizerConfig.lr ?? 0.001);
+      setScheduler(optimizerConfig.scheduler_type || 'CosineAnnealingLR');
+      setEpochs(optimizerConfig.epochs ?? 5);
+    }
+    if (lossConfig) {
+      setLossFunction(lossConfig.loss_type || 'CrossEntropyLoss');
+    }
+  }, [optimizerConfig, lossConfig]);
+
+  // When form states change, save them back to the store
+  const handleOptimizerChange = (val: string) => {
+    setOptimizer(val);
+    setOptimizerConfig({
+      optimizer_type: val,
+      lr: learningRate,
+      scheduler_type: scheduler,
+      epochs: epochs
+    });
+  };
+
+  const handleLearningRateChange = (val: number) => {
+    setLearningRate(val);
+    setOptimizerConfig({
+      optimizer_type: optimizer,
+      lr: val,
+      scheduler_type: scheduler,
+      epochs: epochs
+    });
+  };
+
+  const handleSchedulerChange = (val: string) => {
+    setScheduler(val);
+    setOptimizerConfig({
+      optimizer_type: optimizer,
+      lr: learningRate,
+      scheduler_type: val,
+      epochs: epochs
+    });
+  };
+
+  const handleEpochsChange = (val: number) => {
+    setEpochs(val);
+    setOptimizerConfig({
+      optimizer_type: optimizer,
+      lr: learningRate,
+      scheduler_type: scheduler,
+      epochs: val
+    });
+  };
+
+  const handleLossChange = (val: string) => {
+    setLossFunction(val);
+    setLossConfig({
+      loss_type: val
+    });
+  };
 
   // Dataset checks
   const isDatasetConfigured = !!datasetConfig;
@@ -272,15 +337,15 @@ export function TrainingPanel({ onClose }: TrainingPanelProps) {
             )}
             <TrainingSetup
             optimizer={optimizer}
-            setOptimizer={setOptimizer}
+            setOptimizer={handleOptimizerChange}
             learningRate={learningRate}
-            setLearningRate={setLearningRate}
+            setLearningRate={handleLearningRateChange}
             scheduler={scheduler}
-            setScheduler={setScheduler}
+            setScheduler={handleSchedulerChange}
             epochs={epochs}
-            setEpochs={setEpochs}
+            setEpochs={handleEpochsChange}
             lossFunction={lossFunction}
-            setLossFunction={setLossFunction}
+            setLossFunction={handleLossChange}
           />
           </>
         )}

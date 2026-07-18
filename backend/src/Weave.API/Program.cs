@@ -93,18 +93,43 @@ app.MapFallbackToFile("index.html");
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<Weave.Infrastructure.Persistence.WeaveDbContext>();
+    
+    int retryCount = 0;
+    const int maxRetries = 6;
+    const int delayMilliseconds = 5000;
+    
+    while (true)
+    {
+        try
+        {
+            logger.LogInformation("Applying pending database migrations (attempt {Attempt}/{MaxRetries})...", retryCount + 1, maxRetries);
+            Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.Migrate(context.Database);
+            logger.LogInformation("Database migrated successfully.");
+            break;
+        }
+        catch (Exception ex)
+        {
+            retryCount++;
+            if (retryCount >= maxRetries)
+            {
+                logger.LogError(ex, "An error occurred while migrating the database after {MaxRetries} attempts.", maxRetries);
+                throw;
+            }
+            logger.LogWarning(ex, "Database migration failed. Retrying in {Delay}ms...", delayMilliseconds);
+            await Task.Delay(delayMilliseconds);
+        }
+    }
+
     try
     {
-        var context = services.GetRequiredService<Weave.Infrastructure.Persistence.WeaveDbContext>();
-        Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.Migrate(context.Database);
-        
         // Seed default pricing plans
         await Weave.Infrastructure.Persistence.PricingPlanSeeder.SeedAsync(context);
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while seeding pricing plans.");
     }
 }
 

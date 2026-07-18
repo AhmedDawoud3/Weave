@@ -59,6 +59,10 @@ export type LayerType =
   | 'AttentionManualBlock'
   | 'RNNManualBlock'
   | 'CustomAutogradManualBlock'
+  | 'InputPort'
+  | 'OutputPort'
+  | 'Stack'
+  | 'Module'
   | 'Block';
 
 

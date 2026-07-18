@@ -831,12 +831,28 @@ def export_pytorch_endpoint(request: ExportRequest):
     try:
         path = export_pytorch(request)
         from compiler.exporter import generate_pytorch_code
-
-        code_str = generate_pytorch_code(request.graph)
+        code_str = generate_pytorch_code(
+            request.graph,
+            dataset_config=request.dataset_config,
+            loss=request.loss,
+            optimizer=request.optimizer,
+            training=request.training,
+        )
         return ExportResponse(status="success", output_path=path, code=code_str)
     except Exception as e:
         logger.exception("PyTorch weights export failed.")
-        return ExportResponse(status="error", output_path="", message=str(e))
+        try:
+            from compiler.exporter import generate_pytorch_code
+            code_str = generate_pytorch_code(
+                request.graph,
+                dataset_config=request.dataset_config,
+                loss=request.loss,
+                optimizer=request.optimizer,
+                training=request.training,
+            )
+        except Exception:
+            code_str = None
+        return ExportResponse(status="error", output_path="", message=str(e), code=code_str)
 
 
 @app.post(

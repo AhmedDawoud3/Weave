@@ -673,6 +673,54 @@ class CustomBlockNode(BaseModel):
     repeat: int = 1
 
 
+class InputPortParams(BaseModel):
+    name: str
+
+
+class InputPortNode(BaseModel):
+    id: str
+    type: Literal["InputPort"]
+    params: InputPortParams
+
+
+class OutputPortParams(BaseModel):
+    name: str
+
+
+class OutputPortNode(BaseModel):
+    id: str
+    type: Literal["OutputPort"]
+    params: OutputPortParams
+
+
+class StackParams(BaseModel):
+    count: int
+
+
+class StackNode(BaseModel):
+    id: str
+    type: Literal["Stack"]
+    params: StackParams
+    graph: GraphConfig
+
+
+class ConfigurableParam(BaseModel):
+    inner_node_id: str
+    param_name: str
+    display_name: str
+    default_value: Any = None
+
+
+class ModuleNode(BaseModel):
+    id: str
+    type: Literal["Module"]
+    name: str
+    graph: GraphConfig
+    configurable_params: list[ConfigurableParam] = []
+    param_overrides: dict[str, Any] = {}
+
+
+
 # =============================================================================
 # SECTION 3 — NODE CONFIG (Discriminated Union)
 # Pydantic reads the "type" field and picks the right class automatically.
@@ -744,6 +792,11 @@ NodeConfig = Annotated[
         BottleneckBlockNode,
         # User-created blocks
         CustomBlockNode,
+        # Unified Modules & Ports
+        InputPortNode,
+        OutputPortNode,
+        StackNode,
+        ModuleNode,
     ],
     Field(discriminator="type"),
 ]
@@ -1261,6 +1314,10 @@ class ExportRequest(BaseModel):
     checkpoint_path: str
     output_path: str
     opset_version: int | None = 17  # only relevant for ONNX
+    dataset_config: DatasetConfig | None = None
+    loss: LossConfig | None = None
+    optimizer: OptimizerConfig | None = None
+    training: TrainingSettings | None = None
 
 
 class ExportResponse(BaseModel):

@@ -680,6 +680,74 @@ def _build_dropout2d(node: NodeConfig) -> nn.Module:
     return nn.Dropout2d(p.p, p.inplace)
 
 
+class IdentityModule(nn.Module):
+    def forward(self, x):
+        return x
+
+
+class StackModule(nn.Module):
+    def __init__(self, blocks):
+        super().__init__()
+        self.blocks = nn.ModuleList(blocks)
+
+    def forward(self, x, *args, **kwargs):
+        for block in self.blocks:
+            if isinstance(x, tuple):
+                x = block(*x, **kwargs)
+            else:
+                x = block(x, *args, **kwargs)
+        return x
+
+
+@ComponentFactory.register("InputPort")
+@ComponentFactory.register("OutputPort")
+def _build_port(node: NodeConfig) -> nn.Module:
+    return IdentityModule()
+
+
+@ComponentFactory.register("Stack")
+def _build_stack(node: NodeConfig) -> nn.Module:
+    count = node.params.count
+    subgraph = node.graph
+    from compiler.compiler import GraphCompiler
+    compiler = GraphCompiler()
+    blocks = [compiler.compile(subgraph) for _ in range(count)]
+    return StackModule(blocks)
+
+
+@ComponentFactory.register("Module")
+def _build_module(node: NodeConfig) -> nn.Module:
+    subgraph = getattr(node, "graph", None)
+    if subgraph is None:
+        raise ValueError(f"Module node '{node.id}' is missing graph.")
+
+    subgraph_dict = subgraph.model_dump()
+    param_overrides = getattr(node, "param_overrides", {}) or {}
+    configurable_params = getattr(node, "configurable_params", []) or []
+
+    param_map = {}
+    for cp in configurable_params:
+        param_map[cp.display_name] = (cp.inner_node_id, cp.param_name)
+
+    for key, val in param_overrides.items():
+        if key in param_map:
+            inner_node_id, param_name = param_map[key]
+        elif "." in key:
+            inner_node_id, param_name = key.split(".", 1)
+        else:
+            continue
+        for inner_node in subgraph_dict.get("nodes", []):
+            if inner_node.get("id") == inner_node_id:
+                if "params" not in inner_node or inner_node["params"] is None:
+                    inner_node["params"] = {}
+                inner_node["params"][param_name] = val
+                break
+
+    from compiler.compiler import GraphCompiler
+    compiler = GraphCompiler()
+    return compiler.compile(subgraph_dict)
+
+
 @ComponentFactory.register("ResidualBlock")
 @ComponentFactory.register("TransformerEncoder")
 @ComponentFactory.register("MultiHeadAttention")
