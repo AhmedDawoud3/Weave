@@ -164,7 +164,7 @@ export function LandingPage() {
           <div className="flex items-center">
             <img src={logoSrc} alt="Weave Logo" className="h-8 w-auto" />
           </div>
-          <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/gallery" className="hover:text-foreground transition-colors">Gallery</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
@@ -186,7 +186,7 @@ export function LandingPage() {
                   <Button
                     variant="outline"
                     onClick={() => navigate('/admin')}
-                    className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary rounded-xl h-9 px-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                    className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary rounded-lg h-9 px-4 flex items-center gap-2 text-xs font-medium cursor-pointer"
                   >
                     <Shield size={16} />
                     <span className="hidden sm:inline">Admin Panel</span>
@@ -194,7 +194,7 @@ export function LandingPage() {
                 )}
                 <Button
                   onClick={() => navigate('/dashboard')}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-glow"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs h-9 px-5 rounded-lg transition-all"
                 >
                   Dashboard
                 </Button>
@@ -203,15 +203,15 @@ export function LandingPage() {
               <>
                 <button
                   onClick={handleLogin}
-                  className="font-bold uppercase tracking-wider text-foreground hover:text-weave-blue transition-colors cursor-pointer"
+                  className="font-medium text-sm text-foreground hover:text-weave-blue transition-colors cursor-pointer"
                 >
                   Login
                 </button>
                 <Button
                   onClick={handleGetStarted}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase text-xs tracking-wider h-9 px-6 rounded-lg transition-all shadow-glow"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs h-9 px-5 rounded-lg transition-all"
                 >
-                  Get Started
+                  Get started
                 </Button>
               </>
             )}
@@ -228,16 +228,16 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-xs font-semibold tracking-wider text-weave-teal uppercase mb-8"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted border border-border text-xs font-medium text-weave-teal mb-8"
           >
             <Zap size={14} />
-            <span>Visual Deep Learning. Direct to PyTorch.</span>
+            <span>Visual deep learning, direct to PyTorch</span>
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl md:text-7xl font-black text-foreground tracking-tight mb-6"
+            className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mb-6"
           >
             Design the Architecture.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue">
@@ -248,7 +248,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="max-w-2xl mx-auto text-base md:text-xl text-muted-foreground mb-10 leading-relaxed font-light"
+            className="max-w-2xl mx-auto text-base md:text-lg text-muted-foreground mb-10 leading-relaxed font-normal"
           >
             Weave is a developer-first platform for ML practitioners who want to visually design neural network architectures while retaining full engineering control and production-level code quality.
           </motion.p>
@@ -261,14 +261,14 @@ export function LandingPage() {
             {isAuthenticated ? (
               <Button
                 onClick={() => navigate('/dashboard')}
-                className="bg-foreground text-background hover:opacity-90 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                className="bg-foreground text-background hover:opacity-90 font-medium text-sm h-12 px-7 rounded-lg transition-all w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 Go to Dashboard <ChevronRight size={18} />
               </Button>
             ) : (
               <Button
                 onClick={handleGetStarted}
-                className="bg-foreground text-background hover:opacity-90 font-black uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm h-12 px-7 rounded-lg transition-all w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 Launch Workspace <ChevronRight size={18} />
               </Button>
@@ -276,9 +276,9 @@ export function LandingPage() {
             <Button
               variant="outline"
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="border-border bg-foreground/5 hover:bg-foreground/10 text-foreground font-bold uppercase text-sm tracking-wider h-14 px-8 rounded-xl transition-all w-full sm:w-auto"
+              className="border-border bg-foreground/5 hover:bg-foreground/10 text-foreground font-medium text-sm h-12 px-7 rounded-lg transition-all w-full sm:w-auto"
             >
-              Explore Features
+              Explore features
             </Button>
           </motion.div>
         </div>
@@ -294,12 +294,12 @@ export function LandingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-[10px] font-bold tracking-[0.2em] text-weave-blue uppercase mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-xs font-medium text-weave-blue uppercase tracking-wide mb-6">
                 <Sparkles size={12} />
-                Platform Capabilities
+                Platform capabilities
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-4">
-                Everything You Need. <span className="text-weave-teal">Nothing You Don't.</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">
+                Everything you need. <span className="text-weave-teal">Nothing you don't.</span>
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 From visual architecture design to production export — Weave covers the entire deep learning workflow without sacrificing engineering control.
@@ -315,12 +315,12 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="group bg-card border border-border p-8 rounded-2xl hover:border-weave-violet/30 transition-all duration-300 hover:shadow-glow"
+                className="group bg-card border border-border p-7 rounded-xl hover:border-weave-violet/30 transition-all duration-200"
               >
-                <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <div className="w-11 h-11 rounded-lg bg-foreground/5 flex items-center justify-center mb-5">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-3">{feature.title}</h3>
+                <h3 className="text-base font-semibold text-foreground mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
@@ -339,12 +339,12 @@ export function LandingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-[10px] font-bold tracking-[0.2em] text-weave-violet uppercase mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-xs font-medium text-weave-violet uppercase tracking-wide mb-6">
                 <Workflow size={12} />
-                How It Works
+                How it works
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-foreground tracking-tight mb-4">
-                From Concept to <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue">Production</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">
+                From concept to <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-violet to-weave-blue">production</span>
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg">
                 Four steps. One workspace. Zero boilerplate.
@@ -423,9 +423,9 @@ export function LandingPage() {
         <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_at_center,rgba(26,188,254,0.06),transparent_60%)] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-16">
           <div className="lg:w-1/2">
-            <h2 className="text-3xl md:text-5xl font-black text-foreground tracking-tight mb-6">
-              A Premium IDE for <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-blue to-weave-teal">Machine Learning.</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-6">
+              A premium IDE for <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-weave-blue to-weave-teal">machine learning.</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
               Design complex neural graphs in a technical editor built for advanced ML engineers and researchers. Weave provides a sophisticated node-based environment for layer connection and module export.
@@ -437,7 +437,7 @@ export function LandingPage() {
                 "Advanced Layer Graphs",
                 "Instant PyTorch Code Compilation"
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm font-semibold text-foreground">
+                <li key={i} className="flex items-center gap-3 text-sm font-medium text-foreground">
                   <div className="w-5 h-5 rounded-full bg-weave-blue/10 flex items-center justify-center text-weave-blue">
                     <ChevronRight size={14} />
                   </div>
@@ -447,9 +447,9 @@ export function LandingPage() {
             </ul>
             <Button
               onClick={handleGetStarted}
-              className="bg-transparent border border-weave-blue/30 text-weave-blue hover:bg-weave-blue/10 font-bold uppercase text-xs tracking-wider h-12 px-6 rounded-lg transition-all flex items-center gap-2"
+              className="bg-transparent border border-weave-blue/30 text-weave-blue hover:bg-weave-blue/10 font-medium text-xs h-10 px-5 rounded-lg transition-all flex items-center gap-2 cursor-pointer"
             >
-              View Examples <ArrowRight size={16} />
+              View examples <ArrowRight size={16} />
             </Button>
           </div>
           <div className="lg:w-1/2 w-full relative">
@@ -481,9 +481,9 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/logo_icon.svg" alt="Weave Icon" className="h-4.5 w-auto" />
-            <span className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Weave © 2026</span>
+            <span className="text-muted-foreground text-xs font-medium">Weave © 2026</span>
           </div>
-          <div className="flex gap-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="flex gap-6 text-xs font-medium text-muted-foreground">
             <a href="/docs" className="hover:text-foreground transition-colors">Documentation</a>
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
             <a href="#" className="hover:text-foreground transition-colors">Terms</a>

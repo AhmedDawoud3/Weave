@@ -208,10 +208,10 @@ function WeightInitSection({ params, onUpdate }: { params: any; onUpdate: (patch
     <div className="space-y-1.5 border-t border-border/40 pt-2 mt-2">
       <button
         type="button"
-        className="nodrag w-full flex items-center justify-between text-[9px] text-muted-foreground hover:text-foreground font-black uppercase tracking-wider cursor-pointer"
+        className="nodrag w-full flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>Advanced: Weight Init</span>
+        <span>Weight initialization</span>
         {isOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
       </button>
 
@@ -219,7 +219,7 @@ function WeightInitSection({ params, onUpdate }: { params: any; onUpdate: (patch
         <div className="space-y-2 pt-1 pb-1">
           {/* Scheme Dropdown */}
           <div className="space-y-1">
-            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Init Scheme</span>
+            <span className="text-[11px] text-muted-foreground font-medium block">Scheme</span>
             <select
               className="nodrag w-full bg-background border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
               value={scheme}
@@ -241,7 +241,7 @@ function WeightInitSection({ params, onUpdate }: { params: any; onUpdate: (patch
             <div className="grid grid-cols-2 gap-2">
               {/* Gain / Std Dev */}
               <div className="space-y-1">
-                <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Gain / Std</span>
+                <span className="text-[11px] text-muted-foreground font-medium block">Gain / Std</span>
                 <input
                   type="number"
                   step="0.01"
@@ -258,7 +258,7 @@ function WeightInitSection({ params, onUpdate }: { params: any; onUpdate: (patch
               {/* Fan Mode if Kaiming */}
               {(scheme === 'kaiming_uniform' || scheme === 'kaiming_normal') && (
                 <div className="space-y-1">
-                  <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Fan Mode</span>
+                  <span className="text-[11px] text-muted-foreground font-medium block">Fan Mode</span>
                   <select
                     className="nodrag w-full bg-background border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
                     value={fanMode}
@@ -413,14 +413,14 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
     const raw = isInduced ? inducedVal : data.params?.[f.key];
     const inputCls = `nodrag w-full bg-background border rounded-lg px-2 py-1 text-xs focus:outline-none transition-colors ${
       isInduced 
-        ? 'opacity-65 cursor-not-allowed border-primary/30 text-primary font-bold font-mono' 
+        ? 'opacity-65 cursor-not-allowed border-primary/30 text-primary font-medium font-mono' 
         : 'border-border text-foreground focus:border-primary/50'
     }`;
 
     if (f.type === 'boolean') {
       return (
         <div key={f.key} className="flex items-center justify-between py-1 bg-white/[0.01] px-1.5 rounded-md">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
+          <span className="text-[11px] text-muted-foreground font-medium">{f.label}</span>
           <button
             type="button"
             className={`nodrag text-[10px] px-2.5 py-0.5 rounded font-bold border transition-all cursor-pointer ${
@@ -438,7 +438,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
       const display = Array.isArray(raw) ? raw.join(', ') : (raw ?? '');
       return (
         <div key={f.key} className="space-y-1 py-1">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
+          <span className="text-[11px] text-muted-foreground font-medium">{f.label}</span>
           <input
             className={inputCls}
             defaultValue={display}
@@ -460,10 +460,10 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
     return (
       <div key={f.key} className="space-y-1 py-1">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{f.label}</span>
+          <span className="text-[11px] text-muted-foreground font-medium">{f.label}</span>
           {isInduced && (
-            <span className="text-[8px] font-extrabold uppercase tracking-wider text-weave-teal bg-weave-teal/10 px-1 py-0.5 rounded border border-weave-teal/20">
-              🔒 Induced
+            <span className="text-[10px] font-medium uppercase tracking-wide text-weave-teal bg-weave-teal/10 px-1.5 py-0.5 rounded border border-weave-teal/20">
+              Induced
             </span>
           )}
         </div>
@@ -516,7 +516,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
       })}
 
       {/* Node Container Card */}
-      <div className={`bg-card/90 backdrop-blur-md border ${theme.border} ${cardW} rounded-lg shadow-xl overflow-hidden transition-all duration-200 relative pt-1`}>
+      <div className={`bg-card border ${theme.border} ${cardW} rounded-lg shadow-lg overflow-hidden transition-all duration-200 relative pt-1`}>
         
         {/* Colorful top strip */}
         <div className={`h-1.5 w-full absolute top-0 left-0 ${theme.topBar}`} />
@@ -534,7 +534,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
         <div className="py-2 px-2.5 flex flex-col items-center justify-center text-center">
           
           {/* Node Type Tag */}
-          <span className={`text-[8.5px] font-extrabold tracking-wider ${theme.text} uppercase`}>
+          <span className={`text-[11px] font-medium tracking-wide ${theme.text} uppercase`}>
             {data.type}
           </span>
 
@@ -556,7 +556,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
             ) : (
               <span
                 onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
-                className={`text-[10px] font-bold text-foreground uppercase truncate cursor-pointer hover:underline ${
+                className={`text-[11px] font-medium text-foreground truncate cursor-pointer hover:underline ${
                   isHovered || isExpanded ? 'max-w-[100px]' : 'max-w-[60px]'
                 }`}
               >
@@ -580,7 +580,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
 
           {/* Error Message Flag */}
           {isError && (
-            <div className="flex items-center gap-1 mt-2 text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/25 py-0.5 px-2 rounded-full animate-pulse max-w-full">
+            <div className="flex items-center gap-1 mt-2 text-[11px] text-red-400 font-medium bg-red-500/10 border border-red-500/25 py-0.5 px-2 rounded-full max-w-full">
               <ShieldAlert size={11} className="shrink-0" />
               <span className="truncate" title={data.error || 'Configuration error'}>{data.error}</span>
             </div>
@@ -611,7 +611,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
                 )}
                 {incomingEdges.length > 0 && (
                   <div className="space-y-1.5 border-t border-border pt-3 mt-3 select-none">
-                    <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider block mb-1">Incoming Links</span>
+                    <span className="text-[11px] text-muted-foreground font-medium block mb-1">Connections</span>
                     <div className="space-y-1.5">
                       {incomingEdges.map((edge) => {
                         const sourceNode = allNodes.find(n => n.id === edge.source);
@@ -619,12 +619,12 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
                         const handleLabel = targetCount > 1 ? `Port ${Number(handleNum) + 1}` : 'Port';
                         return (
                           <div key={edge.id} className="flex items-center justify-between bg-background border border-border rounded-lg px-2 py-1 text-[10px] font-mono gap-1.5">
-                            <span className="text-primary font-black">{handleLabel}:</span>
+                            <span className="text-primary font-semibold">{handleLabel}:</span>
                             <span className="text-foreground/70 truncate flex-1">{sourceNode?.data?.label || edge.source}</span>
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removeEdge(edge.id); }}
-                              className="nodrag p-1 rounded bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors cursor-pointer text-[8px] font-bold"
+                              className="nodrag p-1 rounded bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors cursor-pointer text-[10px] font-medium"
                               title="Disconnect Link"
                             >
                               ✕
@@ -641,13 +641,13 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
             {/* Toggle Drawer Chevron Button */}
             <button
               type="button"
-              className="nodrag w-full flex items-center justify-center gap-1 text-[8.5px] text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer focus:outline-none"
+              className="nodrag w-full flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer focus:outline-none"
               onClick={(e) => { e.stopPropagation(); setIsExpanded(v => !v); }}
             >
               {isExpanded ? (
-                <><ChevronUp size={12} /><span>COLLAPSE</span></>
+                <><ChevronUp size={12} /><span>Collapse</span></>
               ) : (
-                <><ChevronDown size={12} /><span>EDIT PARAMETERS</span></>
+                <><ChevronDown size={12} /><span>Edit params</span></>
               )}
             </button>
           </div>
@@ -655,8 +655,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
 
         {/* Double-click nested block help tag */}
         {isBlock && !isExpanded && (
-          <div className="text-[6px] text-indigo-400/40 uppercase tracking-widest text-center pb-1.5 font-black">
-            2× Click Inside
+          <div className="text-[10px] text-indigo-400/40 text-center pb-1.5 font-medium">
+            Double-click to enter
           </div>
         )}
       </div>
@@ -675,16 +675,16 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
 
       {/* Floating Hover Inspector Tooltip */}
       {isHovered && !isExpanded && (
-        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 rounded-xl glass-panel text-[10px] text-slate-200 pointer-events-none min-w-[150px] shadow-2xl border border-white/15">
-          <p className={`font-extrabold uppercase ${theme.text} border-b border-white/5 pb-1 mb-1.5 tracking-wider`}>{data.type}</p>
-          <div className="space-y-1 font-mono text-[9px]">
+        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 rounded-lg bg-popover text-[11px] text-foreground pointer-events-none min-w-[150px] shadow-xl border border-border">
+          <p className={`font-semibold ${theme.text} border-b border-border pb-1 mb-1.5`}>{data.type}</p>
+          <div className="space-y-1 font-mono text-[11px]">
             {shape ? (
-              <p className="flex justify-between gap-4"><span className="text-slate-400">Dim:</span> <span className="text-weave-teal font-bold">{shape.join(' × ')}</span></p>
+              <p className="flex justify-between gap-4"><span className="text-muted-foreground">Dim:</span> <span className="text-weave-teal font-medium">{shape.join(' × ')}</span></p>
             ) : (
-              <p className="text-slate-500 italic">No dimension data</p>
+              <p className="text-muted-foreground italic">No dimension data</p>
             )}
             {keyParamLine && (
-              <p className="text-slate-400 border-t border-white/5 pt-1.5 mt-1.5 leading-relaxed">{keyParamLine}</p>
+              <p className="text-muted-foreground border-t border-border pt-1.5 mt-1.5 leading-relaxed">{keyParamLine}</p>
             )}
           </div>
         </div>

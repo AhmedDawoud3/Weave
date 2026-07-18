@@ -148,7 +148,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={onNavigateDashboard}>
           <img src="/logo_icon.svg" alt="Weave Icon" className="h-7 w-7" />
-          <span className="text-sm font-black text-foreground tracking-wider">WEAVE</span>
+          <span className="text-sm font-semibold text-foreground tracking-tight">Weave</span>
         </div>
         <button
           onClick={onNavigateDashboard}
@@ -160,9 +160,9 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
 
       {/* Active Ingestion Summary (Small part atop of the library) */}
       <div className="p-4 border-b border-sidebar-border shrink-0 space-y-2.5">
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
           <Database size={11} className="text-primary" />
-          <span>Active Ingestion</span>
+          <span>Active ingestion</span>
         </div>
         
         {!datasetConfig ? (
@@ -172,7 +172,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
             </p>
             <Button
               onClick={() => setActiveTab('dataset')}
-              className="w-full bg-primary/10 hover:bg-primary text-white hover:text-primary-foreground font-black text-[10px] uppercase tracking-wider h-7 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full bg-primary/10 hover:bg-primary text-white hover:text-primary-foreground font-medium text-[11px] h-7 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
             >
               Configure <ArrowRight size={10} />
             </Button>
@@ -180,16 +180,16 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
         ) : (
           <div className="bg-foreground/[0.15] border border-sidebar-border rounded-xl p-3 space-y-2 select-none">
             <div className="flex justify-between items-center text-xs gap-2">
-              <span className="text-foreground font-bold truncate flex-1 leading-tight uppercase tracking-wide">
+              <span className="text-foreground font-medium truncate flex-1 leading-tight">
                 {datasetConfig.source === 'predefined' ? datasetConfig.name : 'Custom Dataset'}
               </span>
-              <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5 font-black font-mono shrink-0">
+              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5 font-medium font-mono shrink-0">
                 {inferredDatasetShape ? inferredDatasetShape.join('×') : 'Unknown'}
               </span>
             </div>
             <Button
               onClick={() => setActiveTab('dataset')}
-              className="w-full bg-foreground/5 border border-sidebar-border hover:bg-primary text-white hover:text-primary-foreground font-bold text-[9px] uppercase tracking-wider h-6.5 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer"
+              className="w-full bg-foreground/5 border border-sidebar-border hover:bg-primary text-white hover:text-primary-foreground font-medium text-[11px] h-6.5 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer"
             >
               Edit config <Sliders size={10} className="ml-0.5" />
             </Button>
@@ -200,7 +200,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
       {/* Library Section Header */}
       <div className="p-4 pb-2 shrink-0 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Library</span>
+          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Library</span>
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground bg-sidebar-accent border border-sidebar-border rounded-md">
             /
           </kbd>
@@ -223,8 +223,8 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
         {filteredMatches !== null ? (
           /* Search results view */
           <div className="space-y-1">
-            <div className="text-[9px] text-muted-foreground/60 uppercase font-black tracking-widest px-2.5 py-1">
-              Search Results
+            <div className="text-[11px] text-muted-foreground/60 font-medium px-2.5 py-1">
+              Search results
             </div>
             {filteredMatches.length === 0 ? (
               <div className="text-xs text-muted-foreground/65 italic text-center py-4">
@@ -237,7 +237,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
                   onDragStart={(e) => handleDragStart(e, type)}
                   onClick={() => handleLayerClick(type)}
                   draggable
-                  className={`px-2.5 py-1.5 border rounded-lg text-xs font-bold tracking-wide uppercase cursor-grab active:cursor-grabbing transition-all flex items-center gap-2 select-none hover:brightness-110 hover:shadow-md ${category.colorClass}`}
+                  className={`px-2.5 py-1.5 border rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing transition-all flex items-center gap-2 select-none hover:brightness-110 hover:shadow-md ${category.colorClass}`}
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
                   <span className="flex-1 text-left truncate">{type}</span>
@@ -255,7 +255,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
               <div key={cat.name} className="space-y-1">
                 <button
                   onClick={() => toggleCategory(cat.name)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-black uppercase text-left text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-left text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer border-0 bg-transparent focus:outline-none"
                 >
                   <div className="flex items-center gap-2">
                     <Icon size={12} className="opacity-75" />
@@ -272,7 +272,7 @@ export function LayerPalette({ onNavigateDashboard }: LayerPaletteProps) {
                         onDragStart={(e) => handleDragStart(e, type)}
                         onClick={() => handleLayerClick(type)}
                         draggable
-                        className={`px-2.5 py-1.5 border rounded-lg text-xs font-bold tracking-wide uppercase cursor-grab active:cursor-grabbing transition-all flex items-center gap-2 select-none hover:brightness-110 hover:shadow-md ${cat.colorClass}`}
+                        className={`px-2.5 py-1.5 border rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing transition-all flex items-center gap-2 select-none hover:brightness-110 hover:shadow-md ${cat.colorClass}`}
                       >
                         <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
                         <span className="flex-1 text-left truncate">{type}</span>

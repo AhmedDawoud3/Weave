@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut, Sun, Moon } from 'lucide-react';
+import { 
+  Plus, Cpu, Trash2, Calendar, FileText, ChevronRight, X, Sparkles, LogOut, Sun, Moon, 
+  Shield, Activity, Layers, Database, Search, ArrowUpDown, Play, ExternalLink
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,21 @@ const getMockRunsForProject = (projectName: string) => {
   ];
 };
 
+const getTemplateDomainTag = (templateName: string, category: string) => {
+  if (category === 'paper') return { label: 'Paper / Research', colorClass: 'bg-weave-violet/10 text-weave-violet border-weave-violet/20' };
+  const lower = templateName.toLowerCase();
+  if (lower.includes('resnet') || lower.includes('cnn') || lower.includes('conv') || lower.includes('vision')) {
+    return { label: 'Vision (CV)', colorClass: 'bg-weave-blue/10 text-weave-blue border-weave-blue/20' };
+  }
+  if (lower.includes('transformer') || lower.includes('bert') || lower.includes('gpt') || lower.includes('attention')) {
+    return { label: 'Transformer / LLM', colorClass: 'bg-weave-teal/10 text-weave-teal border-weave-teal/20' };
+  }
+  if (lower.includes('rnn') || lower.includes('lstm') || lower.includes('seq')) {
+    return { label: 'Sequence / Audio', colorClass: 'bg-weave-amber/10 text-weave-amber border-weave-amber/20' };
+  }
+  return { label: 'General Architecture', colorClass: 'bg-muted text-muted-foreground border-border' };
+};
+
 interface DashboardPageProps {
   onOpenProject?: () => void;
 }
@@ -47,9 +65,11 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    document.title = "Weave | Dashboard";
+    document.title = "Weave | Workspace Hub";
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
@@ -58,6 +78,10 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [selectedRunsToCompare, setSelectedRunsToCompare] = useState<Array<{ id: string; projectName: string; metrics: any }>>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleToggleRunSelection = (run: any, projectName: string) => {
     setSelectedRunsToCompare(prev => {
@@ -74,13 +98,10 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
     });
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsSubmitting(true);
       await createProject(newProjectName, newProjectDesc);
       setNewProjectName('');
       setNewProjectDesc('');
@@ -132,7 +153,24 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
     }
   };
 
-  // Helper to get a deterministic gradient based on string value
+  const filteredProjects = useMemo(() => {
+    let list = [...projects];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)));
+    }
+    if (sortBy === 'name') {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return list;
+  }, [projects, searchQuery, sortBy]);
+
+  const totalSubgraphs = useMemo(() => {
+    return projects.reduce((acc, p) => acc + (p.subGraphCount || 0), 0);
+  }, [projects]);
+
   const getDeterministicGradient = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -147,248 +185,372 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const logoSrc = theme === 'weave-light' ? '/logo_horizontal_light.svg' : '/logo_horizontal_dark.svg';
+
   return (
     <motion.div
       key="dashboard"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen w-full bg-background text-foreground p-6 md:p-12 lg:p-16 overflow-y-auto relative font-sans"
+      className="min-h-screen w-full bg-background text-foreground overflow-y-auto font-sans"
     >
-      {/* Background Decorative Blob */}
-      <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-[radial-gradient(circle_at_top_right,var(--primary),transparent_60%)] opacity-10 pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto relative z-10">
-        
-        {/* Navigation & Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 pb-8 border-b border-border">
-          <div>
-            <div className="flex items-center gap-2">
-              <img src="/logo_icon.svg" alt="Weave Icon" className="h-4 w-4 animate-pulse" />
-              <p className="text-primary font-black tracking-widest text-[10px] uppercase">Neural Design Studio</p>
+      {/* Navigation Header */}
+      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center">
+              <img src={logoSrc} alt="Weave Logo" className="h-7 w-auto" />
+            </Link>
+            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+              <Link to="/gallery" className="hover:text-foreground transition-colors">Gallery</Link>
+              <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight mt-2 uppercase text-foreground">
-              Workspace Hub
-            </h1>
           </div>
 
-          <div className="flex items-center gap-4 self-stretch md:self-auto justify-between md:justify-start">
-            {/* User Profile Info */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-lg hover:bg-foreground/5 border border-transparent hover:border-border h-9 w-9 flex items-center justify-center"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'weave-dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            {user?.roles?.includes('Admin') && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin')}
+                className="border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg h-9 px-3 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              >
+                <Shield size={14} />
+                <span className="hidden sm:inline">Admin</span>
+              </Button>
+            )}
+
             {user && (
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-foreground uppercase">{user.name || user.email.split('@')[0]}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+              <div className="flex items-center gap-3 pl-2 border-l border-border">
+                <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-semibold text-xs text-primary">
+                  {(user.name || user.email)[0].toUpperCase()}
+                </div>
+                <div className="hidden lg:block text-left leading-tight">
+                  <p className="text-xs font-medium text-foreground truncate max-w-[120px]">{user.name || user.email.split('@')[0]}</p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{user.email}</p>
+                </div>
               </div>
             )}
 
-
-
-            {/* Theme Toggle Button */}
-            <Button
-              variant="outline"
-              onClick={() => setTheme(theme === 'weave-dark' ? 'weave-light' : 'weave-dark')}
-              className="border-border bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-xl h-10 w-10 flex items-center justify-center cursor-pointer p-0"
-              title="Toggle Theme"
-            >
-              {theme === 'weave-dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </Button>
-
-            {/* Logout */}
             <Button
               variant="outline"
               onClick={logout}
-              className="border-red-500/20 bg-red-500/5 hover:bg-red-500/15 text-red-400 hover:text-red-300 rounded-xl h-10 px-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer"
+              className="border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-lg h-9 px-3 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Sign out"
             >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">LOGOUT</span>
+              <LogOut size={14} />
+              <span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </div>
+      </nav>
 
-        {/* Dashboard Actions Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-foreground">Your Models</h2>
+      <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+        
+        {/* Top Banner / Hero Overview */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <span className="text-xs font-medium text-primary uppercase tracking-wide">Neural Network Workspace</span>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight mt-1">
+              Workspace hub
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Construct neural network graphs, validate tensor dimensions, and run live PyTorch compilations.
+            </p>
+          </div>
+
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-primary text-primary-foreground hover:brightness-110 active:scale-95 font-black px-6 h-12 rounded-xl transition-all shadow-glow cursor-pointer flex items-center gap-2 text-xs uppercase tracking-wider self-stretch sm:self-auto justify-center"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5 h-11 rounded-lg transition-all cursor-pointer flex items-center gap-2 text-sm shadow-sm"
           >
-            <Plus size={18}/> New Architecture
+            <Plus size={18}/> New architecture
           </Button>
         </div>
 
-        {/* Project List / Skeletons */}
-        {isLoadingProjects ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="bg-card border border-border rounded-2xl p-6 h-[320px] flex flex-col justify-between overflow-hidden">
-                <div className="space-y-4">
-                  <div className="h-24 bg-muted/40 rounded-xl relative overflow-hidden animate-shimmer" />
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-                <Skeleton className="h-10 w-full rounded-xl" />
+        {/* Stats Metrics Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between text-muted-foreground mb-2">
+              <span className="text-xs font-medium">Total models</span>
+              <Cpu size={16} className="text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">{projects.length}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Saved architecture graphs</p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between text-muted-foreground mb-2">
+              <span className="text-xs font-medium">Subgraphs & modules</span>
+              <Layers size={16} className="text-weave-blue" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">{totalSubgraphs}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Nested modular blocks</p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between text-muted-foreground mb-2">
+              <span className="text-xs font-medium">Built-in benchmarks</span>
+              <Database size={16} className="text-weave-teal" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">8+</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Pre-configured datasets</p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between text-muted-foreground mb-2">
+              <span className="text-xs font-medium">Max run accuracy</span>
+              <Activity size={16} className="text-weave-amber" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">99.0%</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Top validation metric</p>
+          </div>
+        </div>
+
+        {/* Toolbar: Search, Sort, Filter */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold text-foreground">Your models</h2>
+              <span className="text-xs bg-foreground/5 border border-border text-muted-foreground px-2.5 py-0.5 rounded-full font-medium">
+                {filteredProjects.length}
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              {/* Search Bar */}
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search models..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-background border border-border pl-9 pr-3 h-9 rounded-lg text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
+                />
               </div>
-            ))}
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="h-80 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-6 p-8 bg-card backdrop-blur-sm">
-            <div className="w-14 h-14 rounded-full bg-foreground/5 flex items-center justify-center border border-border">
-              <Cpu size={24} className="text-primary/40" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-foreground">No Projects Found</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm">Create your first deep learning project to start visually constructing and shape-validating network pipelines.</p>
-            </div>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-primary/10 border border-primary/20 hover:bg-primary text-white hover:text-primary-foreground font-black px-6 rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer"
-            >
-              New Architecture
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((p, idx) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-              >
-                <Card className="bg-card border border-border rounded-2xl group hover:border-primary/40 hover:shadow-glow transition-all flex flex-col h-[420px] justify-between relative overflow-hidden">
-                  {/* Thumbnail area like Figma */}
-                  <div className={`h-24 w-full bg-gradient-to-tr ${getDeterministicGradient(p.name)} border-b border-border flex items-center justify-center relative overflow-hidden rounded-t-2xl`}>
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
-                    
-                    {/* Floating Delete button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setProjectToDelete(p);
-                      }}
-                      className="absolute top-3 right-3 p-2 bg-background/60 hover:bg-red-500/20 text-[#475569] hover:text-red-500 rounded-lg transition-all cursor-pointer opacity-0 group-hover:opacity-100 z-20"
-                      title="Delete Project"
-                    >
-                      <Trash2 size={14} />
-                    </button>
 
-                    {/* Small visual neural design vector */}
-                    <svg className="w-20 h-10 text-foreground/10" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="15" cy="25" r="4" fill="var(--primary)" fillOpacity="0.4" />
-                      <line x1="15" y1="25" x2="50" y2="10" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <line x1="15" y1="25" x2="50" y2="40" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <circle cx="50" cy="10" r="4" fill="var(--secondary)" fillOpacity="0.4" />
-                      <circle cx="50" cy="40" r="4" fill="var(--secondary)" fillOpacity="0.4" />
-                      <line x1="50" y1="10" x2="85" y2="25" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <line x1="50" y1="40" x2="85" y2="25" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <circle cx="85" cy="25" r="4" fill="var(--accent)" fillOpacity="0.4" />
-                    </svg>
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-1.5 bg-background border border-border px-2.5 h-9 rounded-lg text-xs text-muted-foreground shrink-0">
+                <ArrowUpDown size={13} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
+                  className="bg-transparent text-foreground font-medium focus:outline-none cursor-pointer"
+                >
+                  <option value="date">Latest modified</option>
+                  <option value="name">Name A–Z</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Project List / Skeletons */}
+          {isLoadingProjects ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-card border border-border rounded-xl p-6 h-[340px] flex flex-col justify-between overflow-hidden">
+                  <div className="space-y-4">
+                    <div className="h-24 bg-muted/40 rounded-lg relative overflow-hidden animate-shimmer" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
+                  <Skeleton className="h-9 w-full rounded-lg" />
+                </div>
+              ))}
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div className="h-72 border border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-4 p-8 bg-card text-center">
+              <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center border border-border text-muted-foreground">
+                <Cpu size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {searchQuery ? "No matching models found" : "No projects found"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                  {searchQuery ? "Try refining your search query." : "Create your first deep learning project to start visually constructing and validating network pipelines."}
+                </p>
+              </div>
+              {!searchQuery && (
+                <Button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5 h-9 rounded-lg transition-all text-xs cursor-pointer"
+                >
+                  New architecture
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.map((p, idx) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                >
+                  <Card className="bg-card border border-border rounded-xl group hover:border-primary/40 transition-all flex flex-col h-[400px] justify-between relative overflow-hidden shadow-sm">
+                    {/* Visual Vector Thumbnail Preview */}
+                    <div className={`h-24 w-full bg-gradient-to-tr ${getDeterministicGradient(p.name)} border-b border-border flex items-center justify-center relative overflow-hidden rounded-t-xl`}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProjectToDelete(p);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 bg-background/70 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 rounded-md transition-all cursor-pointer opacity-0 group-hover:opacity-100 z-20"
+                        title="Delete Project"
+                      >
+                        <Trash2 size={14} />
+                      </button>
 
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-base font-bold mb-1.5 group-hover:text-primary transition-colors uppercase leading-snug line-clamp-1 text-foreground">
-                        {p.name}
-                      </h3>
-                      
-                      <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
-                        {p.description || "No description provided."}
-                      </p>
-
-                      {/* Recent Runs checklist for comparison */}
-                      <div className="mt-3 bg-white/5 border border-white/5 rounded-xl p-2.5">
-                        <p className="text-[8px] font-black uppercase text-slate-500 tracking-wider mb-2">Runs History (Select to compare)</p>
-                        <div className="space-y-1.5">
-                          {getMockRunsForProject(p.name).map((run) => {
-                            const isChecked = selectedRunsToCompare.some(r => r.id === run.id);
-                            return (
-                              <label key={run.id} className="flex items-center gap-2 text-[10px] text-slate-300 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => handleToggleRunSelection(run, p.name)}
-                                  className="w-3 h-3 accent-weave-violet rounded border-white/10"
-                                />
-                                <span className="truncate">{run.id} ({run.accuracy})</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      <svg className="w-24 h-12 text-foreground/15" viewBox="0 0 100 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="15" cy="25" r="4" fill="var(--weave-violet)" fillOpacity="0.5" />
+                        <line x1="15" y1="25" x2="50" y2="10" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                        <line x1="15" y1="25" x2="50" y2="40" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                        <circle cx="50" cy="10" r="4" fill="var(--weave-blue)" fillOpacity="0.5" />
+                        <circle cx="50" cy="40" r="4" fill="var(--weave-blue)" fillOpacity="0.5" />
+                        <line x1="50" y1="10" x2="85" y2="25" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                        <line x1="50" y1="40" x2="85" y2="25" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                        <circle cx="85" cy="25" r="4" fill="var(--weave-teal)" fillOpacity="0.5" />
+                      </svg>
                     </div>
 
-                    <div className="border-t border-border pt-4 mt-2">
-                      <div className="grid grid-cols-2 gap-4 text-[10px] font-bold text-muted-foreground uppercase mb-4">
-                        <div className="flex items-center gap-1">
-                          <FileText size={12} className="text-primary/50" />
-                          <span>{p.subGraphCount} Subgraphs</span>
-                        </div>
-                        <div className="flex items-center gap-1 justify-end">
-                          <Calendar size={12} className="text-primary/50" />
-                          <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold mb-1 group-hover:text-primary transition-colors leading-snug line-clamp-1 text-foreground">
+                          {p.name}
+                        </h3>
+                        
+                        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
+                          {p.description || "No description provided."}
+                        </p>
+
+                        {/* Recent Runs checklist */}
+                        <div className="mt-3 bg-foreground/5 border border-border rounded-lg p-2.5">
+                          <p className="text-[10px] font-medium text-muted-foreground mb-1.5">Runs history (select to compare)</p>
+                          <div className="space-y-1">
+                            {getMockRunsForProject(p.name).map((run) => {
+                              const isChecked = selectedRunsToCompare.some(r => r.id === run.id);
+                              return (
+                                <label key={run.id} className="flex items-center gap-2 text-[11px] text-foreground/80 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => handleToggleRunSelection(run, p.name)}
+                                    className="w-3 h-3 accent-primary rounded border-border"
+                                  />
+                                  <span className="truncate flex-1 font-mono text-[10px]">{run.id}</span>
+                                  <span className="text-[10px] font-semibold text-weave-teal">{run.accuracy}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 
+                      <div className="border-t border-border pt-4 mt-2">
+                        <div className="grid grid-cols-2 gap-4 text-xs font-medium text-muted-foreground mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <FileText size={13} className="text-primary/70" />
+                            <span>{p.subGraphCount} modules</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <Calendar size={13} className="text-primary/70" />
+                            <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={() => handleOpenProject(p)}
+                          className="w-full bg-foreground/5 border border-border text-foreground rounded-lg text-xs font-medium h-9 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          Open in studio <ChevronRight size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Curated Templates Showcase Store */}
+        <div className="pt-6 border-t border-border">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={14} className="text-primary" />
+                <span className="text-xs font-medium text-primary">Curated Neural Templates</span>
+              </div>
+              <h2 className="text-xl font-bold tracking-tight mt-1 text-foreground">
+                Import benchmark architectures
+              </h2>
+            </div>
+            <Link to="/gallery">
+              <Button variant="outline" className="border-border text-xs font-medium h-9 px-4 rounded-lg flex items-center gap-1.5">
+                View all in gallery <ExternalLink size={13} />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {TEMPLATES.slice(0, 6).map((tpl) => {
+              const tag = getTemplateDomainTag(tpl.name, tpl.category);
+              return (
+                <Card key={tpl.name} className="bg-card border border-border rounded-xl flex flex-col justify-between h-[310px] hover:border-primary/30 transition-all shadow-sm relative overflow-hidden">
+                  <div className={`h-16 w-full bg-gradient-to-tr ${getDeterministicGradient(tpl.name)} border-b border-border flex items-center justify-between px-5 relative overflow-hidden rounded-t-xl`}>
+                    <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${tag.colorClass}`}>
+                      {tag.label}
+                    </span>
+                    <Sparkles size={16} className="text-primary" />
+                  </div>
+                  
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold mb-1 text-foreground leading-snug line-clamp-1">
+                        {tpl.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-[32px]">
+                        {tpl.description}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between items-center bg-foreground/5 border border-border rounded-lg px-3 py-1.5 text-xs text-muted-foreground font-mono mb-4">
+                        <span>Shape: [{tpl.inputShape.join(', ')}]</span>
+                        <span className="font-semibold text-foreground">{tpl.nodes.length} nodes</span>
+                      </div>
+                      
                       <Button
-                        onClick={() => handleOpenProject(p)}
-                        className="w-full bg-foreground/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        onClick={() => handleImportTemplate(tpl)}
+                        disabled={importingTemplate !== null}
+                        className="w-full bg-foreground/5 border border-border text-foreground rounded-lg text-xs font-medium h-9 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        OPEN IN STUDIO <ChevronRight size={14} />
+                        {importingTemplate === tpl.name ? (
+                          <span>Importing...</span>
+                        ) : (
+                          <>
+                            <span>Deploy to workspace</span>
+                            <Play size={12} fill="currentColor" />
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
                 </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Examples Gallery */}
-        <div className="h-px bg-border my-12" />
-        
-        <div className="mb-12">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-primary animate-pulse" />
-            <p className="text-primary font-black tracking-widest text-[10px] uppercase">Interactive Neural Templates</p>
-          </div>
-          <h2 className="text-2xl font-black tracking-tight mt-2 uppercase text-foreground mb-6">
-            Import Example Architectures
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {TEMPLATES.map((tpl) => (
-              <Card key={tpl.name} className="bg-card border border-border rounded-2xl flex flex-col justify-between h-[300px] hover:border-primary/40 hover:shadow-glow transition-all relative overflow-hidden">
-                <div className={`h-20 w-full bg-gradient-to-tr ${getDeterministicGradient(tpl.name)} border-b border-border flex items-center justify-center relative overflow-hidden rounded-t-2xl`}>
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
-                  <Sparkles size={20} className="text-primary animate-pulse" />
-                </div>
-                
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-base font-bold mb-1 uppercase text-foreground leading-tight line-clamp-1">
-                      {tpl.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground/80 mb-2 line-clamp-2 min-h-[32px]">
-                      {tpl.description}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <div className="inline-block bg-foreground/5 border border-border rounded-md px-2 py-0.5 text-[10px] font-bold text-primary font-mono mb-4 uppercase tracking-wider">
-                      INPUT: [{tpl.inputShape.join(', ')}]
-                    </div>
-                    
-                    <Button
-                      onClick={() => handleImportTemplate(tpl)}
-                      disabled={importingTemplate !== null}
-                      className="w-full bg-foreground/5 border border-border text-white rounded-xl text-xs font-bold h-10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center gap-1 cursor-pointer relative z-10"
-                    >
-                      {importingTemplate === tpl.name ? 'IMPORTING...' : 'IMPORT & OPEN'}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -403,55 +565,55 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl p-6 max-w-lg w-full relative z-10 shadow-2xl"
+              className="bg-card border border-border rounded-xl p-6 max-w-lg w-full relative z-10 shadow-xl"
             >
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer"
+                className="absolute right-4 top-4 p-1.5 text-muted-foreground hover:text-foreground rounded-md transition-all cursor-pointer"
               >
                 <X size={18} />
               </button>
 
-              <h2 className="text-xl font-black mb-1 uppercase text-foreground tracking-wide">New Model Sandbox</h2>
+              <h2 className="text-xl font-bold text-foreground">New model sandbox</h2>
               <p className="text-xs text-muted-foreground mb-6">Initialize a neural model environment to map subgraphs and stream training metrics.</p>
 
-              <form onSubmit={handleCreateProject} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Architecture Name</label>
+              <form onSubmit={handleCreateProject} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground font-medium">Architecture Name</label>
                   <Input
                     placeholder="e.g. ResNet Image Classifier"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     required
-                    className="bg-background/50 border-border h-12 rounded-xl text-sm"
+                    className="bg-background border-border h-11 rounded-lg text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Description</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground font-medium">Description</label>
                   <textarea
                     placeholder="Brief details about datasets, shape layers, or targeted compile metrics..."
                     value={newProjectDesc}
                     onChange={(e) => setNewProjectDesc(e.target.value)}
-                    className="w-full h-24 bg-background/50 border border-border p-3 text-sm rounded-xl outline-none focus:border-primary transition-colors text-foreground resize-none"
+                    className="w-full h-24 bg-background border border-border p-3 text-sm rounded-lg outline-none focus:border-primary transition-colors text-foreground resize-none"
                   />
                 </div>
 
-                <div className="flex gap-4 pt-2">
+                <div className="flex gap-3 pt-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 h-12 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
+                    className="flex-1 h-11 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-lg text-xs font-medium cursor-pointer"
                   >
-                    CANCEL
+                    Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 h-12 bg-primary text-primary-foreground font-black uppercase rounded-xl transition-all shadow-glow text-xs uppercase tracking-wider cursor-pointer"
+                    className="flex-1 h-11 bg-primary text-primary-foreground font-medium rounded-lg transition-all text-xs cursor-pointer"
                   >
-                    {isSubmitting ? 'INITIALIZING...' : 'START BUILDING'}
+                    {isSubmitting ? 'Initializing...' : 'Start building'}
                   </Button>
                 </div>
               </form>
@@ -469,17 +631,17 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl p-6 max-w-md w-full relative z-10 shadow-2xl"
+              className="bg-card border border-border rounded-xl p-6 max-w-md w-full relative z-10 shadow-xl"
             >
-              <h3 className="text-lg font-bold text-foreground uppercase tracking-wider mb-2">Delete Project</h3>
+              <h3 className="text-lg font-bold text-foreground mb-2">Delete project</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Are you sure you want to delete <span className="text-foreground font-bold">{projectToDelete.name}</span>? This action is permanent and cannot be undone.
+                Are you sure you want to delete <span className="text-foreground font-semibold">{projectToDelete.name}</span>? This action is permanent and cannot be undone.
               </p>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setProjectToDelete(null)}
-                  className="flex-1 h-12 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer"
+                  className="flex-1 h-10 border-border hover:bg-foreground/5 text-muted-foreground hover:text-foreground rounded-lg text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -488,7 +650,7 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
                     handleDeleteProject(projectToDelete.id);
                     setProjectToDelete(null);
                   }}
-                  className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-black uppercase rounded-xl transition-all shadow-lg text-xs uppercase tracking-wider cursor-pointer"
+                  className="flex-1 h-10 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-xs cursor-pointer"
                 >
                   Delete
                 </Button>
@@ -502,21 +664,21 @@ export function DashboardPage({ onOpenProject }: DashboardPageProps) {
       <AnimatePresence>
         {selectedRunsToCompare.length >= 2 && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-card/90 backdrop-blur-xl border border-primary/20 shadow-2xl rounded-2xl p-4 flex items-center gap-4"
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-card border border-border shadow-xl rounded-xl p-3.5 flex items-center gap-4"
           >
-            <span className="text-xs font-bold text-slate-300 uppercase">{selectedRunsToCompare.length} runs selected</span>
+            <span className="text-xs font-medium text-foreground">{selectedRunsToCompare.length} runs selected</span>
             <Button
               onClick={() => setIsCompareModalOpen(true)}
-              className="bg-weave-violet hover:bg-weave-violet/90 text-white rounded-xl text-xs font-bold h-10 px-6 uppercase tracking-wider cursor-pointer"
+              className="bg-weave-violet hover:bg-weave-violet/90 text-white rounded-lg text-xs font-medium h-9 px-5 cursor-pointer"
             >
-              Compare Runs
+              Compare runs
             </Button>
             <button
               onClick={() => setSelectedRunsToCompare([])}
-              className="text-xs text-slate-400 hover:text-white uppercase font-bold"
+              className="text-xs text-muted-foreground hover:text-foreground font-medium"
             >
               Clear
             </button>

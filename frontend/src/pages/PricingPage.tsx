@@ -37,7 +37,7 @@ export function PricingPage() {
           </Link>
           <div className="flex items-center gap-2">
             <img src="/logo_icon.svg" alt="Logo" className="w-6 h-6" />
-            <span className="font-black tracking-widest text-xs uppercase text-weave-violet">Weave Engine</span>
+            <span className="font-semibold text-sm text-weave-violet">Weave</span>
           </div>
         </header>
 
@@ -45,9 +45,9 @@ export function PricingPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black tracking-tight mb-6 uppercase"
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
           >
-            Flexible <span className="text-gradient-purple">Computing</span> Plans
+            Flexible <span className="text-gradient-purple">computing</span> plans
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -61,7 +61,7 @@ export function PricingPage() {
 
         {/* Annual Toggle */}
         <div className="flex justify-center items-center gap-4 mb-16">
-          <span className={`text-sm font-bold uppercase transition-colors duration-200 ${!isAnnual ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
+          <span className={`text-sm font-medium transition-colors duration-200 ${!isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>Monthly</span>
           <button
             onClick={() => setIsAnnual(!isAnnual)}
             className="w-14 h-8 bg-slate-800 rounded-full p-1 relative border border-white/10 transition-colors"
@@ -73,8 +73,8 @@ export function PricingPage() {
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             />
           </button>
-          <span className={`text-sm font-bold uppercase transition-colors duration-200 ${isAnnual ? 'text-white' : 'text-slate-500'}`}>
-            Yearly <span className="text-[10px] bg-weave-teal/20 text-weave-teal border border-weave-teal/30 px-2 py-0.5 rounded-full ml-1 normal-case">Save 20%</span>
+          <span className={`text-sm font-medium transition-colors duration-200 ${isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            Yearly <span className="text-xs bg-weave-teal/10 text-weave-teal border border-weave-teal/20 px-2 py-0.5 rounded-full ml-1">Save 20%</span>
           </span>
         </div>
 
@@ -109,26 +109,26 @@ export function PricingPage() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className={`glass-panel rounded-3xl p-8 flex flex-col justify-between relative border ${plan.colorClass || 'border-white/5'}`}
+                  className={`bg-card rounded-2xl p-7 flex flex-col justify-between relative border ${plan.colorClass || 'border-border'}`}
                 >
                   {plan.isPopular && (
-                    <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-weave-violet text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border border-white/20">
+                    <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-weave-violet text-white px-3.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
                       <Sparkles size={10} /> Most Popular
                     </div>
                   )}
 
                   <div>
-                    <h3 className="text-2xl font-black mb-2 uppercase text-slate-100">{plan.name}</h3>
-                    <p className="text-xs text-slate-400 mb-6 min-h-[36px]">{plan.description}</p>
+                    <h3 className="text-xl font-semibold mb-2 text-foreground">{plan.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-6 min-h-[36px]">{plan.description}</p>
                     
-                    <div className="mb-8">
+                    <div className="mb-6">
                       {displayPrice > 0 ? (
                         <div className="flex items-baseline">
-                          <span className="text-5xl font-black tracking-tight">${displayPrice}</span>
-                          <span className="text-sm text-slate-400 font-bold ml-1 uppercase">/ month</span>
+                          <span className="text-4xl font-bold tracking-tight">${displayPrice}</span>
+                          <span className="text-sm text-muted-foreground font-normal ml-1">/ month</span>
                         </div>
                       ) : (
-                        <span className="text-4xl font-black tracking-tight">Free</span>
+                        <span className="text-4xl font-bold tracking-tight">Free</span>
                       )}
                     </div>
 
@@ -146,13 +146,13 @@ export function PricingPage() {
 
                   <Link to="/login" className="w-full">
                     <Button
-                      className={`w-full py-6 rounded-xl font-bold uppercase tracking-wider text-xs border ${
+                      className={`w-full py-5 rounded-lg font-medium text-xs border ${
                         plan.isPopular
                           ? 'bg-weave-violet hover:bg-weave-violet/90 text-white border-transparent'
-                          : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+                          : 'bg-foreground/5 hover:bg-foreground/10 text-foreground border-border'
                       }`}
                     >
-                      {plan.ctaText || 'Start Now'}
+                      {plan.ctaText || 'Start now'}
                     </Button>
                   </Link>
                 </motion.div>

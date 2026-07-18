@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Geist:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -17,7 +17,7 @@ html, body, #root {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist', 'Geist Variable', 'Figtree', sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'JetBrains Mono Variable', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -66,26 +66,30 @@ html, body, #root {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Enforcing Weave Dark Theme */
+/* ═══════════════════════════════════════════════════════
+   WEAVE DARK THEME (Primary)
+   Warm, muted jewel tones with depth
+   ═══════════════════════════════════════════════════════ */
 :root {
-  /* Weave Brand Colors */
-  --weave-violet: #6C3CE1;
-  --weave-blue: #1ABCFE;
-  --weave-dark-navy: #0D0F1A;
-  --weave-slate: #0F1117;
-  --weave-teal: #2DD4BF;
-  --weave-amber: #F97316;
+  /* Weave Brand Colors — muted jewel tones */
+  --weave-violet: #7C5CFC;
+  --weave-blue: #5BA4F5;
+  --weave-dark-navy: #0C0E16;
+  --weave-slate: #0E1018;
+  --weave-teal: #34D399;
+  --weave-amber: #F59E0B;
 
-  /* Theme color mapping (Weave Dark Theme) */
-  --background: #0F1117;
-  --background-alt: #0B0C12;
-  --foreground: #F1F5F9;
+  /* Core Surfaces */
+  --background: #0C0E16;
+  --background-alt: #090B11;
+  --foreground: #E8ECF2;
 
-  --card: rgba(20, 22, 30, 0.65);
-  --card-foreground: #F1F5F9;
+  /* Cards — solid surfaces with subtle warmth */
+  --card: #13151F;
+  --card-foreground: #E8ECF2;
 
-  --popover: #131622;
-  --popover-foreground: #F1F5F9;
+  --popover: #161825;
+  --popover-foreground: #E8ECF2;
 
   /* Primary (Weave Violet) */
   --primary: var(--weave-violet);
@@ -93,108 +97,116 @@ html, body, #root {
 
   /* Secondary (Weave Blue) */
   --secondary: var(--weave-blue);
-  --secondary-foreground: #0D0F1A;
+  --secondary-foreground: #0C0E16;
 
-  /* Accent (Weave Teal) */
+  /* Accent (Weave Teal/Emerald) */
   --accent: var(--weave-teal);
   --accent-foreground: #FFFFFF;
 
   /* Warning / Amber */
   --warning: var(--weave-amber);
 
-  /* Muted text and backgrounds */
+  /* Muted — slightly warmer grays */
   --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: #94A3B8;
+  --muted-foreground: #8896AB;
 
-  /* Borders & Inputs */
-  --border: rgba(255, 255, 255, 0.08);
+  /* Borders & Inputs — visible but calm */
+  --border: rgba(255, 255, 255, 0.07);
   --input: rgba(255, 255, 255, 0.06);
   --ring: var(--weave-violet);
 
-  --radius: 0.75rem;
+  --radius: 0.625rem;
 
-  /* Sidebar */
-  --sidebar: #0B0C12;
-  --sidebar-border: rgba(255, 255, 255, 0.04);
-  --sidebar-foreground: #F1F5F9;
+  /* Sidebar — slightly darker than main background */
+  --sidebar: #0A0C14;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-foreground: #E8ECF2;
   --sidebar-primary: var(--weave-violet);
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: rgba(255, 255, 255, 0.04);
-  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-accent-foreground: #E8ECF2;
   --sidebar-ring: var(--weave-violet);
 
   /* Destructive */
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
 
-  /* Frosted Glass System */
-  --glass-bg: rgba(13, 15, 26, 0.45);
-  --glass-bg-hover: rgba(13, 15, 26, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  /* Frosted Glass — refined, less aggressive */
+  --glass-bg: rgba(19, 21, 31, 0.75);
+  --glass-bg-hover: rgba(19, 21, 31, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
   --glass-border-hover: rgba(255, 255, 255, 0.12);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  --glass-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.35);
 
-  /* Deep Glow Radial Gradients */
-  --glow-violet: radial-gradient(circle, rgba(108, 60, 225, 0.12) 0%, transparent 60%);
-  --glow-blue: radial-gradient(circle, rgba(26, 188, 254, 0.12) 0%, transparent 60%);
-  --glow-teal: radial-gradient(circle, rgba(45, 212, 191, 0.08) 0%, transparent 60%);
+  /* Brand Glow — subtle */
+  --glow-violet: radial-gradient(circle, rgba(124, 92, 252, 0.08) 0%, transparent 60%);
+  --glow-blue: radial-gradient(circle, rgba(91, 164, 245, 0.08) 0%, transparent 60%);
+  --glow-teal: radial-gradient(circle, rgba(52, 211, 153, 0.06) 0%, transparent 60%);
 }
 
-/* Weave Light Theme overrides */
+/* ═══════════════════════════════════════════════════════
+   WEAVE LIGHT THEME
+   Clean, warm whites with proper contrast
+   ═══════════════════════════════════════════════════════ */
 [data-theme='weave-light'] {
-  /* Theme color mapping (Weave Light Theme) */
-  --background: #F8FAFC;
-  --background-alt: #F1F5F9;
+  --background: #FAFBFD;
+  --background-alt: #F1F4F9;
   --foreground: #0F172A;
 
-  --card: rgba(255, 255, 255, 0.8);
+  --card: #FFFFFF;
   --card-foreground: #0F172A;
 
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
 
-  /* Primary (Weave Violet) */
-  --primary: var(--weave-violet);
+  /* Primary (Weave Violet — slightly deeper for contrast) */
+  --primary: #6C3CE1;
   --primary-foreground: #FFFFFF;
 
-  /* Secondary (Weave Blue) */
-  --secondary: #0284C7;
+  /* Secondary (Weave Blue — deeper for light backgrounds) */
+  --secondary: #3B82F6;
   --secondary-foreground: #FFFFFF;
 
-  /* Accent (Weave Teal) */
-  --accent: #0D9488;
+  /* Accent (Emerald — deeper for contrast) */
+  --accent: #10B981;
   --accent-foreground: #FFFFFF;
 
-  /* Warning / Amber */
-  --warning: #EA580C;
+  /* Warning */
+  --warning: #D97706;
 
-  /* Muted text and backgrounds */
-  --muted: rgba(15, 23, 42, 0.05);
-  --muted-foreground: #475569;
+  /* Muted */
+  --muted: rgba(15, 23, 42, 0.04);
+  --muted-foreground: #64748B;
 
-  /* Borders & Inputs */
-  --border: rgba(15, 23, 42, 0.08);
+  /* Borders & Inputs — visible on white */
+  --border: rgba(15, 23, 42, 0.10);
   --input: rgba(15, 23, 42, 0.06);
-  --ring: var(--weave-violet);
+  --ring: #6C3CE1;
 
   /* Sidebar */
-  --sidebar: #F1F5F9;
-  --sidebar-border: rgba(15, 23, 42, 0.06);
+  --sidebar: #F1F4F9;
+  --sidebar-border: rgba(15, 23, 42, 0.08);
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: var(--weave-violet);
+  --sidebar-primary: #6C3CE1;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: rgba(15, 23, 42, 0.04);
   --sidebar-accent-foreground: #0F172A;
-  --sidebar-ring: var(--weave-violet);
+  --sidebar-ring: #6C3CE1;
 
   color-scheme: light;
 
-  /* Frosted Glass System (Light) */
-  --glass-bg: rgba(255, 255, 255, 0.45);
-  --glass-bg-hover: rgba(255, 255, 255, 0.6);
+  /* Frosted Glass (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(15, 23, 42, 0.08);
-  --glass-border-hover: rgba(15, 23, 42, 0.15);
-  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.04);
+  --glass-border-hover: rgba(15, 23, 42, 0.14);
+  --glass-shadow: 0 4px 24px 0 rgba(15, 23, 42, 0.06);
+
+  /* Brand colors adjusted for light backgrounds */
+  --weave-violet: #6C3CE1;
+  --weave-blue: #3B82F6;
+  --weave-teal: #10B981;
+  --weave-amber: #D97706;
 }
 
 @layer base {
@@ -203,6 +215,8 @@ html, body, #root {
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
@@ -239,18 +253,20 @@ html, body, #root {
   font-family: var(--font-mono);
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — subtle, not branded */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--primary);
+  background: rgba(136, 150, 171, 0.25);
   border-radius: 10px;
-  opacity: 0.5;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 150, 171, 0.4);
 }
 
 /* Utility to hide scrollbars */
@@ -291,35 +307,43 @@ html, body, #root {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.03) 25%,
-    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.06) 37%,
     rgba(255, 255, 255, 0.03) 63%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
 
-/* Glassmorphism custom components */
+/* Glassmorphism — refined, less aggressive */
 .glass-panel {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   background-color: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
 }
 
 .glass-panel-interactive {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel-interactive:hover {
   background-color: var(--glass-bg-hover);
   border-color: var(--glass-border-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
+/* Brand gradient text */
 .text-gradient-purple {
-  background: linear-gradient(135deg, #6C3CE1 0%, #1ABCFE 50%, #2DD4BF 100%);
+  background: linear-gradient(135deg, #7C5CFC 0%, #5BA4F5 50%, #34D399 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Elevated surface helper */
+.surface-elevated {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }

@@ -50,7 +50,7 @@ export function FeaturesPage() {
           </Link>
           <div className="flex items-center gap-2">
             <img src="/logo_icon.svg" alt="Logo" className="w-6 h-6 animate-pulse" />
-            <span className="font-black tracking-widest text-xs uppercase text-weave-violet">Weave Engine</span>
+            <span className="font-semibold text-sm text-weave-violet">Weave</span>
           </div>
         </header>
 
@@ -58,7 +58,7 @@ export function FeaturesPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black tracking-tight mb-6 uppercase"
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
           >
             Engineering <span className="text-gradient-purple">Intelligence</span>
           </motion.h1>
@@ -84,19 +84,19 @@ export function FeaturesPage() {
               <div className="p-3 bg-white/5 rounded-xl border border-white/5 mb-6">
                 {feat.icon}
               </div>
-              <h3 className="text-xl font-bold mb-3 text-slate-100 uppercase tracking-tight">{feat.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{feat.desc}</p>
+              <h3 className="text-lg font-semibold mb-3 text-foreground">{feat.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{feat.desc}</p>
             </motion.div>
           ))}
         </section>
 
         <footer className="glass-panel p-8 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           <div>
-            <h4 className="text-lg font-bold text-white mb-2 uppercase">Ready to compile your first model?</h4>
-            <p className="text-sm text-slate-400">Initialize a workspace sandbox and deploy neural layouts immediately.</p>
+            <h4 className="text-lg font-semibold text-foreground mb-2">Ready to compile your first model?</h4>
+            <p className="text-sm text-muted-foreground">Initialize a workspace sandbox and deploy neural layouts immediately.</p>
           </div>
           <Link to="/login">
-            <Button size="lg" className="bg-weave-violet hover:bg-weave-violet/90 text-white rounded-xl px-8 font-bold uppercase tracking-wider text-xs">
+            <Button size="lg" className="bg-weave-violet hover:bg-weave-violet/90 text-white rounded-lg px-8 font-medium text-sm">
               Start Building
             </Button>
           </Link>

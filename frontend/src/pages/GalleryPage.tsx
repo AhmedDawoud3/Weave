@@ -51,7 +51,7 @@ export function GalleryPage() {
           </Link>
           <div className="flex items-center gap-2">
             <img src="/logo_icon.svg" alt="Logo" className="w-6 h-6" />
-            <span className="font-black tracking-widest text-xs uppercase text-weave-violet">Weave Engine</span>
+            <span className="font-semibold text-sm text-weave-violet">Weave</span>
           </div>
         </header>
 
@@ -59,9 +59,9 @@ export function GalleryPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black tracking-tight mb-6 uppercase"
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
           >
-            Model <span className="text-gradient-purple">Gallery</span>
+            Model <span className="text-gradient-purple">gallery</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -75,12 +75,12 @@ export function GalleryPage() {
 
         {/* Category Pill Switcher */}
         <div className="flex justify-center mb-16">
-          <div className="bg-white/5 border border-white/10 p-1.5 rounded-2xl flex gap-2 backdrop-blur-md">
+          <div className="bg-foreground/5 border border-border p-1 rounded-xl flex gap-1">
             <button
               onClick={() => setActiveCategory('architecture')}
-              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${activeCategory === 'architecture'
-                ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+              className={`px-5 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all duration-200 cursor-pointer ${activeCategory === 'architecture'
+                ? 'bg-weave-violet text-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                 }`}
             >
               <Layers size={13} />
@@ -88,13 +88,13 @@ export function GalleryPage() {
             </button>
             <button
               onClick={() => setActiveCategory('paper')}
-              className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${activeCategory === 'paper'
-                ? 'bg-weave-violet text-white shadow-lg shadow-weave-violet/20'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+              className={`px-5 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all duration-200 cursor-pointer ${activeCategory === 'paper'
+                ? 'bg-weave-violet text-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                 }`}
             >
               <BookOpen size={13} />
-              Famous Papers
+              Famous papers
             </button>
           </div>
         </div>
@@ -106,19 +106,19 @@ export function GalleryPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.08 }}
-              className="glass-panel p-8 rounded-3xl flex flex-col justify-between items-start text-left relative"
+              className="bg-card p-7 rounded-2xl flex flex-col justify-between items-start text-left relative border border-border"
             >
               <div className="w-full">
                 <div className="flex justify-between items-start gap-4 mb-2">
-                  <h3 className="text-2xl font-black text-slate-100 uppercase tracking-tight leading-none">{tmpl.name}</h3>
-                  <span className="text-[10px] font-mono tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 rounded-full uppercase shrink-0 text-slate-400">
+                  <h3 className="text-xl font-bold text-foreground leading-snug">{tmpl.name}</h3>
+                  <span className="text-[11px] font-mono bg-foreground/5 border border-border px-2.5 py-0.5 rounded-full shrink-0 text-muted-foreground">
                     Input: {tmpl.inputShape.join('x')}
                   </span>
                 </div>
 
                 {tmpl.category === 'paper' && (
-                  <div className="flex items-center gap-3 mb-4 text-xs font-sans">
-                    <span className="text-weave-violet font-extrabold font-mono px-2 py-0.5 bg-weave-violet/10 border border-weave-violet/20 rounded uppercase text-[10px] tracking-wider">
+                  <div className="flex items-center gap-3 mb-4 text-xs">
+                    <span className="text-weave-violet font-medium font-mono px-2 py-0.5 bg-weave-violet/10 border border-weave-violet/20 rounded text-[11px]">
                       {tmpl.citation}
                     </span>
                     {tmpl.paperUrl && (
@@ -126,9 +126,9 @@ export function GalleryPage() {
                         href={tmpl.paperUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-weave-blue hover:text-weave-blue/80 hover:underline font-bold flex items-center gap-1 transition-colors text-[10px] uppercase tracking-wider"
+                        className="text-weave-blue hover:text-weave-blue/80 hover:underline font-medium flex items-center gap-1 transition-colors text-xs"
                       >
-                        Read Paper →
+                        Read paper →
                       </a>
                     )}
                   </div>
@@ -137,18 +137,18 @@ export function GalleryPage() {
                 <p className="text-sm text-slate-400 leading-relaxed mb-8 min-h-[48px]">{tmpl.description}</p>
 
                 {/* Stats / Node layout summary */}
-                <div className="grid grid-cols-3 gap-4 mb-8 bg-white/5 p-4 rounded-xl border border-white/5 w-full">
+                <div className="grid grid-cols-3 gap-4 mb-8 bg-foreground/5 p-4 rounded-xl border border-border w-full">
                   <div className="text-center">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Nodes</p>
-                    <p className="text-lg font-black text-weave-violet">{tmpl.nodes.length}</p>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Nodes</p>
+                    <p className="text-lg font-bold text-weave-violet">{tmpl.nodes.length}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Connections</p>
-                    <p className="text-lg font-black text-weave-blue">{tmpl.edges.length}</p>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Connections</p>
+                    <p className="text-lg font-bold text-weave-blue">{tmpl.edges.length}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Primary Type</p>
-                    <p className="text-xs font-bold text-weave-teal truncate pt-1 uppercase">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Primary type</p>
+                    <p className="text-xs font-semibold text-weave-teal truncate pt-1">
                       {tmpl.nodes.find(n => n.type !== 'InputNode' && n.type !== 'OutputNode')?.type || 'Linear'}
                     </p>
                   </div>
@@ -158,13 +158,13 @@ export function GalleryPage() {
               <Button
                 onClick={() => handleDeploy(tmpl)}
                 disabled={deployingTemplate === tmpl.name}
-                className="w-full py-6 bg-white/5 hover:bg-weave-violet hover:text-white hover:border-transparent text-slate-300 border border-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs flex justify-center items-center gap-2 transition-all duration-300"
+                className="w-full py-5 bg-foreground/5 hover:bg-weave-violet hover:text-white hover:border-transparent text-foreground border border-border rounded-lg font-medium text-xs flex justify-center items-center gap-2 transition-all duration-200 cursor-pointer"
               >
                 {deployingTemplate === tmpl.name ? (
                   <span>Instantiating...</span>
                 ) : (
                   <>
-                    <span>Deploy to Workspace</span>
+                    <span>Deploy to workspace</span>
                     <Play size={12} fill="currentColor" />
                   </>
                 )}

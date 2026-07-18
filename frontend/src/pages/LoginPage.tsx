@@ -69,7 +69,7 @@ function SocialLoginButtons({
       {localError && <div className="text-xs text-red-400 text-center">{localError}</div>}
       <div className="relative my-4 text-center">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-        <span className="relative px-3 bg-background text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+        <span className="relative px-3 bg-background text-xs text-muted-foreground font-medium">
           Or continue with
         </span>
       </div>
@@ -79,7 +79,7 @@ function SocialLoginButtons({
           type="button"
           disabled={isAuthenticating}
           onClick={handleGoogleClick}
-          className="bg-muted border border-border hover:bg-muted/80 hover:border-border/60 hover:text-foreground text-muted-foreground font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+          className="bg-muted border border-border hover:bg-muted/80 hover:border-border/60 hover:text-foreground text-muted-foreground font-medium h-10 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -87,7 +87,7 @@ function SocialLoginButtons({
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
-          <span className="text-xs uppercase tracking-wider">Google</span>
+          <span className="text-xs font-medium">Google</span>
         </Button>
 
         <FacebookLogin
@@ -99,12 +99,12 @@ function SocialLoginButtons({
               type="button"
               disabled={isAuthenticating}
               onClick={() => handleFacebookClick(renderProps.onClick)}
-              className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-muted-foreground font-bold h-10 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-muted-foreground font-medium h-10 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="#1877F2">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
-              <span className="text-xs uppercase tracking-wider">Facebook</span>
+              <span className="text-xs font-medium">Facebook</span>
             </Button>
           )}
         />
@@ -271,7 +271,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
               <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                 <div className="flex items-center gap-1.5">
                   <Terminal size={14} className="text-weave-teal" />
-                  <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-bold">Compiler Terminal</span>
+                  <span className="text-[11px] text-muted-foreground/50 font-medium">Compiler terminal</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
@@ -289,10 +289,10 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
           </div>
 
           {/* Footer Info */}
-          <div className="flex justify-between items-center text-[10px] text-muted-foreground uppercase font-bold relative z-10">
-            <span>© 2026 Weave AI</span>
+          <div className="flex justify-between items-center text-xs text-muted-foreground font-medium relative z-10">
+            <span>© 2026 Weave</span>
             <span className="flex items-center gap-1">
-              <Cpu size={12} /> GPU Optimized
+              <Cpu size={12} /> GPU optimized
             </span>
           </div>
         </div>
@@ -322,11 +322,11 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/10 flex items-center justify-center border border-primary/20 mb-4 shadow-lg">
                 <Sparkles className="text-primary" size={20} />
               </div>
-              <h2 className="text-2xl font-black text-center text-foreground tracking-wider uppercase">
-                {isRegister ? 'Create Account' : 'Welcome Back'}
+              <h2 className="text-2xl font-bold text-center text-foreground">
+                {isRegister ? 'Create account' : 'Welcome back'}
               </h2>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center">
-                {isRegister ? 'Sign up for Weave Studio' : 'Enter your credentials to login'}
+              <p className="text-xs text-muted-foreground mt-1 text-center font-normal">
+                {isRegister ? 'Sign up for Weave Studio' : 'Enter your credentials to continue'}
               </p>
             </div>
 
@@ -358,7 +358,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
                       placeholder="Full Name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-background/40 border-border pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
                   </div>
 
@@ -368,7 +368,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
                       placeholder="Username (e.g. ahmed123)"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="bg-background/40 border-border pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
                   </div>
                 </motion.div>
@@ -381,7 +381,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background/40 border-border pl-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
               </div>
 
@@ -392,7 +392,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-background/40 border-border pl-10 pr-10 h-12 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="bg-background/40 border-border pl-10 pr-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
                 <button
                   type="button"
@@ -407,7 +407,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
               <Button
                 type="submit"
                 disabled={isAuthenticating}
-                className="w-full h-12 mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold uppercase rounded-xl transition-all shadow-glow cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full h-11 mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 {isAuthenticating ? 'Connecting...' : isRegister ? 'Register' : 'Login'}
                 <ChevronRight size={16} />
@@ -427,7 +427,7 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
                 setIsRegister(!isRegister);
                 setLocalError(null);
               }}
-              className="w-full text-xs text-muted-foreground hover:text-primary mt-6 uppercase tracking-widest font-bold text-center transition-colors focus:outline-none cursor-pointer"
+              className="w-full text-xs text-muted-foreground hover:text-primary mt-6 font-medium text-center transition-colors focus:outline-none cursor-pointer"
             >
               {isRegister ? "Already have an account? Login" : "Don't have an account? Register"}
             </button>

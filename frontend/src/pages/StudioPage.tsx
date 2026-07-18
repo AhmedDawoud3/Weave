@@ -374,8 +374,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           <div className="flex items-center gap-2.5">
             <img src="/logo_icon.svg" alt="Weave Icon" className="h-6 w-6" />
             <div className="flex flex-col">
-              <span className="text-[10px] text-primary font-black uppercase tracking-widest">Active Workspace</span>
-              <span className="text-xs font-black text-foreground uppercase truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
+              <span className="text-[10px] text-primary font-medium uppercase tracking-wide">Active workspace</span>
+              <span className="text-xs font-semibold text-foreground truncate max-w-[150px]">{activeProject?.name || 'Sandbox'}</span>
             </div>
           </div>
 
@@ -385,8 +385,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           <div className="flex bg-foreground/40 border border-border rounded-xl p-1 shrink-0 h-10 items-center select-none nodrag">
             <button
               onClick={() => setActiveTab('canvas')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'canvas'
-                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${activeTab === 'canvas'
+                  ? 'bg-primary/20 text-primary border border-primary/10'
                   : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
@@ -394,8 +394,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             </button>
             <button
               onClick={() => setActiveTab('dataset')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'dataset'
-                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${activeTab === 'dataset'
+                  ? 'bg-primary/20 text-primary border border-primary/10'
                   : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
@@ -403,8 +403,8 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
             </button>
             <button
               onClick={() => setActiveTab('tokenizer')}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'tokenizer'
-                  ? 'bg-primary/20 text-primary border border-primary/10 shadow-[0_0_8px_rgba(108,60,225,0.1)]'
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${activeTab === 'tokenizer'
+                  ? 'bg-primary/20 text-primary border border-primary/10'
                   : 'text-muted-foreground hover:text-foreground'
                 }`}
             >

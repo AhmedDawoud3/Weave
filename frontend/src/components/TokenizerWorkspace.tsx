@@ -151,28 +151,28 @@ export function TokenizerWorkspace() {
         <div className="bg-card border border-border rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col gap-4">
           <div className="flex items-center gap-1.5">
             <Sparkles size={14} className="text-primary" />
-            <span className="text-[10px] text-primary font-black uppercase tracking-widest">BPE Trainer</span>
+            <span className="text-[11px] text-primary font-medium uppercase tracking-wide">BPE Trainer</span>
           </div>
-          <h3 className="text-lg font-black uppercase tracking-wide">Train Tokenizer</h3>
-          <p className="text-[11px] text-muted-foreground leading-normal">
+          <h3 className="text-base font-bold text-foreground">Train tokenizer</h3>
+          <p className="text-xs text-muted-foreground leading-normal">
             Configure byte-pair encoding (BPE) merges from raw training corpus.
           </p>
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-muted-foreground">Text Source</label>
+              <label className="text-xs font-medium text-muted-foreground">Text source</label>
               <div className="flex bg-background border border-border rounded-lg p-0.5 text-xs">
                 <button
                   onClick={() => setTextSource('builtin')}
-                  className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${textSource === 'builtin' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 py-1 rounded-md transition-all font-medium cursor-pointer ${textSource === 'builtin' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
                 >
-                  Builtin Dataset
+                  Builtin dataset
                 </button>
                 <button
                   onClick={() => setTextSource('paste')}
-                  className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${textSource === 'paste' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 py-1 rounded-md transition-all font-medium cursor-pointer ${textSource === 'paste' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
                 >
-                  Paste Text
+                  Paste text
                 </button>
               </div>
             </div>
@@ -225,15 +225,15 @@ export function TokenizerWorkspace() {
             <Button
               onClick={handleTrain}
               disabled={training}
-              className="w-full h-10 bg-primary hover:brightness-115 text-primary-foreground font-extrabold uppercase rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full h-9 bg-primary hover:brightness-110 text-primary-foreground font-medium rounded-lg flex items-center justify-center gap-1.5 cursor-pointer text-xs"
             >
               {training ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" /> TRAINING...
+                  <Loader2 size={14} className="animate-spin" /> Training...
                 </>
               ) : (
                 <>
-                  <Play size={14} /> TRAIN TOKENIZER
+                  <Play size={14} /> Train tokenizer
                 </>
               )}
             </Button>
@@ -269,9 +269,9 @@ export function TokenizerWorkspace() {
           <div className="bg-card border border-border rounded-2xl p-5 shadow-lg flex flex-col gap-4 shrink-0">
             <div className="flex items-center gap-1.5">
               <Code size={14} className="text-primary" />
-              <span className="text-[10px] text-primary font-black uppercase tracking-widest">Tokenizer Sandbox</span>
+              <span className="text-[11px] text-primary font-medium uppercase tracking-wide">Tokenizer Sandbox</span>
             </div>
-            <h3 className="text-sm font-black uppercase">Interactive Test Bench</h3>
+            <h3 className="text-sm font-semibold">Interactive test bench</h3>
 
             <div className="flex gap-4">
               {/* Text Input area */}

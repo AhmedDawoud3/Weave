@@ -139,8 +139,8 @@ export function AdminDashboardPage() {
     <div className="flex h-screen bg-background text-foreground pt-16 font-sans">
       {/* Sidebar */}
       <div className="w-64 border-r border-border p-4 flex flex-col gap-2 bg-card z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
-        <h2 className="text-xl font-black mb-6 flex items-center gap-2 uppercase tracking-tight mt-2 px-2">
-          <Shield className="text-primary" /> Admin Panel
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2 px-2 text-foreground">
+          <Shield className="text-primary" /> Admin panel
         </h2>
         
         <TabButton icon={<Activity />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
@@ -425,7 +425,7 @@ function TabButton({ icon, label, active, onClick }: { icon: React.ReactNode, la
   return (
     <button 
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${active ? 'bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(var(--primary),0.3)] scale-[1.02]' : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-[1.01]'}`}
+      className={`flex items-center gap-3 px-3.5 py-3 rounded-lg text-xs font-medium transition-all duration-200 ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
     >
       {React.cloneElement(icon as React.ReactElement<any>, { size: 18 })}
       {label}
@@ -435,10 +435,9 @@ function TabButton({ icon, label, active, onClick }: { icon: React.ReactNode, la
 
 function StatCard({ title, value }: { title: string, value: number }) {
   return (
-    <div className="bg-card border border-border rounded-3xl p-8 relative overflow-hidden group shadow-lg">
-      <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/15 transition-colors duration-500" />
-      <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 relative z-10">{title}</h3>
-      <p className="text-6xl font-black text-foreground tracking-tighter relative z-10">{value}</p>
+    <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden group shadow-sm">
+      <h3 className="text-xs font-medium text-muted-foreground mb-2 relative z-10">{title}</h3>
+      <p className="text-4xl font-bold text-foreground tracking-tight relative z-10">{value}</p>
     </div>
   );
 }
