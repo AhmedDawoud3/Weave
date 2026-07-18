@@ -565,9 +565,10 @@ def generate_pytorch_code(
     loss: Any = None,
     optimizer: Any = None,
     training: Any = None,
+    only_module: bool = False,
 ) -> str:
     """Generates standalone, human-readable PyTorch source code for the model graph,
-    including dataset loading and training loop.
+    including dataset loading and training loop (unless only_module is True).
     """
     custom_defs_list = []
     model_class_code = _generate_class_for_graph(graph, "Model", custom_defs_list)
@@ -576,7 +577,16 @@ def generate_pytorch_code(
     if custom_code:
         custom_code += "\n\n"
 
+    if only_module:
+        return f"""import math
+import os
+import torch
+import torch.nn as nn
+
+{custom_code}{model_class_code}"""
+
     # Extract configs
+
     ds_dict = _extract_dict(dataset_config)
     loss_dict = _extract_dict(loss)
     opt_dict = _extract_dict(optimizer)

@@ -837,6 +837,7 @@ def export_pytorch_endpoint(request: ExportRequest):
             loss=request.loss,
             optimizer=request.optimizer,
             training=request.training,
+            only_module=request.only_module,
         )
         return ExportResponse(status="success", output_path=path, code=code_str)
     except Exception as e:
@@ -849,6 +850,7 @@ def export_pytorch_endpoint(request: ExportRequest):
                 loss=request.loss,
                 optimizer=request.optimizer,
                 training=request.training,
+                only_module=request.only_module,
             )
         except Exception:
             code_str = None

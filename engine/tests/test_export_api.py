@@ -123,3 +123,36 @@ def test_export_invalid_checkpoint_returns_error(client, tmp_path):
     data = response.json()
     assert data["status"] == "error"
     assert "Failed to load checkpoint" in data["message"]
+
+
+def test_export_pytorch_only_module(client, dummy_checkpoint, tmp_path):
+    graph_data = {
+        "nodes": [
+            {
+                "id": "fc1",
+                "type": "Linear",
+                "params": {"in_features": 10, "out_features": 2},
+            }
+        ],
+        "edges": [
+            {"source": "input", "target": "fc1"},
+            {"source": "fc1", "target": "output"},
+        ],
+    }
+    py_output = str(tmp_path / "model.pt")
+    payload = {
+        "graph": graph_data,
+        "input_shape": [1, 10],
+        "checkpoint_path": dummy_checkpoint,
+        "output_path": py_output,
+        "only_module": True,
+    }
+    response = client.post("/export/pytorch", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    code = data["code"]
+    assert "class Model(nn.Module):" in code
+    assert "def train():" not in code
+    assert "get_dataloaders" not in code
+

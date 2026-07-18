@@ -88,8 +88,7 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
     selectProjectById,
     saveActiveSubGraph,
     ensureSubgraphExists,
-    getFormattedGraph,
-    datasetConfig
+    getFormattedGraph
   } = useWeaveStore();
 
   const { theme, setTheme } = useTheme();
@@ -156,7 +155,11 @@ export function StudioPage({ onNavigateDashboard }: StudioPageProps) {
           activeInputShape || [1, 3, 224, 224],
           "data/checkpoints/best.pt",
           "data/exports/model.pt",
-          datasetConfig
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true
         );
         if (active) {
           if (res.code) {

@@ -1318,6 +1318,8 @@ class ExportRequest(BaseModel):
     loss: LossConfig | None = None
     optimizer: OptimizerConfig | None = None
     training: TrainingSettings | None = None
+    only_module: bool = False
+
 
 
 class ExportResponse(BaseModel):

@@ -355,7 +355,8 @@ export const api = {
       datasetConfig?: any,
       loss?: any,
       optimizer?: any,
-      training?: any
+      training?: any,
+      onlyModule?: boolean
     ) => {
       const url = `${engineBaseUrl}/export/pytorch`;
       const res = await fetch(url, {
@@ -370,6 +371,7 @@ export const api = {
           loss: loss,
           optimizer: optimizer,
           training: training,
+          only_module: onlyModule,
         }),
       });
       return handleResponse(res);
