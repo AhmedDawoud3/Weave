@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps, type Node, useUpdateNodeInternals, useConnection } from '@xyflow/react';
-import { Network, ChevronDown, ChevronUp, Trash2, ShieldAlert } from 'lucide-react';
+import { Network, ChevronDown, ChevronUp, Trash2, ShieldAlert, ExternalLink } from 'lucide-react';
 import type { NodeData } from '../types';
 import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
 
@@ -576,6 +576,22 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
         {/* Colorful top strip */}
         <div className={`h-1.5 w-full absolute top-0 left-0 ${theme.topBar}`} />
 
+        {/* Open Module Subgraph Button (Visible on Hover for Block nodes) */}
+        {isBlock && (
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const subGraphId = await ensureSubgraphExists(id);
+              if (subGraphId) enterSubGraph(subGraphId);
+            }}
+            className="absolute top-1.5 left-1.5 p-0.5 text-indigo-400 hover:text-white hover:bg-indigo-500/80 rounded transition-all opacity-0 group-hover:opacity-100 z-30 cursor-pointer select-none border border-indigo-500/20 bg-indigo-500/10"
+            title="Open Module Subgraph"
+          >
+            <ExternalLink size={10} />
+          </button>
+        )}
+
         {/* Delete Button (Visible on Hover) */}
         <button
           onClick={(e) => { e.stopPropagation(); removeNode(id); }}
@@ -663,6 +679,23 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
                 {fullFields.map(renderField)}
                 {fullFields.length === 0 && (
                   <p className="text-[10px] text-muted-foreground italic text-center py-2">No configuration inputs</p>
+                )}
+
+                {/* Explicit Open Subgraph Button when Expanded */}
+                {isBlock && (
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const subGraphId = await ensureSubgraphExists(id);
+                      if (subGraphId) enterSubGraph(subGraphId);
+                    }}
+                    className="nodrag w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold bg-indigo-500/15 hover:bg-indigo-500 hover:text-white text-indigo-300 border border-indigo-500/30 transition-all cursor-pointer shadow-sm mt-2"
+                  >
+                    <Network size={12} />
+                    <span>Open Module Canvas</span>
+                    <ExternalLink size={10} className="ml-auto opacity-70" />
+                  </button>
                 )}
 
                 {/* Weight Initialization — shown for trainable weight layers */}
