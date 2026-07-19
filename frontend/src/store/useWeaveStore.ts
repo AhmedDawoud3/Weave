@@ -494,6 +494,22 @@ const createBlockSubgraphData = (type: string): { initialNodes: any[]; initialEd
       { id: `e_${Date.now()}_19`, source: initialNodes[14].id, target: initialNodes[15].id, animated: true },
       { id: `e_${Date.now()}_20`, source: initialNodes[15].id, target: 'output_node', animated: true }
     ];
+  } else if (type === 'TransformerEncoder') {
+    initialNodes = [
+      { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },
+      { id: `attn_${Date.now()}`, type: 'layer', position: { x: 250, y: 150 }, data: { type: 'SelfAttention', label: 'Causal Self-Attention', params: { embed_dim: 64, num_heads: 4, causal: true, dropout: 0.1 } } },
+      { id: `ln1_${Date.now()}`, type: 'layer', position: { x: 250, y: 250 }, data: { type: 'LayerNorm', label: 'LayerNorm 1', params: { normalized_shape: [64] } } },
+      { id: `ff_${Date.now()}`, type: 'layer', position: { x: 250, y: 350 }, data: { type: 'FeedForward', label: 'FeedForward Block', params: { embed_dim: 64, expansion: 4, dropout: 0.1 } } },
+      { id: `ln2_${Date.now()}`, type: 'layer', position: { x: 250, y: 450 }, data: { type: 'LayerNorm', label: 'LayerNorm 2', params: { normalized_shape: [64] } } },
+      { id: 'output_node', type: 'layer', position: { x: 250, y: 550 }, data: { type: 'OutputNode', label: 'Output' } }
+    ];
+    initialEdges = [
+      { id: `e_${Date.now()}_1`, source: 'input_node', target: initialNodes[1].id, animated: true },
+      { id: `e_${Date.now()}_2`, source: initialNodes[1].id, target: initialNodes[2].id, animated: true },
+      { id: `e_${Date.now()}_3`, source: initialNodes[2].id, target: initialNodes[3].id, animated: true },
+      { id: `e_${Date.now()}_4`, source: initialNodes[3].id, target: initialNodes[4].id, animated: true },
+      { id: `e_${Date.now()}_5`, source: initialNodes[4].id, target: 'output_node', animated: true }
+    ];
   } else if (type === 'CustomAutogradManualBlock') {
     initialNodes = [
       { id: 'input_node', type: 'layer', position: { x: 250, y: 50 }, data: { type: 'InputNode', label: 'Input' } },

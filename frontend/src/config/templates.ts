@@ -332,22 +332,18 @@ export const TEMPLATES: Template[] = [
     },
     nodes: [
       { id: "input_node", type: "InputNode", label: "Token Sequence Input (2x16)", position: { x: 250, y: 50 }, params: {} },
-      { id: "embed", type: "Embedding", label: "Token Embedding", position: { x: 250, y: 140 }, params: { num_embeddings: 10000, embedding_dim: 64 } },
-      { id: "pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 230 }, params: { embed_dim: 64, max_seq_len: 512, pe_type: "sinusoidal" } },
-      { id: "attn", type: "SelfAttention", label: "Causal Self-Attention", position: { x: 250, y: 320 }, params: { embed_dim: 64, num_heads: 4, causal: true, dropout: 0.1 } },
-      { id: "ff", type: "FeedForward", label: "FeedForward Block", position: { x: 250, y: 410 }, params: { embed_dim: 64, expansion: 4, dropout: 0.1 } },
-      { id: "ln", type: "LayerNorm", label: "Layer Normalization", position: { x: 250, y: 500 }, params: { normalized_shape: [64] } },
-      { id: "linear", type: "Linear", label: "Vocab Projection", position: { x: 250, y: 590 }, params: { in_features: 64, out_features: 10000 } },
-      { id: "softmax", type: "Softmax", label: "Softmax Probabilities", position: { x: 250, y: 680 }, params: { dim: -1 } },
-      { id: "output_node", type: "OutputNode", label: "Next Token Logits", position: { x: 250, y: 770 }, params: {} }
+      { id: "embed", type: "Embedding", label: "Token Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 10000, embedding_dim: 64 } },
+      { id: "pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 64, max_seq_len: 512, pe_type: "sinusoidal" } },
+      { id: "transformer_block", type: "TransformerEncoder", label: "Transformer Block Module", position: { x: 250, y: 350 }, params: {} },
+      { id: "linear", type: "Linear", label: "Vocab Projection", position: { x: 250, y: 450 }, params: { in_features: 64, out_features: 10000 } },
+      { id: "softmax", type: "Softmax", label: "Softmax Probabilities", position: { x: 250, y: 550 }, params: { dim: -1 } },
+      { id: "output_node", type: "OutputNode", label: "Next Token Logits", position: { x: 250, y: 650 }, params: {} }
     ],
     edges: [
       { source: "input_node", target: "embed" },
       { source: "embed", target: "pe" },
-      { source: "pe", target: "attn" },
-      { source: "attn", target: "ff" },
-      { source: "ff", target: "ln" },
-      { source: "ln", target: "linear" },
+      { source: "pe", target: "transformer_block" },
+      { source: "transformer_block", target: "linear" },
       { source: "linear", target: "softmax" },
       { source: "softmax", target: "output_node" }
     ]
@@ -383,20 +379,16 @@ export const TEMPLATES: Template[] = [
       { id: "encoder_input", type: "InputNode", label: "Inputs", position: { x: 250, y: 50 }, params: {} },
       { id: "encoder_embedding", type: "Embedding", label: "Input Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 10000, embedding_dim: 128 } },
       { id: "encoder_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 128, max_seq_len: 512 } },
-      { id: "encoder_attn", type: "SelfAttention", label: "Multi-Head Self-Attention", position: { x: 250, y: 350 }, params: { embed_dim: 128, num_heads: 4, causal: false } },
-      { id: "encoder_ff", type: "FeedForward", label: "FeedForward Block", position: { x: 250, y: 450 }, params: { embed_dim: 128, expansion: 4 } },
-      { id: "encoder_ln", type: "LayerNorm", label: "LayerNorm", position: { x: 250, y: 550 }, params: { normalized_shape: [128] } },
-      { id: "decoder_linear", type: "Linear", label: "Linear Projection", position: { x: 250, y: 650 }, params: { in_features: 128, out_features: 10000 } },
-      { id: "decoder_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 750 }, params: { dim: -1 } },
-      { id: "decoder_output", type: "OutputNode", label: "Output Probabilities", position: { x: 250, y: 850 }, params: {} }
+      { id: "encoder_block", type: "TransformerEncoder", label: "Transformer Block Module", position: { x: 250, y: 350 }, params: {} },
+      { id: "decoder_linear", type: "Linear", label: "Linear Projection", position: { x: 250, y: 450 }, params: { in_features: 128, out_features: 10000 } },
+      { id: "decoder_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 550 }, params: { dim: -1 } },
+      { id: "decoder_output", type: "OutputNode", label: "Output Probabilities", position: { x: 250, y: 650 }, params: {} }
     ],
     edges: [
       { source: "encoder_input", target: "encoder_embedding" },
       { source: "encoder_embedding", target: "encoder_pe" },
-      { source: "encoder_pe", target: "encoder_attn" },
-      { source: "encoder_attn", target: "encoder_ff" },
-      { source: "encoder_ff", target: "encoder_ln" },
-      { source: "encoder_ln", target: "decoder_linear" },
+      { source: "encoder_pe", target: "encoder_block" },
+      { source: "encoder_block", target: "decoder_linear" },
       { source: "decoder_linear", target: "decoder_softmax" },
       { source: "decoder_softmax", target: "decoder_output" }
     ]
@@ -430,20 +422,16 @@ export const TEMPLATES: Template[] = [
       { id: "gpt2_input", type: "InputNode", label: "Inputs", position: { x: 250, y: 50 }, params: {} },
       { id: "gpt2_embed", type: "Embedding", label: "Input Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 10000, embedding_dim: 128 } },
       { id: "gpt2_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 128, max_seq_len: 1024 } },
-      { id: "gpt2_attn", type: "SelfAttention", label: "Causal Self-Attention", position: { x: 250, y: 350 }, params: { embed_dim: 128, num_heads: 4, causal: true } },
-      { id: "gpt2_ff", type: "FeedForward", label: "FeedForward Expansion", position: { x: 250, y: 450 }, params: { embed_dim: 128, expansion: 4 } },
-      { id: "gpt2_ln", type: "LayerNorm", label: "LayerNorm", position: { x: 250, y: 550 }, params: { normalized_shape: [128] } },
-      { id: "gpt2_linear", type: "Linear", label: "Prediction projection", position: { x: 250, y: 650 }, params: { in_features: 128, out_features: 10000 } },
-      { id: "gpt2_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 740 }, params: { dim: -1 } },
-      { id: "gpt2_output", type: "OutputNode", label: "Predictions", position: { x: 250, y: 830 }, params: {} }
+      { id: "gpt2_block", type: "TransformerEncoder", label: "GPT-2 Transformer Module", position: { x: 250, y: 350 }, params: {} },
+      { id: "gpt2_linear", type: "Linear", label: "Prediction projection", position: { x: 250, y: 450 }, params: { in_features: 128, out_features: 10000 } },
+      { id: "gpt2_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 540 }, params: { dim: -1 } },
+      { id: "gpt2_output", type: "OutputNode", label: "Predictions", position: { x: 250, y: 630 }, params: {} }
     ],
     edges: [
       { source: "gpt2_input", target: "gpt2_embed" },
       { source: "gpt2_embed", target: "gpt2_pe" },
-      { source: "gpt2_pe", target: "gpt2_attn" },
-      { source: "gpt2_attn", target: "gpt2_ff" },
-      { source: "gpt2_ff", target: "gpt2_ln" },
-      { source: "gpt2_ln", target: "gpt2_linear" },
+      { source: "gpt2_pe", target: "gpt2_block" },
+      { source: "gpt2_block", target: "gpt2_linear" },
       { source: "gpt2_linear", target: "gpt2_softmax" },
       { source: "gpt2_softmax", target: "gpt2_output" }
     ]
