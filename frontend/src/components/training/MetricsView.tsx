@@ -100,10 +100,17 @@ export function MetricsView({ epochs }: MetricsViewProps) {
     return typeof val === 'number' && !isNaN(val) ? val : null;
   });
 
-  // Gather secondary metrics (Accuracy / MSE)
+  const hasPerplexity = stepMetrics.some(d => typeof (d.metrics?.perplexity ?? d.metrics?.train_perplexity) === 'number') ||
+                        epochMetrics.some(d => typeof (d.metrics?.perplexity ?? d.metrics?.val_perplexity) === 'number');
+  const isPerplexity = hasPerplexity && !isRegression;
+
+  // Gather secondary metrics (Accuracy / MSE / Perplexity)
   const stepSecondary = stepMetrics.map(d => {
     if (isRegression) {
       const val = d.metrics?.train_mse ?? d.metrics?.mse;
+      return typeof val === 'number' && !isNaN(val) ? val : 0;
+    } else if (isPerplexity) {
+      const val = d.metrics?.train_perplexity ?? d.metrics?.perplexity;
       return typeof val === 'number' && !isNaN(val) ? val : 0;
     } else {
       const val = d.metrics?.train_accuracy ?? d.metrics?.accuracy;
@@ -118,6 +125,9 @@ export function MetricsView({ epochs }: MetricsViewProps) {
     if (isRegression) {
       const val = d.metrics?.train_mse ?? d.metrics?.mse;
       return typeof val === 'number' && !isNaN(val) ? val : 0;
+    } else if (isPerplexity) {
+      const val = d.metrics?.train_perplexity ?? d.metrics?.perplexity;
+      return typeof val === 'number' && !isNaN(val) ? val : 0;
     } else {
       const val = d.metrics?.train_accuracy ?? d.metrics?.accuracy;
       if (typeof val === 'number' && !isNaN(val)) {
@@ -130,6 +140,9 @@ export function MetricsView({ epochs }: MetricsViewProps) {
   const epochValSecondary = epochMetrics.map(d => {
     if (isRegression) {
       const val = d.metrics?.val_mse;
+      return typeof val === 'number' && !isNaN(val) ? val : null;
+    } else if (isPerplexity) {
+      const val = d.metrics?.val_perplexity;
       return typeof val === 'number' && !isNaN(val) ? val : null;
     } else {
       const val = d.metrics?.val_accuracy;
@@ -162,12 +175,14 @@ export function MetricsView({ epochs }: MetricsViewProps) {
   const minLoss = Math.min(...lossesToPlot, ...validValLosses, 0);
   const lossRange = maxLoss - minLoss || 1;
 
-  // 2. Secondary scale (Accuracy or MSE)
+  // 2. Secondary scale (Accuracy, MSE, or Perplexity)
   const validValSecondaries = valSecondariesToPlot.filter((v): v is number => v !== null);
-  const maxSecondary = isRegression
+  const maxSecondary = isRegression || isPerplexity
     ? Math.max(...secondariesToPlot, ...validValSecondaries, 1)
-    : 1.0; // Accuracy caps visually at 100%
-  const minSecondary = 0.0;
+    : 1.0;
+  const minSecondary = isPerplexity
+    ? Math.min(...secondariesToPlot, ...validValSecondaries, 0)
+    : 0.0;
   const secondaryRange = maxSecondary - minSecondary || 1;
 
   const getPointsString = (data: (number | null)[], minVal: number, range: number) => {
@@ -475,9 +490,13 @@ export function MetricsView({ epochs }: MetricsViewProps) {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-foreground uppercase tracking-wider">
-                  {isRegression ? 'Mean Squared Error (MSE)' : 'Accuracy Curve'}
+                  {isRegression
+                    ? 'Mean Squared Error (MSE)'
+                    : isPerplexity
+                      ? 'Perplexity (PPL)'
+                      : 'Accuracy Curve'}
                 </span>
-                {!isRegression && latestPpl !== null && (
+                {!isRegression && !isPerplexity && latestPpl !== null && (
                   <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Perplexity (exp(loss)) — standard evaluation metric for Transformers & Language Models">
                     PPL: {latestPpl < 10000 ? latestPpl.toFixed(1) : '>10000'}
                   </span>
@@ -485,20 +504,20 @@ export function MetricsView({ epochs }: MetricsViewProps) {
               </div>
               <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
                 {plotSteps 
-                  ? `Step-Level Training ${isRegression ? 'MSE' : 'Accuracy'}` 
-                  : `Epoch-Level Train & Val ${isRegression ? 'MSE' : 'Accuracy'}`}
+                  ? `Step-Level Training ${isRegression ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}` 
+                  : `Epoch-Level Train & Val ${isRegression ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}`}
               </span>
             </div>
             <div className="flex gap-3 text-xs font-mono font-bold">
-              <span className={isRegression ? 'text-primary' : 'text-emerald-400'}>
-                Train: {isRegression
-                  ? secondariesToPlot[secondariesToPlot.length - 1]?.toFixed(4) ?? '0.0000'
+              <span className={isRegression ? 'text-primary' : isPerplexity ? 'text-indigo-400' : 'text-emerald-400'}>
+                Train: {isRegression || isPerplexity
+                  ? secondariesToPlot[secondariesToPlot.length - 1]?.toFixed(2) ?? '0.00'
                   : `${((secondariesToPlot[secondariesToPlot.length - 1] ?? 0) * 100).toFixed(1)}%`}
               </span>
               {!plotSteps && valSecondariesToPlot[valSecondariesToPlot.length - 1] !== null && (
                 <span className="text-amber-500 font-mono">
-                  Val: {isRegression
-                    ? (valSecondariesToPlot[valSecondariesToPlot.length - 1] as number).toFixed(4)
+                  Val: {isRegression || isPerplexity
+                    ? (valSecondariesToPlot[valSecondariesToPlot.length - 1] as number).toFixed(2)
                     : `${((valSecondariesToPlot[valSecondariesToPlot.length - 1] as number) * 100).toFixed(1)}%`}
                 </span>
               )}
@@ -583,8 +602,8 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                       <div className="flex items-center gap-1.5 justify-between">
                         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Train:</span>
                         <span className="text-foreground font-bold">
-                          {isRegression
-                            ? secondariesToPlot[secHoveredIdx]?.toFixed(4)
+                          {isRegression || isPerplexity
+                            ? secondariesToPlot[secHoveredIdx]?.toFixed(2)
                             : `${((secondariesToPlot[secHoveredIdx] ?? 0) * 100).toFixed(1)}%`}
                         </span>
                       </div>
@@ -592,8 +611,8 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                         <div className="flex items-center gap-1.5 justify-between">
                           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" /> Val:</span>
                           <span className="text-foreground font-bold">
-                            {isRegression
-                              ? (valSecondariesToPlot[secHoveredIdx] as number).toFixed(4)
+                            {isRegression || isPerplexity
+                              ? (valSecondariesToPlot[secHoveredIdx] as number).toFixed(2)
                               : `${((valSecondariesToPlot[secHoveredIdx] as number) * 100).toFixed(1)}%`}
                           </span>
                         </div>
