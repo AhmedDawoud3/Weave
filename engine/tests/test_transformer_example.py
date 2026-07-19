@@ -44,9 +44,11 @@ def test_decoder_only_transformer_compilation_and_step():
     out = model(x)
     assert out.shape == (2, 16, 10000)
 
-    # Compute loss & backward step
-    targets = torch.randint(0, 10000, (2, 16))
+    # 3. Verify CrossEntropy loss works when targets are 1D classification labels [2]
+    class_targets = torch.tensor([0, 1])
     loss_fn = nn.CrossEntropyLoss()
-    loss = loss_fn(out.view(-1, 10000), targets.view(-1))
-    loss.backward()
-    assert loss.item() > 0
+    # Simulate Trainer._compute_loss shape adaptation
+    outputs_pooled = out.mean(dim=1)
+    loss_class = loss_fn(outputs_pooled, class_targets)
+    loss_class.backward()
+    assert loss_class.item() > 0
