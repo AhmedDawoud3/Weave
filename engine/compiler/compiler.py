@@ -227,6 +227,8 @@ class GraphCompiler:
                         if isinstance(layer, nn.Linear) and inp.dim() > 2:
                             if inp.shape[-1] != layer.in_features:
                                 inp = inp.flatten(1)
+                        elif isinstance(layer, nn.Embedding) and inp.dtype not in (torch.long, torch.int, torch.int32, torch.int64):
+                            inp = inp.long()
                         out = layer(inp)
                 except RuntimeError as e:
                     # RAI: Translate PyTorch's cryptic error messages into accessible language

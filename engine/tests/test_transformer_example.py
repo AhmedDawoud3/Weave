@@ -29,6 +29,14 @@ def test_decoder_only_transformer_compilation_and_step():
     }
 
     compiler = GraphCompiler()
+    
+    # 1. Verify validate_pipeline succeeds with float dummy tensor input shape [2, 16]
+    val_res = compiler.validate_pipeline(graph, [2, 16])
+    assert val_res.get("status") != "error", f"validate_pipeline failed: {val_res.get('message')}"
+    assert "node_shapes" in val_res
+    assert val_res["node_shapes"]["embed"] == [2, 16, 64]
+
+    # 2. Compile model and test forward pass
     model = compiler.compile(graph)
     
     # Dummy token input (batch=2, seq_len=16)
