@@ -219,9 +219,6 @@ function MetricsViewContent({ epochs }: MetricsViewProps) {
   const secondariesToPlot = plotSteps ? stepSecondary : epochTrainSecondary;
   const valSecondariesToPlot = plotSteps ? [] : epochValSecondary;
 
-  const lastLoss = lossesToPlot[lossesToPlot.length - 1];
-  const latestPpl = typeof lastLoss === 'number' && !isNaN(lastLoss) ? Math.exp(Math.min(lastLoss, 20)) : null;
-
   // Chart setup bounds
   const width = 500;
   const height = 180;
