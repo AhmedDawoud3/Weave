@@ -26,6 +26,12 @@ def compute_batch_metrics(
         Dict[str, float]: Batch-level metrics.
     """
     metrics = {"loss": float(loss_val)}
+    import math
+
+    try:
+        metrics["perplexity"] = float(math.exp(min(loss_val, 20.0)))
+    except (OverflowError, ValueError):
+        metrics["perplexity"] = float("inf")
 
     with torch.no_grad():
         if task_type == "classification":

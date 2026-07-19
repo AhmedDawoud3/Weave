@@ -108,7 +108,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
     } else {
       const val = d.metrics?.train_accuracy ?? d.metrics?.accuracy;
       if (typeof val === 'number' && !isNaN(val)) {
-        return val > 1.0 ? val / 100.0 : val;
+        return val / 100.0;
       }
       return 0;
     }
@@ -121,7 +121,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
     } else {
       const val = d.metrics?.train_accuracy ?? d.metrics?.accuracy;
       if (typeof val === 'number' && !isNaN(val)) {
-        return val > 1.0 ? val / 100.0 : val;
+        return val / 100.0;
       }
       return 0;
     }
@@ -134,7 +134,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
     } else {
       const val = d.metrics?.val_accuracy;
       if (typeof val === 'number' && !isNaN(val)) {
-        return val > 1.0 ? val / 100.0 : val;
+        return val / 100.0;
       }
       return null;
     }
@@ -467,18 +467,30 @@ export function MetricsView({ epochs }: MetricsViewProps) {
         </div>
 
         {/* Secondary metric chart (Accuracy or MSE) */}
-        <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between relative overflow-visible">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex flex-col">
-              <span className="text-xs font-black text-foreground uppercase tracking-wider">
-                {isRegression ? 'Mean Squared Error (MSE)' : 'Accuracy Curve'}
-              </span>
-              <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
-                {plotSteps 
-                  ? `Step-Level Training ${isRegression ? 'MSE' : 'Accuracy'}` 
-                  : `Epoch-Level Train & Val ${isRegression ? 'MSE' : 'Accuracy'}`}
-              </span>
-            </div>
+        {(() => {
+          const lastLoss = lossesToPlot[lossesToPlot.length - 1];
+          const latestPpl = typeof lastLoss === 'number' && !isNaN(lastLoss) ? Math.exp(Math.min(lastLoss, 20)) : null;
+
+          return (
+            <div className="bg-card p-4 rounded-xl border border-border flex flex-col justify-between relative overflow-visible">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-foreground uppercase tracking-wider">
+                      {isRegression ? 'Mean Squared Error (MSE)' : 'Accuracy Curve'}
+                    </span>
+                    {!isRegression && latestPpl !== null && (
+                      <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Perplexity (exp(loss)) — standard evaluation metric for Transformers & Language Models">
+                        PPL: {latestPpl < 10000 ? latestPpl.toFixed(1) : '>10000'}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
+                    {plotSteps 
+                      ? `Step-Level Training ${isRegression ? 'MSE' : 'Accuracy'}` 
+                      : `Epoch-Level Train & Val ${isRegression ? 'MSE' : 'Accuracy'}`}
+                  </span>
+                </div>
             <div className="flex gap-3 text-xs font-mono font-bold">
               <span className={isRegression ? 'text-primary' : 'text-emerald-400'}>
                 Train: {isRegression
@@ -595,10 +607,9 @@ export function MetricsView({ epochs }: MetricsViewProps) {
             ) : (
               <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground/30 uppercase font-bold tracking-widest select-none">
                 Requires active training steps
-              </div>
-            )}
-          </div>
-        </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
