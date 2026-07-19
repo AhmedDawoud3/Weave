@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTrainingStore } from '../../store/useTrainingStore';
 import { Activity, Pause, CheckCircle2, AlertOctagon, Hourglass } from 'lucide-react';
 
@@ -6,7 +6,49 @@ interface MetricsViewProps {
   epochs: number;
 }
 
-export function MetricsView({ epochs }: MetricsViewProps) {
+class MetricsErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.error('MetricsView rendering error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-card border border-border rounded-xl text-center space-y-3 select-none">
+          <span className="text-xs font-black text-amber-400 uppercase tracking-wider">Metrics Dashboard Active</span>
+          <p className="text-[11px] text-muted-foreground">Training loop is active. Click below to refresh the chart visualization.</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-primary/30"
+          >
+            Reload Charts
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export function MetricsView(props: MetricsViewProps) {
+  return (
+    <MetricsErrorBoundary>
+      <MetricsViewContent {...props} />
+    </MetricsErrorBoundary>
+  );
+}
+
+function MetricsViewContent({ epochs }: MetricsViewProps) {
   const {
     trainingStatus,
     epochMetrics,
@@ -448,11 +490,21 @@ export function MetricsView({ epochs }: MetricsViewProps) {
 
               {/* Interactive Hover Guides & Indicator Circles */}
               {lossHoveredIdx !== null && lossesToPlot.length > 0 && (() => {
-                const xVal = padding + (lossHoveredIdx / (lossesToPlot.length - 1)) * (width - padding * 2);
-                const trainYVal = height - padding - ((lossesToPlot[lossHoveredIdx] - minLoss) / lossRange) * (height - padding * 2);
-                const valY = !plotSteps && valLossesToPlot[lossHoveredIdx] !== null
-                  ? height - padding - (((valLossesToPlot[lossHoveredIdx] as number) - minLoss) / lossRange) * (height - padding * 2)
+                const xVal = lossesToPlot.length > 1
+                  ? padding + (lossHoveredIdx / (lossesToPlot.length - 1)) * (width - padding * 2)
+                  : padding + (width - padding * 2) / 2;
+
+                const rawTrainY = lossesToPlot[lossHoveredIdx];
+                const trainYVal = typeof rawTrainY === 'number' && Number.isFinite(rawTrainY)
+                  ? height - padding - ((rawTrainY - minLoss) / (lossRange || 1)) * (height - padding * 2)
+                  : height / 2;
+
+                const rawValY = !plotSteps ? valLossesToPlot[lossHoveredIdx] : null;
+                const valY = rawValY !== null && typeof rawValY === 'number' && Number.isFinite(rawValY)
+                  ? height - padding - ((rawValY - minLoss) / (lossRange || 1)) * (height - padding * 2)
                   : null;
+
+                if (!Number.isFinite(xVal) || !Number.isFinite(trainYVal)) return null;
 
                 return (
                   <>
@@ -463,7 +515,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                     <circle cx={xVal} cy={trainYVal} r="4" fill="#1e8fd3" stroke="white" strokeWidth="1" />
                     
                     {/* Val loss hover circle */}
-                    {valY !== null && (
+                    {valY !== null && Number.isFinite(valY) && (
                       <circle cx={xVal} cy={valY} r="4" fill="#f59e0b" stroke="white" strokeWidth="1" />
                     )}
                   </>
@@ -614,11 +666,21 @@ export function MetricsView({ epochs }: MetricsViewProps) {
 
                   {/* Interactive Hover Guides & Circles */}
                   {secHoveredIdx !== null && secondariesToPlot.length > 0 && (() => {
-                    const xVal = padding + (secHoveredIdx / (secondariesToPlot.length - 1)) * (width - padding * 2);
-                    const trainYVal = height - padding - ((secondariesToPlot[secHoveredIdx] - minSecondary) / secondaryRange) * (height - padding * 2);
-                    const valY = !plotSteps && valSecondariesToPlot[secHoveredIdx] !== null
-                      ? height - padding - (((valSecondariesToPlot[secHoveredIdx] as number) - minSecondary) / secondaryRange) * (height - padding * 2)
+                    const xVal = secondariesToPlot.length > 1
+                      ? padding + (secHoveredIdx / (secondariesToPlot.length - 1)) * (width - padding * 2)
+                      : padding + (width - padding * 2) / 2;
+
+                    const rawTrainY = secondariesToPlot[secHoveredIdx];
+                    const trainYVal = typeof rawTrainY === 'number' && Number.isFinite(rawTrainY)
+                      ? height - padding - (((rawTrainY as number) - minSecondary) / (secondaryRange || 1)) * (height - padding * 2)
+                      : height / 2;
+
+                    const rawValY = !plotSteps ? valSecondariesToPlot[secHoveredIdx] : null;
+                    const valY = rawValY !== null && typeof rawValY === 'number' && Number.isFinite(rawValY)
+                      ? height - padding - (((rawValY as number) - minSecondary) / (secondaryRange || 1)) * (height - padding * 2)
                       : null;
+
+                    if (!Number.isFinite(xVal) || !Number.isFinite(trainYVal)) return null;
 
                     return (
                       <>
@@ -629,7 +691,7 @@ export function MetricsView({ epochs }: MetricsViewProps) {
                         <circle cx={xVal} cy={trainYVal} r="4" fill={isRegression ? '#1e8fd3' : '#10b981'} stroke="white" strokeWidth="1" />
                         
                         {/* Val secondary hover circle */}
-                        {valY !== null && (
+                        {valY !== null && Number.isFinite(valY) && (
                           <circle cx={xVal} cy={valY} r="4" fill="#f59e0b" stroke="white" strokeWidth="1" />
                         )}
                       </>
