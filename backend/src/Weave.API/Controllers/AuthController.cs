@@ -104,7 +104,7 @@ public class AuthController : ControllerBase
     {
         return Ok(new
         {
-            GoogleClientId = config["Authentication:Google:ClientId"],
+            GoogleClientId = "",
             FacebookAppId = config["Authentication:Facebook:AppId"]
         });
     }

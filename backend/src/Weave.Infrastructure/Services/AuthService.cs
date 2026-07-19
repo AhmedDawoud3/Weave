@@ -19,6 +19,14 @@ public class AuthService : IAuthService
     private readonly UserManager<WeaveIdentityUser> _userManager;
     private readonly IConfiguration _configuration;
 
+    private static readonly Dictionary<string, (string Password, string DisplayName, string UserName)> AllowedUsers =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "admin@weave.ai", ("Admin@123456", "Admin User", "admin") },
+            { "user@weave.ai", ("User@123456", "Standard User", "user") },
+            { "demo@weave.ai", ("Demo@123456", "Demo User", "demo") }
+        };
+
     public AuthService(UserManager<WeaveIdentityUser> userManager, IConfiguration configuration)
     {
         _userManager = userManager;
@@ -27,68 +35,43 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto, CancellationToken ct = default)
     {
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser is not null)
+        return await Task.FromResult(new AuthResponseDto
         {
-            return new AuthResponseDto
-            {
-                Succeeded = false,
-                Errors = new List<string> { "A user with this email already exists." }
-            };
-        }
-
-        var user = new WeaveIdentityUser
-        {
-            UserName = dto.UserName,
-            Email = dto.Email,
-            DisplayName = dto.DisplayName,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-        {
-            return new AuthResponseDto
-            {
-                Succeeded = false,
-                Errors = result.Errors.Select(e => e.Description).ToList()
-            };
-        }
-
-        var token = await GenerateJwtTokenAsync(user);
-
-        return new AuthResponseDto
-        {
-            Succeeded = true,
-            Token = token,
-            ExpiresAt = DateTime.UtcNow.AddHours(24),
-            UserId = user.Id,
-            UserName = user.UserName,
-            DisplayName = user.DisplayName
-        };
+            Succeeded = false,
+            Errors = new List<string> { "New user registration is currently paused. Please contact the admin." }
+        });
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user is null)
+        if (!AllowedUsers.TryGetValue(dto.Email, out var allowedInfo) || allowedInfo.Password != dto.Password)
         {
             return new AuthResponseDto
             {
                 Succeeded = false,
-                Errors = new List<string> { "Invalid email or password." }
+                Errors = new List<string> { "Invalid email or password. Note: Only pre-approved accounts are allowed." }
             };
         }
 
-        var isValidPassword = await _userManager.CheckPasswordAsync(user, dto.Password);
-        if (!isValidPassword)
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user is null)
         {
-            return new AuthResponseDto
+            user = new WeaveIdentityUser
             {
-                Succeeded = false,
-                Errors = new List<string> { "Invalid email or password." }
+                UserName = allowedInfo.UserName,
+                Email = dto.Email,
+                DisplayName = allowedInfo.DisplayName,
+                CreatedAt = DateTime.UtcNow
             };
+            var createResult = await _userManager.CreateAsync(user, dto.Password);
+            if (!createResult.Succeeded)
+            {
+                return new AuthResponseDto
+                {
+                    Succeeded = false,
+                    Errors = createResult.Errors.Select(e => e.Description).ToList()
+                };
+            }
         }
 
         var token = await GenerateJwtTokenAsync(user);
@@ -106,6 +89,11 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> ExternalLoginAsync(ExternalAuthDto dto, CancellationToken ct = default)
     {
+        if (dto.Provider.Equals("Google", StringComparison.OrdinalIgnoreCase))
+        {
+            return new AuthResponseDto { Succeeded = false, Errors = new List<string> { "Google sign-in is currently disabled." } };
+        }
+
         string email = string.Empty;
         string name = string.Empty;
 

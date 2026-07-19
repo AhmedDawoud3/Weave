@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 1485" width="1050" height="1485">
+  <defs>
+    <!-- Dark Gradient Background -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F19"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#080C14"/>
+    </linearGradient>
+
+    <!-- Glowing Cyan/Violet Accent Gradient -->
+    <linearGradient id="neon-cyan-violet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="100%" stop-color="#4FACFE"/>
+    </linearGradient>
+
+    <linearGradient id="accent-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8E2DE2"/>
+      <stop offset="100%" stop-color="#4A00E0"/>
+    </linearGradient>
+
+    <!-- Node Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="box-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1050" height="1485" fill="url(#bg-grad)"/>
+
+  <!-- Outer Card Border Frame -->
+  <rect x="25" y="25" width="1000" height="1435" rx="30" fill="none" stroke="url(#neon-cyan-violet)" stroke-width="3" stroke-opacity="0.3"/>
+
+  <!-- Neural Network Vector Background Overlay -->
+  <g stroke="#00F2FE" stroke-width="1.5" stroke-opacity="0.15">
+    <line x1="80" y1="120" x2="250" y2="220" />
+    <line x1="250" y1="220" x2="450" y2="150" />
+    <line x1="450" y1="150" x2="700" y2="260" />
+    <line x1="700" y1="260" x2="950" y2="140" />
+
+    <line x1="120" y1="1350" x2="300" y2="1250" />
+    <line x1="300" y1="1250" x2="550" y2="1360" />
+    <line x1="550" y1="1360" x2="800" y2="1280" />
+    <line x1="800" y1="1280" x2="920" y2="1380" />
+  </g>
+
+  <!-- Background Glowing Network Nodes -->
+  <g fill="#00F2FE" opacity="0.3">
+    <circle cx="80" cy="120" r="6" />
+    <circle cx="250" cy="220" r="8" />
+    <circle cx="450" cy="150" r="7" />
+    <circle cx="700" cy="260" r="9" />
+    <circle cx="950" cy="140" r="6" />
+
+    <circle cx="120" cy="1350" r="6" />
+    <circle cx="300" cy="1250" r="8" />
+    <circle cx="550" cy="1360" r="7" />
+    <circle cx="800" cy="1280" r="9" />
+    <circle cx="920" cy="1380" r="6" />
+  </g>
+
+  <!-- HEADER SECTION -->
+  <!-- WEAVE Logo Node W -->
+  <g transform="translate(140, 100)" filter="url(#glow)">
+    <!-- W Node Lines -->
+    <path d="M 10 20 L 45 100 L 80 35 L 115 100 L 150 20" fill="none" stroke="url(#neon-cyan-violet)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- W Nodes -->
+    <circle cx="10" cy="20" r="9" fill="#00F2FE"/>
+    <circle cx="45" cy="100" r="9" fill="#00F2FE"/>
+    <circle cx="80" cy="35" r="9" fill="#00F2FE"/>
+    <circle cx="115" cy="100" r="9" fill="#00F2FE"/>
+    <circle cx="150" cy="20" r="9" fill="#00F2FE"/>
+  </g>
+
+  <!-- Logo Text -->
+  <text x="320" y="185" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="82" letter-spacing="12" fill="#FFFFFF">WEAVE</text>
+
+  <!-- Main Headline -->
+  <text x="525" y="275" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="44" fill="#00F2FE" text-anchor="middle" letter-spacing="1">Deep Learning Just Got Sweeter 🍫</text>
+
+  <!-- Subtitle / Tagline -->
+  <text x="525" y="325" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="28" fill="#94A3B8" text-anchor="middle" letter-spacing="2">DRAG. CONNECT. COMPILE.</text>
+
+  <!-- CENTER CHOCOLATE MOUNTING FRAME -->
+  <g transform="translate(265, 390)" filter="url(#box-shadow)">
+    <!-- Card Frame Outer Box -->
+    <rect width="520" height="520" rx="28" fill="#131C2E" stroke="url(#neon-cyan-violet)" stroke-width="2.5" stroke-dasharray="10 8"/>
+
+    <!-- Inner Mounting Target Area -->
+    <rect x="35" y="35" width="450" height="450" rx="20" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+
+    <!-- Chocolate Placeholder Icon & Text -->
+    <g transform="translate(260, 230)" text-anchor="middle">
+      <!-- Gift / Chocolate Box Silhouette -->
+      <path d="M -40 -30 L 40 -30 L 40 40 L -40 40 Z" fill="none" stroke="#334155" stroke-width="3" stroke-dasharray="4 4"/>
+      <path d="M 0 -30 L 0 40" stroke="#334155" stroke-width="3"/>
+      <path d="M -40 5 L 40 5" stroke="#334155" stroke-width="3"/>
+
+      <!-- Text Instructions -->
+      <text x="0" y="90" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="26" fill="#64748B" letter-spacing="1">ATTACH YOUR CHOCOLATE HERE</text>
+      <text x="0" y="125" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="20" fill="#475569">A Sweet Thank You For Attending!</text>
+    </g>
+  </g>
+
+  <!-- LOWER FEATURE BADGES -->
+  <g transform="translate(115, 965)">
+    <!-- Badge 1 -->
+    <rect x="0" y="0" width="250" height="55" rx="27.5" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+    <text x="125" y="35" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="20" fill="#38BDF8" text-anchor="middle">Visual Canvas</text>
+
+    <!-- Badge 2 -->
+    <rect x="285" y="0" width="250" height="55" rx="27.5" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+    <text x="410" y="35" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="20" fill="#818CF8" text-anchor="middle">PyTorch Compiler</text>
+
+    <!-- Badge 3 -->
+    <rect x="570" y="0" width="250" height="55" rx="27.5" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+    <text x="695" y="35" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="20" fill="#C084FC" text-anchor="middle">FastAPI Engine</text>
+  </g>
+
+  <!-- QR CODE & DEMO LINK SECTION -->
+  <g transform="translate(115, 1055)">
+    <!-- QR Box -->
+    <rect x="0" y="0" width="160" height="160" rx="16" fill="#FFFFFF"/>
+    <!-- Simulated Stylized QR Code Graphic -->
+    <g fill="#0F172A" transform="translate(15, 15)">
+      <!-- Outer QR corners -->
+      <rect x="0" y="0" width="40" height="40" rx="6"/>
+      <rect x="6" y="6" width="28" height="28" fill="#FFFFFF"/>
+      <rect x="12" y="12" width="16" height="16"/>
+
+      <rect x="90" y="0" width="40" height="40" rx="6"/>
+      <rect x="96" y="6" width="28" height="28" fill="#FFFFFF"/>
+      <rect x="102" y="12" width="16" height="16"/>
+
+      <rect x="0" y="90" width="40" height="40" rx="6"/>
+      <rect x="6" y="96" width="28" height="28" fill="#FFFFFF"/>
+      <rect x="12" y="102" width="16" height="16"/>
+
+      <!-- QR Pattern Blocks -->
+      <rect x="50" y="10" width="12" height="12"/>
+      <rect x="70" y="20" width="12" height="25"/>
+      <rect x="10" y="50" width="25" height="12"/>
+      <rect x="50" y="50" width="30" height="30" fill="#00F2FE"/>
+      <rect x="90" y="55" width="25" height="12"/>
+      <rect x="60" y="90" width="20" height="20"/>
+      <rect x="95" y="95" width="25" height="25"/>
+    </g>
+
+    <!-- Scan Text Info -->
+    <g transform="translate(195, 40)">
+      <text x="0" y="25" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="30" fill="#FFFFFF">SCAN TO LAUNCH LIVE DEMO</text>
+      <text x="0" y="65" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="22" fill="#94A3B8">Experience Weave's Neural Graph Canvas Live</text>
+      <text x="0" y="95" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20" fill="#00F2FE">weave-ai.demo</text>
+    </g>
+  </g>
+
+  <!-- FOOTER TEAM CREDITS SECTION -->
+  <line x1="80" y1="1260" x2="970" y2="1260" stroke="#1E293B" stroke-width="2"/>
+
+  <g transform="translate(115, 1310)">
+    <!-- Team Members -->
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#F8FAFC">Graduation Project Team:</text>
+    <text x="0" y="32" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20" fill="#94A3B8">Ahmed Dawoud &amp; Team Members</text>
+
+    <!-- Supervisor -->
+    <text x="820" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#F8FAFC" text-anchor="end">Supervisor:</text>
+    <text x="820" y="32" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20" fill="#94A3B8" text-anchor="end">Dr. Project Advisor</text>
+
+    <!-- Department Footer -->
+    <text x="410" y="80" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="18" fill="#64748B" text-anchor="middle" letter-spacing="1">DEPARTMENT OF COMPUTER SCIENCE &amp; ARTIFICIAL INTELLIGENCE — 2026</text>
+  </g>
+</svg>

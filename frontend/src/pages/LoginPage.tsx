@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail, User, ShieldAlert, Cpu, Terminal, Sparkles, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ShieldAlert, Cpu, Terminal, Sparkles, ChevronRight, Sun, Moon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWeaveStore } from '../store/useWeaveStore';
-import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
-import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useTheme } from '../context/ThemeContext';
 
 const PYTORCH_CODE_SNIPPETS = [
@@ -16,57 +15,23 @@ const PYTORCH_CODE_SNIPPETS = [
 ];
 
 function SocialLoginButtons({ 
-  isAuthenticating, 
-  onLoginSuccess,
-  googleClientId,
-  facebookAppId
+  isAuthenticating 
 }: { 
-  isAuthenticating: boolean, 
-  onLoginSuccess: () => void,
-  googleClientId: string,
-  facebookAppId: string
+  isAuthenticating: boolean 
 }) {
-  const { externalLogin } = useWeaveStore();
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setLocalError(null);
-      const success = await externalLogin('Google', tokenResponse.access_token);
-      if (success) onLoginSuccess();
-    },
-    onError: () => setLocalError('Google login failed.')
-  });
-
   const handleGoogleClick = () => {
-    if (!googleClientId || googleClientId === "unconfigured-client-id") {
-      setLocalError("Google Login is not configured. Please add VITE_GOOGLE_CLIENT_ID to your env.");
-      return;
-    }
-    googleLogin();
+    setLocalError("Google sign-in is currently disabled.");
   };
 
-  const responseFacebook = async (response: any) => {
-    setLocalError(null);
-    if (response.accessToken) {
-      const success = await externalLogin('Facebook', response.accessToken);
-      if (success) onLoginSuccess();
-    } else {
-      setLocalError('Facebook login failed.');
-    }
-  };
-
-  const handleFacebookClick = (renderPropsOnClick: () => void) => {
-    if (!facebookAppId) {
-      setLocalError("Facebook Login is not configured. Please add VITE_FACEBOOK_APP_ID to your env.");
-      return;
-    }
-    renderPropsOnClick();
+  const handleFacebookClick = () => {
+    setLocalError("Facebook sign-in is currently disabled.");
   };
 
   return (
     <div className="flex flex-col gap-3 mt-6">
-      {localError && <div className="text-xs text-red-400 text-center">{localError}</div>}
+      {localError && <div className="text-xs text-red-400 text-center font-medium bg-red-500/10 border border-red-500/20 p-2 rounded-lg">{localError}</div>}
       <div className="relative my-4 text-center">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
         <span className="relative px-3 bg-background text-xs text-muted-foreground font-medium">
@@ -90,24 +55,17 @@ function SocialLoginButtons({
           <span className="text-xs font-medium">Google</span>
         </Button>
 
-        <FacebookLogin
-          appId={facebookAppId || "1234567890"}
-          fields="name,email,picture"
-          callback={responseFacebook}
-          render={renderProps => (
-            <Button
-              type="button"
-              disabled={isAuthenticating}
-              onClick={() => handleFacebookClick(renderProps.onClick)}
-              className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-muted-foreground font-medium h-10 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="#1877F2">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-              <span className="text-xs font-medium">Facebook</span>
-            </Button>
-          )}
-        />
+        <Button
+          type="button"
+          disabled={isAuthenticating}
+          onClick={handleFacebookClick}
+          className="bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 text-muted-foreground font-medium h-10 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="#1877F2">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span className="text-xs font-medium">Facebook</span>
+        </Button>
       </div>
     </div>
   );
@@ -128,28 +86,9 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
   // Input fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
 
-  const { login, register, authError, isAuthenticating } = useWeaveStore();
+  const { login, authError, isAuthenticating } = useWeaveStore();
   const [localError, setLocalError] = useState<string | null>(null);
-
-  const [googleClientId, setGoogleClientId] = useState<string>(
-    import.meta.env.VITE_GOOGLE_CLIENT_ID || "unconfigured-client-id"
-  );
-  const [facebookAppId, setFacebookAppId] = useState<string>(
-    import.meta.env.VITE_FACEBOOK_APP_ID || ""
-  );
-
-  useEffect(() => {
-    fetch('/api/auth/config')
-      .then(res => res.json())
-      .then(data => {
-        if (data.googleClientId) setGoogleClientId(data.googleClientId);
-        if (data.facebookAppId) setFacebookAppId(data.facebookAppId);
-      })
-      .catch(err => console.error('Error fetching auth config:', err));
-  }, []);
 
   // PyTorch code terminal typing simulation
   const [typedLines, setTypedLines] = useState<string[]>([]);
@@ -175,28 +114,17 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
     e.preventDefault();
     setLocalError(null);
 
+    if (isRegister) {
+      setLocalError("New user registration is currently paused. Please contact the admin.");
+      return;
+    }
+
     if (!email || !password) {
       setLocalError("Email and Password are required.");
       return;
     }
 
-    if (isRegister) {
-      if (!name) {
-        setLocalError("Full Name is required for registration.");
-        return;
-      }
-      if (!username) {
-        setLocalError("Username is required for registration.");
-        return;
-      }
-    }
-
-    let success = false;
-    if (isRegister) {
-      success = await register({ email, password, userName: username, displayName: name });
-    } else {
-      success = await login({ email, password });
-    }
+    const success = await login({ email, password });
 
     if (success) {
       onLogin?.();
@@ -204,13 +132,8 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
     }
   };
 
-  const handleLoginSuccess = () => {
-    onLogin?.();
-    navigate('/dashboard');
-  };
-
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
+    <GoogleOAuthProvider clientId="unconfigured-client-id">
       <motion.div
         key="login"
         initial={{ opacity: 0 }}
@@ -320,106 +243,98 @@ export function LoginPage({ onLogin, defaultIsRegister = false }: { onLogin?: ()
           <div className="w-full max-w-[400px] p-8 bg-card backdrop-blur-xl border border-border shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-2xl relative z-10">
             <div className="flex flex-col items-center mb-8">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary/20 to-secondary/10 flex items-center justify-center border border-primary/20 mb-4 shadow-lg">
-                <Sparkles className="text-primary" size={20} />
+                {isRegister ? (
+                  <ShieldAlert className="text-amber-400" size={20} />
+                ) : (
+                  <Sparkles className="text-primary" size={20} />
+                )}
               </div>
               <h2 className="text-2xl font-bold text-center text-foreground">
-                {isRegister ? 'Create account' : 'Welcome back'}
+                {isRegister ? 'Registration Paused' : 'Welcome back'}
               </h2>
               <p className="text-xs text-muted-foreground mt-1 text-center font-normal">
-                {isRegister ? 'Sign up for Weave Studio' : 'Enter your credentials to continue'}
+                {isRegister ? 'New user registration is currently disabled' : 'Enter your credentials to continue'}
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <AnimatePresence mode="wait">
-                {(authError || localError) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs text-red-400"
-                  >
-                    <ShieldAlert className="shrink-0 mt-0.5" size={16} />
-                    <span>{localError || authError}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {isRegister && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4 overflow-hidden"
-                >
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                    <Input
-                      placeholder="Full Name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                    <Input
-                      placeholder="Username (e.g. ahmed123)"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-background/40 border-border pl-10 pr-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-                <button
+            {isRegister ? (
+              <div className="flex flex-col items-center justify-center p-6 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-4 my-2">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  New user registration is currently paused right now. Please contact the administrator to request access.
+                </p>
+                <Button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  onClick={() => {
+                    setIsRegister(false);
+                    setLocalError(null);
+                  }}
+                  className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs rounded-lg transition-all cursor-pointer"
                 >
-                  {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                </button>
+                  Back to Login
+                </Button>
               </div>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <AnimatePresence mode="wait">
+                    {(authError || localError) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs text-red-400"
+                      >
+                        <ShieldAlert className="shrink-0 mt-0.5" size={16} />
+                        <span>{localError || authError}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-              <Button
-                type="submit"
-                disabled={isAuthenticating}
-                className="w-full h-11 mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                {isAuthenticating ? 'Connecting...' : isRegister ? 'Register' : 'Login'}
-                <ChevronRight size={16} />
-              </Button>
-            </form>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      type="email"
+                      placeholder="Email Address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="bg-background/40 border-border pl-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                  </div>
 
-            <SocialLoginButtons 
-              isAuthenticating={isAuthenticating} 
-              onLoginSuccess={handleLoginSuccess} 
-              googleClientId={googleClientId}
-              facebookAppId={facebookAppId}
-            />
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="bg-background/40 border-border pl-10 pr-10 h-11 rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                    </button>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isAuthenticating}
+                    className="w-full h-11 mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {isAuthenticating ? 'Connecting...' : 'Login'}
+                    <ChevronRight size={16} />
+                  </Button>
+                </form>
+
+                <SocialLoginButtons 
+                  isAuthenticating={isAuthenticating} 
+                />
+              </>
+            )}
 
             <button
               type="button"
