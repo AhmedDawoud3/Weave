@@ -160,6 +160,7 @@ function MetricsViewContent({ epochs }: MetricsViewProps) {
 
   const isPerplexity = activeMetricMode === 'perplexity';
   const isAccuracy   = activeMetricMode === 'accuracy';
+  const isMse        = activeMetricMode === 'mse';
 
   // Gather secondary metrics (Accuracy / MSE / Perplexity)
   const stepSecondary = stepMetrics.map(d => {
