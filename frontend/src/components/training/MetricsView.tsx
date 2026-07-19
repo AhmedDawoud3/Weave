@@ -6,14 +6,14 @@ interface MetricsViewProps {
   epochs: number;
 }
 
-class MetricsErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+class MetricsErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: any) {
@@ -23,12 +23,14 @@ class MetricsErrorBoundary extends React.Component<{ children: React.ReactNode }
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 bg-card border border-border rounded-xl text-center space-y-3 select-none">
+        <div className="p-6 bg-card border border-red-500/30 rounded-xl text-center space-y-3 select-none">
           <span className="text-xs font-black text-amber-400 uppercase tracking-wider">Metrics Dashboard Active</span>
-          <p className="text-[11px] text-muted-foreground">Training loop is active. Click below to refresh the chart visualization.</p>
+          <p className="text-[11px] text-red-400/80 font-mono">
+            {this.state.error?.message || 'Rendering error caught'}
+          </p>
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false })}
+            onClick={() => this.setState({ hasError: false, error: null })}
             className="px-4 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-primary/30"
           >
             Reload Charts
@@ -225,38 +227,56 @@ function MetricsViewContent({ epochs }: MetricsViewProps) {
   const padding = 20;
 
   // 1. Loss scale
-  const validValLosses = valLossesToPlot.filter((v): v is number => v !== null);
-  const maxLoss = Math.max(...lossesToPlot, ...validValLosses, 1);
-  const minLoss = Math.min(...lossesToPlot, ...validValLosses, 0);
-  const lossRange = maxLoss - minLoss || 1;
+  const validStepLosses = stepLosses.filter(v => typeof v === 'number' && Number.isFinite(v));
+  const validEpochTrainLosses = epochTrainLosses.filter(v => typeof v === 'number' && Number.isFinite(v));
+  const validValLosses = valLossesToPlot.filter((v): v is number => v !== null && typeof v === 'number' && Number.isFinite(v));
+  
+  const currentValidLosses = plotSteps ? validStepLosses : validEpochTrainLosses;
+
+  const maxLoss = currentValidLosses.length > 0 ? Math.max(...currentValidLosses, ...validValLosses, 1) : 1;
+  const minLoss = currentValidLosses.length > 0 ? Math.min(...currentValidLosses, ...validValLosses, 0) : 0;
+  const lossRange = (Number.isFinite(maxLoss) && Number.isFinite(minLoss) && maxLoss > minLoss) ? (maxLoss - minLoss) : 1;
 
   // 2. Secondary scale (Accuracy, MSE, or Perplexity)
-  const validValSecondaries = valSecondariesToPlot.filter((v): v is number => v !== null);
-  const maxSecondary = isRegression || isPerplexity
-    ? Math.max(...secondariesToPlot, ...validValSecondaries, 1)
-    : 1.0;
-  const minSecondary = isPerplexity
-    ? Math.min(...secondariesToPlot, ...validValSecondaries, 0)
-    : 0.0;
-  const secondaryRange = maxSecondary - minSecondary || 1;
+  const validStepSec = stepSecondary.filter(v => typeof v === 'number' && Number.isFinite(v));
+  const validEpochTrainSec = epochTrainSecondary.filter(v => typeof v === 'number' && Number.isFinite(v));
+  const validValSecondaries = valSecondariesToPlot.filter((v): v is number => v !== null && typeof v === 'number' && Number.isFinite(v));
+
+  const currentValidSec = plotSteps ? validStepSec : validEpochTrainSec;
+
+  const rawMaxSec = currentValidSec.length > 0 ? Math.max(...currentValidSec, ...validValSecondaries, 1) : 1;
+  const rawMinSec = currentValidSec.length > 0 ? Math.min(...currentValidSec, ...validValSecondaries, 0) : 0;
+
+  const maxSecondary = (isRegression || isPerplexity) && Number.isFinite(rawMaxSec) ? rawMaxSec : 1.0;
+  const minSecondary = isPerplexity && Number.isFinite(rawMinSec) ? rawMinSec : 0.0;
+  const secondaryRange = (Number.isFinite(maxSecondary) && Number.isFinite(minSecondary) && maxSecondary > minSecondary)
+    ? (maxSecondary - minSecondary)
+    : 1;
 
   const getPointsString = (data: (number | null)[], minVal: number, range: number) => {
-    if (data.length === 0) return '';
+    if (!data || data.length === 0) return '';
+    const safeMin = Number.isFinite(minVal) ? minVal : 0;
+    const safeRange = Number.isFinite(range) && range > 0 ? range : 1;
+
     if (data.length === 1) {
-      const val = data[0] ?? 0;
+      const val = data[0];
+      const safeVal = val !== null && typeof val === 'number' && Number.isFinite(val) ? val : 0;
       const x1 = padding;
       const x2 = width - padding;
-      const y = height - padding - ((val - minVal) / range) * (height - padding * 2);
-      return `${x1},${y} ${x2},${y}`;
+      const y = height - padding - ((safeVal - safeMin) / safeRange) * (height - padding * 2);
+      const safeY = Number.isFinite(y) ? y : height / 2;
+      return `${x1},${safeY} ${x2},${safeY}`;
     }
+
     return data
       .map((val, idx) => {
-        if (val === null) return null;
+        if (val === null || typeof val !== 'number' || !Number.isFinite(val)) return null;
         const x = padding + (idx / (data.length - 1)) * (width - padding * 2);
-        const y = height - padding - ((val - minVal) / range) * (height - padding * 2);
+        const y = height - padding - ((val - safeMin) / safeRange) * (height - padding * 2);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
         return `${x},${y}`;
       })
-      .filter(p => p !== null)
+      .filter((p): p is string => p !== null)
       .join(' ');
   };
 
