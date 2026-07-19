@@ -28,10 +28,12 @@ def compute_batch_metrics(
     metrics = {"loss": float(loss_val)}
     import math
 
-    try:
-        metrics["perplexity"] = float(math.exp(min(loss_val, 20.0)))
-    except (OverflowError, ValueError):
-        metrics["perplexity"] = float("inf")
+    # Calculate perplexity only for 3D sequence outputs or language modeling tasks
+    if outputs.dim() >= 3 or task_type in ("text", "lm", "language_modeling"):
+        try:
+            metrics["perplexity"] = float(math.exp(min(loss_val, 20.0)))
+        except (OverflowError, ValueError):
+            metrics["perplexity"] = float("inf")
 
     with torch.no_grad():
         if task_type == "classification":

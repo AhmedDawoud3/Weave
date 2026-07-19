@@ -29,6 +29,9 @@ export function MetricsView({ epochs }: MetricsViewProps) {
   const [secHoveredIdx, setSecHoveredIdx] = useState<number | null>(null);
   const [secTooltipPos, setSecTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
+  // Active secondary metric mode selection ('auto' | 'accuracy' | 'perplexity' | 'mse')
+  const [selectedMetricMode, setSelectedMetricMode] = useState<'auto' | 'accuracy' | 'perplexity' | 'mse'>('auto');
+
   // Format dynamic clock duration (MM:SS or HH:MM:SS)
   const formatDuration = (seconds: number | null): string => {
     if (seconds === null || isNaN(seconds) || seconds < 0) return '--:--';
@@ -102,11 +105,21 @@ export function MetricsView({ epochs }: MetricsViewProps) {
 
   const hasPerplexity = stepMetrics.some(d => typeof (d.metrics?.perplexity ?? d.metrics?.train_perplexity) === 'number') ||
                         epochMetrics.some(d => typeof (d.metrics?.perplexity ?? d.metrics?.val_perplexity) === 'number');
-  const isPerplexity = hasPerplexity && !isRegression;
+
+  const activeMetricMode = selectedMetricMode !== 'auto'
+    ? selectedMetricMode
+    : isRegression
+      ? 'mse'
+      : hasPerplexity
+        ? 'perplexity'
+        : 'accuracy';
+
+  const isPerplexity = activeMetricMode === 'perplexity';
+  const isAccuracy   = activeMetricMode === 'accuracy';
 
   // Gather secondary metrics (Accuracy / MSE / Perplexity)
   const stepSecondary = stepMetrics.map(d => {
-    if (isRegression) {
+    if (isRegression || activeMetricMode === 'mse') {
       const val = d.metrics?.train_mse ?? d.metrics?.mse;
       return typeof val === 'number' && !isNaN(val) ? val : 0;
     } else if (isPerplexity) {
@@ -490,22 +503,57 @@ export function MetricsView({ epochs }: MetricsViewProps) {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-foreground uppercase tracking-wider">
-                  {isRegression
+                  {isRegression || isMse
                     ? 'Mean Squared Error (MSE)'
                     : isPerplexity
                       ? 'Perplexity (PPL)'
                       : 'Accuracy Curve'}
                 </span>
-                {!isRegression && !isPerplexity && latestPpl !== null && (
-                  <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20" title="Perplexity (exp(loss)) — standard evaluation metric for Transformers & Language Models">
-                    PPL: {latestPpl < 10000 ? latestPpl.toFixed(1) : '>10000'}
-                  </span>
-                )}
+                {/* Metric Selector Toggle Buttons */}
+                <div className="flex bg-background/60 border border-border rounded-lg p-0.5 items-center select-none text-[9px] font-bold uppercase tracking-wider gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMetricMode('accuracy')}
+                    className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      isAccuracy
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Accuracy
+                  </button>
+                  {hasPerplexity && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMetricMode('perplexity')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        isPerplexity
+                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      PPL
+                    </button>
+                  )}
+                  {hasMse && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMetricMode('mse')}
+                      className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                        isMse
+                          ? 'bg-primary/20 text-primary border border-primary/30 font-black'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      MSE
+                    </button>
+                  )}
+                </div>
               </div>
-              <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold">
+              <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-extrabold mt-0.5">
                 {plotSteps 
-                  ? `Step-Level Training ${isRegression ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}` 
-                  : `Epoch-Level Train & Val ${isRegression ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}`}
+                  ? `Step-Level Training ${isRegression || isMse ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}` 
+                  : `Epoch-Level Train & Val ${isRegression || isMse ? 'MSE' : isPerplexity ? 'Perplexity' : 'Accuracy'}`}
               </span>
             </div>
             <div className="flex gap-3 text-xs font-mono font-bold">
