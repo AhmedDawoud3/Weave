@@ -55,8 +55,8 @@ class GraphCompiler:
             )
 
         # Collect input ports and output ports from the graph nodes
-        input_ports = [n.id for n in graph.nodes if n.type == "InputPort"]
-        output_ports = [n.id for n in graph.nodes if n.type == "OutputPort"]
+        input_ports = [n.id for n in graph.nodes if n.type in ("InputPort", "InputNode")]
+        output_ports = [n.id for n in graph.nodes if n.type in ("OutputPort", "OutputNode")]
 
         # Fallback for old single-input/single-output graphs
         if not input_ports:

@@ -674,23 +674,43 @@ class CustomBlockNode(BaseModel):
 
 
 class InputPortParams(BaseModel):
-    name: str
+    name: str = "x"
 
 
 class InputPortNode(BaseModel):
     id: str
     type: Literal["InputPort"]
-    params: InputPortParams
+    params: InputPortParams = Field(default_factory=InputPortParams)
 
 
 class OutputPortParams(BaseModel):
-    name: str
+    name: str = "out"
 
 
 class OutputPortNode(BaseModel):
     id: str
     type: Literal["OutputPort"]
-    params: OutputPortParams
+    params: OutputPortParams = Field(default_factory=OutputPortParams)
+
+
+class InputNodeParams(BaseModel):
+    name: str = "input"
+
+
+class InputNode(BaseModel):
+    id: str
+    type: Literal["InputNode"]
+    params: InputNodeParams = Field(default_factory=InputNodeParams)
+
+
+class OutputNodeParams(BaseModel):
+    name: str = "output"
+
+
+class OutputNode(BaseModel):
+    id: str
+    type: Literal["OutputNode"]
+    params: OutputNodeParams = Field(default_factory=OutputNodeParams)
 
 
 class StackParams(BaseModel):
@@ -795,6 +815,8 @@ NodeConfig = Annotated[
         # Unified Modules & Ports
         InputPortNode,
         OutputPortNode,
+        InputNode,
+        OutputNode,
         StackNode,
         ModuleNode,
     ],

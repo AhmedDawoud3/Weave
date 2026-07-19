@@ -701,6 +701,8 @@ class StackModule(nn.Module):
 
 @ComponentFactory.register("InputPort")
 @ComponentFactory.register("OutputPort")
+@ComponentFactory.register("InputNode")
+@ComponentFactory.register("OutputNode")
 def _build_port(node: NodeConfig) -> nn.Module:
     return IdentityModule()
 

@@ -464,6 +464,14 @@ def get_requirements_txt(config: TrainingConfig) -> str:
 
 def get_readme_md(config: TrainingConfig, is_gpt2: bool) -> str:
     model_name = "GPT-2 (124M)" if is_gpt2 else "Weave Neural Network"
+    gen_section = (
+        "## How to Generate Text\n"
+        "Run the text generator using:\n"
+        "```bash\n"
+        "python generate.py \"Once upon a time\"\n"
+        "```"
+    ) if getattr(config.dataset_config, "source", None) == "text" else ""
+
     return f"""# Standalone Exported Model: {model_name}
 
 This project was automatically compiled and exported from Weave.
@@ -481,7 +489,7 @@ python train.py
 ```
 This will train the model, print train/val losses, and save the best checkpoint weights to `checkpoints/best.pt`.
 
-{"## How to Generate Text\\nRun the text generator using:\\n```bash\\npython generate.py \"Once upon a time\"\\n```" if config.dataset_config.source == "text" else ""}
+{gen_section}
 """
 
 def get_gpt2_model_code() -> str:

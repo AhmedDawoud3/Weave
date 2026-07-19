@@ -306,12 +306,59 @@ export const TEMPLATES: Template[] = [
     ]
   },
   {
+    name: "Decoder-Only Transformer (Mini-GPT)",
+    description: "Autoregressive decoder-only Transformer language model built from primitive layers: Token Embedding, Positional Encoding, Causal Self-Attention, FeedForward expansion, LayerNorm, and Vocab Linear Projection.",
+    category: "architecture",
+    inputShape: [2, 16],
+    datasetConfig: {
+      source: 'predefined',
+      name: 'AG_NEWS_SUBSET',
+      split: 'train',
+      transforms: [],
+      dataloader: {
+        batch_size: 2,
+        shuffle: true,
+        num_workers: 0,
+        pin_memory: false,
+        drop_last: false
+      }
+    },
+    lossConfig: { loss_type: 'CrossEntropyLoss' },
+    optimizerConfig: {
+      optimizer_type: 'AdamW',
+      lr: 0.0005,
+      scheduler_type: 'CosineAnnealingLR',
+      epochs: 5
+    },
+    nodes: [
+      { id: "input_node", type: "InputNode", label: "Token Sequence Input (2x16)", position: { x: 250, y: 50 }, params: {} },
+      { id: "embed", type: "Embedding", label: "Token Embedding", position: { x: 250, y: 140 }, params: { num_embeddings: 10000, embedding_dim: 64 } },
+      { id: "pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 230 }, params: { embed_dim: 64, max_seq_len: 512, pe_type: "sinusoidal" } },
+      { id: "attn", type: "SelfAttention", label: "Causal Self-Attention", position: { x: 250, y: 320 }, params: { embed_dim: 64, num_heads: 4, causal: true, dropout: 0.1 } },
+      { id: "ff", type: "FeedForward", label: "FeedForward Block", position: { x: 250, y: 410 }, params: { embed_dim: 64, expansion: 4, dropout: 0.1 } },
+      { id: "ln", type: "LayerNorm", label: "Layer Normalization", position: { x: 250, y: 500 }, params: { normalized_shape: [64] } },
+      { id: "linear", type: "Linear", label: "Vocab Projection", position: { x: 250, y: 590 }, params: { in_features: 64, out_features: 10000 } },
+      { id: "softmax", type: "Softmax", label: "Softmax Probabilities", position: { x: 250, y: 680 }, params: { dim: -1 } },
+      { id: "output_node", type: "OutputNode", label: "Next Token Logits", position: { x: 250, y: 770 }, params: {} }
+    ],
+    edges: [
+      { source: "input_node", target: "embed" },
+      { source: "embed", target: "pe" },
+      { source: "pe", target: "attn" },
+      { source: "attn", target: "ff" },
+      { source: "ff", target: "ln" },
+      { source: "ln", target: "linear" },
+      { source: "linear", target: "softmax" },
+      { source: "softmax", target: "output_node" }
+    ]
+  },
+  {
     name: "Attention Is All You Need (Transformer)",
-    description: "The complete landmark Encoder-Decoder architecture from Vaswani et al., featuring self-attention and visual cross-attention flow routing.",
+    description: "Landmark Encoder-Decoder style Transformer architecture using Self-Attention, FeedForward, LayerNorm, and Linear Projection primitives.",
     category: "paper",
     citation: "Vaswani et al. (2017)",
     paperUrl: "https://arxiv.org/abs/1706.03762",
-    inputShape: [2, 10, 512],
+    inputShape: [2, 10],
     datasetConfig: {
       source: 'predefined',
       name: 'AG_NEWS_SUBSET',
@@ -333,41 +380,32 @@ export const TEMPLATES: Template[] = [
       epochs: 5
     },
     nodes: [
-      // --- Encoder Tower ---
-      { id: "encoder_input", type: "InputNode", label: "Inputs", position: { x: 150, y: 50 }, params: {} },
-      { id: "encoder_embedding", type: "Embedding", label: "Input Embedding", position: { x: 150, y: 150 }, params: { num_embeddings: 32000, embedding_dim: 512 } },
-      { id: "encoder_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 150, y: 250 }, params: { embed_dim: 512, max_seq_len: 512 } },
-      { id: "encoder_block", type: "TransformerEncoder", label: "Transformer Encoder Block", position: { x: 150, y: 350 }, params: {} },
-
-      // --- Decoder Tower ---
-      { id: "decoder_input", type: "InputNode", label: "Outputs (shifted right)", position: { x: 450, y: 50 }, params: {} },
-      { id: "decoder_embedding", type: "Embedding", label: "Output Embedding", position: { x: 450, y: 150 }, params: { num_embeddings: 32000, embedding_dim: 512 } },
-      { id: "decoder_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 450, y: 250 }, params: { embed_dim: 512, max_seq_len: 512 } },
-      { id: "decoder_attn", type: "MultiHeadAttention", label: "Cross-Attention Block", position: { x: 450, y: 350 }, params: {} },
-      { id: "decoder_linear", type: "Linear", label: "Linear Projection", position: { x: 450, y: 450 }, params: { in_features: 512, out_features: 32000 } },
-      { id: "decoder_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 450, y: 550 }, params: { dim: -1 } },
-      { id: "decoder_output", type: "OutputNode", label: "Output Probabilities", position: { x: 450, y: 650 }, params: {} }
+      { id: "encoder_input", type: "InputNode", label: "Inputs", position: { x: 250, y: 50 }, params: {} },
+      { id: "encoder_embedding", type: "Embedding", label: "Input Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 10000, embedding_dim: 128 } },
+      { id: "encoder_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 128, max_seq_len: 512 } },
+      { id: "encoder_attn", type: "SelfAttention", label: "Multi-Head Self-Attention", position: { x: 250, y: 350 }, params: { embed_dim: 128, num_heads: 4, causal: false } },
+      { id: "encoder_ff", type: "FeedForward", label: "FeedForward Block", position: { x: 250, y: 450 }, params: { embed_dim: 128, expansion: 4 } },
+      { id: "encoder_ln", type: "LayerNorm", label: "LayerNorm", position: { x: 250, y: 550 }, params: { normalized_shape: [128] } },
+      { id: "decoder_linear", type: "Linear", label: "Linear Projection", position: { x: 250, y: 650 }, params: { in_features: 128, out_features: 10000 } },
+      { id: "decoder_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 750 }, params: { dim: -1 } },
+      { id: "decoder_output", type: "OutputNode", label: "Output Probabilities", position: { x: 250, y: 850 }, params: {} }
     ],
     edges: [
-      // Encoder Flow
       { source: "encoder_input", target: "encoder_embedding" },
       { source: "encoder_embedding", target: "encoder_pe" },
-      { source: "encoder_pe", target: "encoder_block" },
-
-      // Decoder Flow
-      { source: "decoder_input", target: "decoder_embedding" },
-      { source: "decoder_embedding", target: "decoder_pe" },
-      { source: "decoder_pe", target: "decoder_attn" },
-      { source: "decoder_attn", target: "decoder_linear" },
+      { source: "encoder_pe", target: "encoder_attn" },
+      { source: "encoder_attn", target: "encoder_ff" },
+      { source: "encoder_ff", target: "encoder_ln" },
+      { source: "encoder_ln", target: "decoder_linear" },
       { source: "decoder_linear", target: "decoder_softmax" },
       { source: "decoder_softmax", target: "decoder_output" }
     ]
   },
   {
     name: "Language Models (GPT-2)",
-    description: "Autoregressive decoder-only Transformer architecture from OpenAI. Uses pre-LayerNorm structures and causal attention masks.",
+    description: "Autoregressive decoder-only Transformer architecture using pre-LayerNorm structures and causal self-attention.",
     category: "paper",
-    inputShape: [2, 10, 768],
+    inputShape: [2, 16],
     datasetConfig: {
       source: 'predefined',
       name: 'AG_NEWS_SUBSET',
@@ -390,18 +428,22 @@ export const TEMPLATES: Template[] = [
     },
     nodes: [
       { id: "gpt2_input", type: "InputNode", label: "Inputs", position: { x: 250, y: 50 }, params: {} },
-      { id: "gpt2_embed", type: "Embedding", label: "Input Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 50257, embedding_dim: 768 } },
-      { id: "gpt2_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 768, max_seq_len: 1024 } },
-      { id: "gpt2_block", type: "TransformerEncoder", label: "Transformer Block", position: { x: 250, y: 350 }, params: {} },
-      { id: "gpt2_linear", type: "Linear", label: "Prediction projection", position: { x: 250, y: 450 }, params: { in_features: 768, out_features: 50257 } },
-      { id: "gpt2_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 540 }, params: { dim: -1 } },
-      { id: "gpt2_output", type: "OutputNode", label: "Predictions", position: { x: 250, y: 630 }, params: {} }
+      { id: "gpt2_embed", type: "Embedding", label: "Input Embedding", position: { x: 250, y: 150 }, params: { num_embeddings: 10000, embedding_dim: 128 } },
+      { id: "gpt2_pe", type: "PositionalEncoding", label: "Positional Encoding", position: { x: 250, y: 250 }, params: { embed_dim: 128, max_seq_len: 1024 } },
+      { id: "gpt2_attn", type: "SelfAttention", label: "Causal Self-Attention", position: { x: 250, y: 350 }, params: { embed_dim: 128, num_heads: 4, causal: true } },
+      { id: "gpt2_ff", type: "FeedForward", label: "FeedForward Expansion", position: { x: 250, y: 450 }, params: { embed_dim: 128, expansion: 4 } },
+      { id: "gpt2_ln", type: "LayerNorm", label: "LayerNorm", position: { x: 250, y: 550 }, params: { normalized_shape: [128] } },
+      { id: "gpt2_linear", type: "Linear", label: "Prediction projection", position: { x: 250, y: 650 }, params: { in_features: 128, out_features: 10000 } },
+      { id: "gpt2_softmax", type: "Softmax", label: "Softmax Classifier", position: { x: 250, y: 740 }, params: { dim: -1 } },
+      { id: "gpt2_output", type: "OutputNode", label: "Predictions", position: { x: 250, y: 830 }, params: {} }
     ],
     edges: [
       { source: "gpt2_input", target: "gpt2_embed" },
       { source: "gpt2_embed", target: "gpt2_pe" },
-      { source: "gpt2_pe", target: "gpt2_block" },
-      { source: "gpt2_block", target: "gpt2_linear" },
+      { source: "gpt2_pe", target: "gpt2_attn" },
+      { source: "gpt2_attn", target: "gpt2_ff" },
+      { source: "gpt2_ff", target: "gpt2_ln" },
+      { source: "gpt2_ln", target: "gpt2_linear" },
       { source: "gpt2_linear", target: "gpt2_softmax" },
       { source: "gpt2_softmax", target: "gpt2_output" }
     ]
