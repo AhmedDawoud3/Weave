@@ -289,6 +289,8 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
   const activeSubGraphs  = useWeaveStore(state => state.activeSubGraphs);
   const edges            = useWeaveStore(state => state.edges);
   const allNodes         = useWeaveStore(state => state.nodes);
+  const ensureSubgraphExists = useWeaveStore(state => state.ensureSubgraphExists);
+  const enterSubGraph        = useWeaveStore(state => state.enterSubGraph);
 
   const updateNodeInternals = useUpdateNodeInternals();
 
@@ -315,6 +317,16 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
   const nodeRef = useRef<HTMLDivElement>(null);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDoubleClick = async (e: React.MouseEvent) => {
+    if (isBlock) {
+      e.stopPropagation();
+      const subGraphId = await ensureSubgraphExists(id);
+      if (subGraphId) {
+        await enterSubGraph(subGraphId);
+      }
+    }
+  };
 
   const clearHoverTimers = () => {
     if (enterTimerRef.current) { clearTimeout(enterTimerRef.current); enterTimerRef.current = null; }
@@ -537,6 +549,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
       className="relative select-none group"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onDoubleClick={handleDoubleClick}
     >
       {/* Target Handles (Inputs) */}
       {Array.from({ length: targetCount }).map((_, i) => {
@@ -555,7 +568,10 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
       })}
 
       {/* Node Container Card */}
-      <div className={`bg-card border ${theme.border} ${cardW} rounded-lg shadow-lg overflow-hidden transition-all duration-200 relative pt-1`}>
+      <div
+        onDoubleClick={handleDoubleClick}
+        className={`bg-card border ${theme.border} ${cardW} rounded-lg shadow-lg overflow-hidden transition-all duration-200 relative pt-1`}
+      >
         
         {/* Colorful top strip */}
         <div className={`h-1.5 w-full absolute top-0 left-0 ${theme.topBar}`} />
@@ -594,7 +610,12 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
               </div>
             ) : (
               <span
-                onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
+                onClick={(e) => {
+                  if (!isBlock) {
+                    e.stopPropagation();
+                    setEditingLabel(true);
+                  }
+                }}
                 className={`text-[11px] font-medium text-foreground truncate cursor-pointer hover:underline ${
                   isHovered || isExpanded ? 'max-w-[150px]' : 'max-w-[120px]'
                 }`}
