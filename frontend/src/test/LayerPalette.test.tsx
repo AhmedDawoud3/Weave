@@ -39,7 +39,7 @@ vi.mock("lucide-react", () => {
 describe("LayerPalette", () => {
   it("renders the brand name", () => {
     render(<LayerPalette onNavigateDashboard={vi.fn()} />);
-    expect(screen.getByText("WEAVE")).toBeInTheDocument();
+    expect(screen.getByText("Weave")).toBeInTheDocument();
   });
 
   it("renders the dashboard navigation button and calls callback on click", async () => {

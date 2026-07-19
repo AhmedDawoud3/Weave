@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { LayerNode } from "@/components/LayerNode";
 import { useWeaveStore } from "@/store/useWeaveStore";
@@ -10,6 +10,7 @@ vi.mock("@xyflow/react", () => ({
   ),
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
   useUpdateNodeInternals: () => vi.fn(),
+  useConnection: () => ({ inProgress: false }),
 }));
 
 // Cast to bypass reactflow's NodeProps type requirements in unit tests
@@ -27,6 +28,30 @@ describe("LayerNode", () => {
     render(<LayerNodeAny id="test-1" data={baseData} />);
     expect(screen.getByText("Conv2d")).toBeInTheDocument();
     expect(screen.getByText("CONV1")).toBeInTheDocument();
+  });
+
+  it("renders with wider base width class", () => {
+    const { container } = render(<LayerNodeAny id="test-width" data={baseData} />);
+    const nodeCard = container.querySelector(".bg-card");
+    expect(nodeCard).toHaveClass("w-[140px]");
+  });
+
+  it("does not immediately expand on mouse enter until 300ms hover delay passes", () => {
+    vi.useFakeTimers();
+    const { container } = render(<LayerNodeAny id="test-hover-delay" data={baseData} />);
+    const nodeOuter = container.firstElementChild as HTMLElement;
+    const nodeCard = container.querySelector(".bg-card");
+
+    fireEvent.mouseEnter(nodeOuter);
+    expect(nodeCard).toHaveClass("w-[140px]");
+    expect(nodeCard).not.toHaveClass("w-[170px]");
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(nodeCard).toHaveClass("w-[170px]");
+    vi.useRealTimers();
   });
 
   it("displays the output shape badge when provided", () => {

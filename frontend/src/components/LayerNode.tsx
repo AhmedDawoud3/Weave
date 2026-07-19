@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Handle, Position, type NodeProps, type Node, useUpdateNodeInternals } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node, useUpdateNodeInternals, useConnection } from '@xyflow/react';
 import { Network, ChevronDown, ChevronUp, Trash2, ShieldAlert } from 'lucide-react';
 import type { NodeData } from '../types';
 import { useWeaveStore, getInducedParam } from '../store/useWeaveStore';
@@ -304,19 +304,61 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
     ? incomingEdgesCount > 0
     : edges.some(e => e.source === id);
 
+  const connection = useConnection();
+  const isConnecting = connection?.inProgress ?? false;
+
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState<string>(data.label ?? '');
 
   const nodeRef = useRef<HTMLDivElement>(null);
+  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHoverTimers = () => {
+    if (enterTimerRef.current) { clearTimeout(enterTimerRef.current); enterTimerRef.current = null; }
+    if (leaveTimerRef.current) { clearTimeout(leaveTimerRef.current); leaveTimerRef.current = null; }
+  };
 
   useEffect(() => {
-    if (dragging) {
+    return () => clearHoverTimers();
+  }, []);
+
+  useEffect(() => {
+    if (dragging || isConnecting) {
+      clearHoverTimers();
       setIsHovered(false);
-      setIsExpanded(false);
+      if (dragging) setIsExpanded(false);
     }
-  }, [dragging]);
+  }, [dragging, isConnecting]);
+
+  const handleMouseEnter = () => {
+    if (dragging || isConnecting) return;
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+    if (!isHovered && !enterTimerRef.current) {
+      enterTimerRef.current = setTimeout(() => {
+        setIsHovered(true);
+        enterTimerRef.current = null;
+      }, 300);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (enterTimerRef.current) {
+      clearTimeout(enterTimerRef.current);
+      enterTimerRef.current = null;
+    }
+    if (isHovered && !leaveTimerRef.current) {
+      leaveTimerRef.current = setTimeout(() => {
+        setIsHovered(false);
+        leaveTimerRef.current = null;
+      }, 200);
+    }
+  };
 
   useEffect(() => {
     if (!nodeRef.current) return;
@@ -484,20 +526,17 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
   };
 
   const fullFields = FULL_FIELDS[data.type] || [];
-  const baseW = isBlock ? 'w-[100px]' : 'w-[80px]';
-  const hoveredW = isBlock ? 'w-[130px]' : 'w-[110px]';
-  const expandedW = 'w-[190px]';
+  const baseW = isBlock ? 'w-[160px]' : 'w-[140px]';
+  const hoveredW = isBlock ? 'w-[190px]' : 'w-[170px]';
+  const expandedW = 'w-[220px]';
   const cardW = isExpanded ? expandedW : isHovered ? hoveredW : baseW;
 
   return (
     <div
       ref={nodeRef}
       className="relative select-none group"
-      onMouseEnter={() => { if (!dragging) setIsHovered(true); }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        // ponytail: Expansion state is tracked locally on the node and resets only when dragged. Upgradable by hoisting layout states to Zustand.
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Target Handles (Inputs) */}
       {Array.from({ length: targetCount }).map((_, i) => {
@@ -557,7 +596,7 @@ export function LayerNode({ id, data, selected, dragging }: NodeProps<Node<NodeD
               <span
                 onClick={(e) => { e.stopPropagation(); setEditingLabel(true); }}
                 className={`text-[11px] font-medium text-foreground truncate cursor-pointer hover:underline ${
-                  isHovered || isExpanded ? 'max-w-[100px]' : 'max-w-[60px]'
+                  isHovered || isExpanded ? 'max-w-[150px]' : 'max-w-[120px]'
                 }`}
               >
                 {data.label || data.type}
