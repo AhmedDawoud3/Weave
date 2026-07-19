@@ -121,6 +121,33 @@ class Trainer:
         if self.event_bus:
             self.event_bus.push(msg)
 
+    def _compute_loss(self, outputs: torch.Tensor, targets: torch.Tensor):
+        if not isinstance(outputs, torch.Tensor) or not isinstance(targets, torch.Tensor):
+            return self.loss_fn(outputs, targets), outputs, targets
+
+        # 3D Sequence outputs (B, T, C) with 1D classification targets (B,)
+        if outputs.dim() == 3 and targets.dim() == 1:
+            outputs_adapted = outputs.mean(dim=1)
+            loss = self.loss_fn(outputs_adapted, targets)
+            return loss, outputs_adapted, targets
+
+        # 3D Sequence outputs (B, T, C) with 2D token targets (B, T)
+        elif outputs.dim() == 3 and targets.dim() == 2:
+            C = outputs.size(-1)
+            outputs_flat = outputs.view(-1, C)
+            targets_flat = targets.view(-1)
+            loss = self.loss_fn(outputs_flat, targets_flat)
+            return loss, outputs_flat, targets_flat
+
+        # Extra singleton dimension e.g. (B, 1, C)
+        elif outputs.dim() > targets.dim() + 1 and outputs.size(1) == 1:
+            outputs_squeezed = outputs.squeeze(1)
+            loss = self.loss_fn(outputs_squeezed, targets)
+            return loss, outputs_squeezed, targets
+
+        loss = self.loss_fn(outputs, targets)
+        return loss, outputs, targets
+
     def _run_loop(self) -> None:
         """Main training thread function."""
         try:
@@ -339,7 +366,7 @@ class Trainer:
                         and self.device.type == "cuda",
                     ):
                         outputs = self.model(inputs)
-                        loss = self.loss_fn(outputs, targets)
+                        loss, adapted_outputs, adapted_targets = self._compute_loss(outputs, targets)
                         loss_for_accum = (
                             loss / self.settings.gradient_accumulation_steps
                         )
@@ -390,7 +417,7 @@ class Trainer:
                     batch_size = inputs.size(0)
                     batch_loss = loss.item()
                     batch_metrics = compute_batch_metrics(
-                        outputs, targets, batch_loss, task_type
+                        adapted_outputs, adapted_targets, batch_loss, task_type
                     )
                     train_tracker.update(batch_metrics, batch_size)
 
@@ -444,12 +471,12 @@ class Trainer:
                             val_targets = val_targets.to(self.device)
 
                             val_outputs = self.model(val_inputs)
-                            val_loss = self.loss_fn(val_outputs, val_targets)
+                            val_loss, adapted_val_outputs, adapted_val_targets = self._compute_loss(val_outputs, val_targets)
 
                             v_size = val_inputs.size(0)
                             v_loss = val_loss.detach().cpu().item()
                             v_metrics = compute_batch_metrics(
-                                val_outputs, val_targets, v_loss, task_type
+                                adapted_val_outputs, adapted_val_targets, v_loss, task_type
                             )
                             val_tracker.update(v_metrics, v_size)
 

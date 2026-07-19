@@ -29,11 +29,17 @@ def compute_batch_metrics(
 
     with torch.no_grad():
         if task_type == "classification":
-            preds = outputs.argmax(dim=1)
+            if outputs.dim() == 3 and targets.dim() == 1:
+                outputs = outputs.mean(dim=1)
+            preds = outputs.argmax(dim=-1)
+            if targets.dim() > 1 and preds.dim() != targets.dim():
+                targets = targets.view(-1)
+                preds = preds.view(-1)
             acc = (preds == targets).float().mean().item() * 100.0
             metrics["accuracy"] = float(acc)
         elif task_type == "multi_label":
-            # Check if outputs are logits or probabilities
+            if outputs.dim() == 3 and targets.dim() == 1:
+                outputs = outputs.mean(dim=1)
             is_logit = torch.any(outputs < 0.0) or torch.any(outputs > 1.0)
             preds = (
                 (outputs > 0.0).float()
@@ -43,6 +49,8 @@ def compute_batch_metrics(
             acc = (preds == targets.float()).float().mean().item() * 100.0
             metrics["accuracy"] = float(acc)
         elif task_type == "regression":
+            if outputs.dim() == 3 and targets.dim() < 3:
+                outputs = outputs.mean(dim=1)
             mse = torch.mean((outputs - targets) ** 2).item()
             mae = torch.mean(torch.abs(outputs - targets)).item()
             metrics["mse"] = float(mse)
